@@ -47,7 +47,7 @@ Java 内存马生成器生态标杆（类 Jenkins 般全面）：
 | `memshell`（Rust 版） | 四轴分类学（ServerType/ShellType/ShellTool/Packer）+ 植入（injector）/验证（回显三态：dnslog/sleep/response）/操作（Godzilla/Behinder/Suo5 协议）三面 | MemShellParty 全量 |
 | `mutate` | 正交变形原语集 + WAF 指纹→策略映射 + 变异重发比对引擎（data 里带 tried_variants + outcomes） | cheatsheet 原语 + WhatWaf 映射 + BypassPro 闭环 |
 
-注意：Java 字节码生成（ByteBuddy/ASM）在 Rust 侧不可移植——内存马本体生成保留 Java 生态（MemShellParty CLI 模式生成字节码），vf_rust_lib 的 memshell 模块做**编排与操作**（调用生成器 + 植入投递 + 回显验证 + 工具协议驱动），不做字节码生成。此边界待用户确认。
+注意（边界，待用户确认）：Java 字节码生成（ByteBuddy/ASM）在 Rust 侧不可移植——内存马本体生成保留 Java 生态（MemShellParty 生成字节码）。vf_rust_lib 的 memshell 模块做**编排与操作**：调用生成器、植入投递、回显验证、工具协议驱动，不做字节码生成。
 
 ## 4. 坑
 
