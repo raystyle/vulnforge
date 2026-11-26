@@ -18,6 +18,10 @@
 | **`settings.json`** | 权限 allowlist + hooks 配置                                     | 人     | pi/npm/vitest/git 常规操作 allowlist                     |
 | **hooks/**          | **确定性强制**：必须拦的动作，CLAUDE.md 只是约定、hook 才是闸门 | 人     | guard-dangerous.mjs / verify-evidence.mjs / with-node.sh |
 
+## tools/ 边界
+
+`tools/` = 辅助项目开发、完善 Claude 开发体系的工具（lint / 校验 / 基准 / 会话归档 / 意图轨迹分析）；`src/` = 插件主体（Pi 扩展产品代码）。开发体系工具的实现与测试都归 tools/（含 *.test.ts，vitest include 已覆盖）。
+
 ## 判据（什么放哪）
 
 - 每个会话都要的**事实** → CLAUDE.md；只对某类文件要的**规则** → rules（paths 域）

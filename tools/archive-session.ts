@@ -1,5 +1,29 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+/**
+ * Incremental mirror: append only the bytes the archive has not seen yet.
+ * The transcript is append-only JSONL, so a byte-offset cursor is sound;
+ * a full copy would re-write the whole file on every SessionEnd (22MB at
+ * ~1h scale, growing linearly). On size regression (source truncated or
+ * replaced), fall back to a full rewrite.
+ */
+function appendTail(sourcePath: string, archivePath: string): void {
+  const sourceSize = statSync(sourcePath).size;
+  if (!existsSync(archivePath)) {
+    writeFileSync(archivePath, readFileSync(sourcePath));
+    return;
+  }
+  const archivedSize = statSync(archivePath).size;
+  if (sourceSize === archivedSize) return;
+  if (sourceSize < archivedSize) {
+    // source was reset (e.g. /clear) — replace the archive wholesale
+    writeFileSync(archivePath, readFileSync(sourcePath));
+    return;
+  }
+  const handle = readFileSync(sourcePath);
+  appendFileSync(archivePath, handle.subarray(archivedSize));
+}
 
 /**
  * SessionEnd transcript mirror: copy the conversation JSONL into the
@@ -45,7 +69,7 @@ export function archiveSession(input: ArchiveInput): ArchiveOutcome {
   const dir = sessionArchiveDir(projectRoot);
   mkdirSync(dir, { recursive: true });
   const archivePath = join(dir, `${sessionId}.jsonl`);
-  copyFileSync(transcriptPath, archivePath);
+  appendTail(transcriptPath, archivePath);
 
   const indexPath = join(dir, "INDEX.md");
   const line = indexLine({ sessionId, reason, isoDate: new Date().toISOString() });

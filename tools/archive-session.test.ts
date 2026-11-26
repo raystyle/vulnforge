@@ -1,8 +1,8 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { archiveSession, indexLine, sessionArchiveDir } from "../src/claude/archive-session.ts";
+import { archiveSession, indexLine, sessionArchiveDir } from "./archive-session.ts";
 
 const scratch: string[] = [];
 function makeProject(): string {
@@ -69,6 +69,36 @@ describe("archiveSession (SessionEnd transcript mirror)", () => {
     archiveSession(input);
     const index = readFileSync(join(project, ".claude", "sessions", "INDEX.md"), "utf8");
     expect(index.match(/dup-1/g) ?? []).toHaveLength(1);
+  });
+
+  it("incremental: appends only new bytes on re-archive, replaces on source regression", () => {
+    const project = makeProject();
+    const transcript = join(project, "t.jsonl");
+    writeFileSync(transcript, '{"a":1}\n');
+    const input = { projectRoot: project, sessionId: "inc-1", transcriptPath: transcript, reason: "other" as const };
+    archiveSession(input);
+    // source grows — only the tail is appended, existing bytes untouched
+    writeFileSync(transcript, '{"a":1}\n{"b":2}\n');
+    archiveSession(input);
+    const stored = readFileSync(join(project, ".claude", "sessions", "inc-1.jsonl"), "utf8");
+    expect(stored).toBe('{"a":1}\n{"b":2}\n');
+    // source shrinks (reset) — archive replaced wholesale
+    writeFileSync(transcript, '{"fresh":true}\n');
+    archiveSession(input);
+    const reset = readFileSync(join(project, ".claude", "sessions", "inc-1.jsonl"), "utf8");
+    expect(reset).toBe('{"fresh":true}\n');
+  });
+
+  it("no-op when the source has not grown", () => {
+    const project = makeProject();
+    const transcript = join(project, "t.jsonl");
+    writeFileSync(transcript, '{"a":1}\n');
+    const input = { projectRoot: project, sessionId: "noop-1", transcriptPath: transcript, reason: "other" as const };
+    archiveSession(input);
+    const before = statSync(join(project, ".claude", "sessions", "noop-1.jsonl")).mtimeMs;
+    archiveSession(input);
+    const after = statSync(join(project, ".claude", "sessions", "noop-1.jsonl")).mtimeMs;
+    expect(after).toBe(before);
   });
 
   it("sessionArchiveDir derives .claude/sessions from a project root", () => {

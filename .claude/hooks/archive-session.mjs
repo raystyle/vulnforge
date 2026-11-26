@@ -6,7 +6,7 @@
  * the tracked pointer.
  */
 import { dirname, resolve } from "node:path";
-import { archiveSession } from "../../src/claude/archive-session.ts";
+import { archiveSession } from "../../tools/archive-session.ts";
 
 let raw = "";
 process.stdin.setEncoding("utf8");

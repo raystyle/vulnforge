@@ -32,7 +32,9 @@
     "test": "vitest run",
     "lint": "biome check .",
     "brand-lint": "node tools/brand-lint.mjs",
-    "contracts-lint": "node tools/contracts-lint.mjs"
+    "contracts-lint": "node tools/contracts-lint.mjs",
+    "intent-trace": "node --experimental-strip-types tools/intent-trace.ts",
+    "session-archive": "node --experimental-strip-types .claude/hooks/archive-session.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
