@@ -619,7 +619,7 @@ export default function (pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: "vf_rs_search",
-    label: "VulnForge exploit-rs search",
+    label: "VulnForge exploit search",
     description:
       "Search the exploit rs catalog: FTS over script metadata (bm25: name 10/keywords 8/description 3). With vulnId: resolve the exploit rs for that vulnerability (cross-domain — a nuclei PoC hit maps straight to its exploit). Without a prior rs sync the catalog may be stale.",
     parameters: Type.Object({
