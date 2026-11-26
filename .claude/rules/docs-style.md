@@ -24,7 +24,7 @@
 | 命令          | 命令       | command              | `/vf[-<名>]`（如 `/vf-debug`）          | 斜杠函数         |
 | 事件守卫      | 穷尽守卫   | exhaustiveness guard | `assert<Event>EventHandled`             | 穷举检查         |
 
-- **"机器"指代 XState 概念是最严重违例**（本项目实战教训：状态机写成机器导致概念漂移）
+- **以"机器"指代 XState 概念是最严重违例**：概念漂移的最大来源，docs-terminology 检查项单独执法
 - "机器"仅允许指物理计算机（如"跨机器同步""新机器"）
 - 新术语进表：先查 `.research/` 与既有代码用法，经用户确认后增删；发现违例改文不改表
 - 表内术语在 README.md（中文）与 README_EN.md（英文）中必须成对一致

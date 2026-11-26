@@ -1,28 +1,30 @@
 ---
 
 name: work-state
-description: VulnForge 工作状态（2026-11-26 深夜）：首功能已交付+三平台 Round 5 验证中；开发体系闭环（system-lint 第六门）落地 d3a1a79
+description: VulnForge 工作状态（2026-11-26）：首功能交付 + 体系闭环/受控双语规范落地；三平台七项门全绿（Round 6）
 metadata:
 node_type: memory
 type: project
 originSessionId: d8cd2140-8dfa-43c0-8e0b-a189c6c104d9
-modified: 2026-11-26T12:09:00.054Z
+modified: 2026-11-26T12:43:40.747Z
 ---
 
 # VulnForge 工作状态（2026-11-26 深夜）
 
-**首功能（nuclei 模板一条龙）已交付**（ADR-003）：模板仓 `vulnforge-workspace`（上游 nuclei-templates + 封版 templates.db 14475 行），9 工具 + 2 命令。三平台 Round 4b 全绿（ae9a378：跨平台 e2e 门控 + with-node.sh hook 修复）。
+**首功能（nuclei 模板一条龙）已交付**（ADR-003）：模板仓 `vulnforge-workspace`（上游 nuclei-templates + 封版 templates.db 14475 行），9 工具 + 2 命令。
 
-**开发体系闭环已落地**（d3a1a79，用户要求"动一处进化全局"）：
+**开发体系闭环轨迹**（ADR-002，详见 `.research/dev-system/`）：
 
-- `tools/system-lint.mjs` 第六检查门：11 项资产关联核查（gate 清单↔四文档、工具面↔tools.md↔测试、ADR↔索引、研究五件套、状态机可达性棘轮=3、hook 监视表、skill/hook 形状、CLAUDE.md 状态面）——manypkg 式 check 注册表 + knip 式可达性（先例依据在 `.research/dev-system/notes.md`）
-- 真脱节修复：engine-probe 接入 resolveScanPortForRun；mock-lifecycle 驱动 SpawnedMockTarget.phase；verify skill 门清单更新；CLAUDE.md mojibake 状态节重写；docs/tools.md 重复段删除
-- Round 5 三平台验证进行中（d3a1a79）：mac 已全绿（system-lint 11/11），linux 报告待回
+- Round 1-3：体系骨架三平台基线全绿（ADR-002 Git 流程节记录）
+- Round 4/4b（ae9a378）：修复 e2e 硬编码 D:/ 路径 + macOS hook node 缺失（with-node.sh 包装）
+- Round 5（d3a1a79）：system-lint 11 项检查进第六门；engine-probe/mock-lifecycle 状态机接线
+- Round 6（e4e23d0 + 3387d0e）：受控双语规范（docs-style.md + docs-terminology/docs-sentence-length/code-naming，14 项检查）；ToolExecutionMachine 接入全部 9 个工具（无豁免闭环）
+- 三平台七项检查门全绿（Windows 99+9 / ubuntu 96+12 / mac 96+12，共 108）
 
 **How to apply:**
 
-- 改检查门/工具面/资产结构 → system-lint 会强制同步派生文档；红时修派生物，不删检查
-- Round 5 linux 报告到达后：result.md 补证据、报告用户三平台闭环完成
-- 遗留（ship.md）：单步工具最小状态机逐台补齐（每补一台升 ratchet 底线）；reviewer/security-reviewer 独立审查 nuclei feature 未跑
-- 实战教训（勿回退）：execFile Windows 死锁→spawnCollect；WAL seal/verify 先 checkpoint；状态机接线检查=从 src/index.ts + tools/*.mjs 入口可达性遍历（`./` 前缀要剥）
+- 改检查门/工具面/资产结构 → system-lint 强制同步派生文档；红时修派生物，不删检查
+- 历史轨迹边界（用户决定）：ADR、PR（commit）、memory、plan 四处可留轨迹；rules/skills/README/CLAUDE.md/research 结果文档自包含
+- 遗留：implement/ship skills、CI、nuclei feature 的 reviewer/security-reviewer 独立审查、单步工具逐台精化
+- 实战教训（勿回退）：execFile Windows 死锁→spawnCollect；WAL seal/verify 先 checkpoint；泛型包装器用恒等返回类型保 ctx 推断；`./` 前缀在可达性解析要剥
 - ADR 纪律见 [[feedback-adr-scope]]：起草→用户确认→写入

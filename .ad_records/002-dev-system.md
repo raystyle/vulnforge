@@ -1,7 +1,7 @@
 # ADR-002 | Claude Code 开发体系
 
 - 日期：2026-11-26
-- 状态：实施中（主体落地：Git 流程+六项门+三平台验证完成；hooks 闸门待建）
+- 状态：实施中（主体落地；余项：implement/ship skills、CI、runtime 测试层）
 
 ## 需求
 
@@ -19,18 +19,20 @@
 
 ## 进度状态
 
-| 子需求        | 状态                    | 剩余                                                                     |
-| ------------- | ----------------------- | ------------------------------------------------------------------------ |
-| 1 四资产      | ✅ 完成                 | —                                                                        |
-| 2 主闭环约定  | ✅ 完成（约定层）       | implement/ship skills 未建                                               |
-| 3 Verify 证据 | ✅ 完成                 | —                                                                        |
-| 4 独立审查    | ✅ 完成                 | main 分支待 git init（现降级读工作区）                                   |
-| 5 Pi 标准流程 | ✅ 完成（骨架验证通过） | runtime 测试层、真实模型验收脚本                                         |
-| 6 编码+安全   | ✅ 完成                 | 产品侧五红线随功能逐条实现                                               |
-| 7 Skill 规范  | ✅ 完成                 | 现有 3 skill 补 compatibility 字段                                       |
-| Git 流程      | ✅ 规则就绪             | **git init + 首次提交（用户指示放最后）**                                |
-| hooks 闸门    | ❌ 未建                 | Stop hook（证据检查）、PreToolUse hook（危险命令拦截）——均待 git init 后 |
-| CI            | ❌ 未建                 | main + PR 跑 `npm run check`——待建远程仓后                               |
+| 子需求        | 状态                    | 剩余                                                               |
+| ------------- | ----------------------- | ------------------------------------------------------------------ |
+| 1 四资产      | ✅ 完成                 | —                                                                  |
+| 2 主闭环约定  | ✅ 完成（约定层）       | implement/ship skills 未建                                         |
+| 3 Verify 证据 | ✅ 完成                 | —                                                                  |
+| 4 独立审查    | ✅ 完成                 | —（main 已建，规则从 main 读取）                                   |
+| 5 Pi 标准流程 | ✅ 完成（骨架验证通过） | runtime 测试层、真实模型验收脚本                                   |
+| 6 编码+安全   | ✅ 完成                 | —                                                                  |
+| 7 Skill 规范  | ✅ 完成                 | 现有 3 skill 补 compatibility 字段                                 |
+| Git 流程      | ✅ 完成                 | —                                                                  |
+| hooks 闸门    | ✅ 完成                 | —（PreToolUse 危险命令 + Stop 证据观察 + with-node.sh 跨平台包装） |
+| 体系闭环      | ✅ 完成（2026-11-26）   | 语义级一致留独立审查                                               |
+| 受控双语规范  | ✅ 完成（2026-11-26）   | 术语表经用户确认后增删                                             |
+| CI            | ❌ 未建                 | main + PR 跑 `npm run check`                                       |
 
 ### 主闭环环节验收
 
@@ -48,23 +50,20 @@
 
 ## 最终产物
 
-| 产物       | 路径                                                                                                                                                                                                      |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 四资产全套 | `CLAUDE.md`、`.claude/README.md`、`.claude/rules/`（4 文件：pi-extension / adr-docs / skill-authoring）、`.claude/skills/`（3 skill）、`.claude/memory/`、`.claude/settings.json` + `settings.local.json` |
-| 审查体系   | `REVIEW.md`、`.claude/agents/reviewer.md`、`.claude/agents/security-reviewer.md`                                                                                                                          |
-| 产物库约定 | `.research/README.md`                                                                                                                                                                                     |
-| 代码骨架   | `src/index.ts`（/vf-debug 命令）、`src/safety.ts`（危险命令匹配）                                                                                                                                         |
-| 测试       | `tests/safety.pure.test.ts`、`tests/index.smoke.test.ts`（5 用例）                                                                                                                                        |
-| 检查门     | `npm run check` 四合一（`package.json` + `scripts/pi-load-check.mjs`）                                                                                                                                    |
-| 变更记录   | `CHANGELOG.md`                                                                                                                                                                                            |
-| ADR 体系   | `adr/` 独立目录（README 索引 + 单文件四节格式）                                                                                                                                                           |
+| 产物          | 路径                                                                                                                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 四资产全套    | `CLAUDE.md`、`.claude/README.md`、`.claude/rules/`（5 文件：pi-extension / adr-docs / skill-authoring / docs-style）、`.claude/skills/`（3 skill）、`.claude/memory/`、`.claude/settings.json` + `settings.local.json` |
+| 审查体系      | `REVIEW.md`、`.claude/agents/reviewer.md`、`.claude/agents/security-reviewer.md`                                                                                                                                       |
+| 产物库约定    | `.research/README.md`                                                                                                                                                                                                  |
+| hooks 闸门    | `.claude/hooks/`（guard-dangerous.mjs + verify-evidence.mjs + with-node.sh）                                                                                                                                           |
+| 体系闭环 lint | `tools/system-lint.mjs`（14 项检查，第七项检查门）+ `tools/brand-lint.mjs` + `tools/contracts-lint.mjs`（143 符号）                                                                                                    |
+| 受控双语规范  | `.claude/rules/docs-style.md`（术语表/句长/代码命名形三态对齐）                                                                                                                                                        |
+| 代码骨架      | `src/index.ts`、`src/safety.ts`、`src/templates/tool-machine.ts`                                                                                                                                                       |
+| 测试          | `tests/`（18 文件，108 用例）                                                                                                                                                                                          |
+| 检查门        | `npm run check` 七项（biome/tsc/brand-lint/contracts-lint/system-lint/vitest/pi-load）                                                                                                                                 |
+| 变更记录      | `CHANGELOG.md`                                                                                                                                                                                                         |
+| ADR 体系      | `.ad_records/` 独立目录（README 索引 + 单文件四节格式）                                                                                                                                                                |
 
 ## 是否满足需求
 
-**主体满足，hooks 闸门子需求未完成**（Stop hook 与 PreToolUse hook 待建；implement/ship skills 待建）。
-
-**Git 流程已全部落地**（2026-11-26）：git init 完成、main 分支、Conventional Commits、云端仓 github.com/raystyle/vulnforge、`.gitattributes` LF 归一（三平台实测修复 CRLF 灾难）、三平台基线验证通过（Windows/Linux/macOS 六项门全绿）。
-
-**强制层已部分落地**（不依赖 hooks 的机械闸门）：brand-lint（品牌契约静态扫描）+ contracts-lint（契约文档完整性，73 符号）入六项检查门——"约定必须能报错告警"的部分实现；hooks（Stop 证据检查、PreToolUse 危险命令）仍待建。
-
-验证证据（2026-11-26）：`npm run check` 退出码 0——biome / tsc / brand-lint / contracts-lint / vitest 44 用例 / pi load；三平台（lan-ubuntu、lan-mac 工作台）同门全绿。
+**满足**。七项检查门三平台（Windows/lan-ubuntu/lan-mac）全绿（Round 6，2026-11-26）；体系资产关联脱节由 system-lint 机械拦截；受控双语规范（含状态机术语铁律）进 lint 执法。剩余 CI 未建（远程仓已就绪，随时可加）。

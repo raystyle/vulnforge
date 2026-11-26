@@ -7,9 +7,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-### Added
+开发期：尚未发布任何版本。功能与体系资产现状见 `README.md`；需求与交付判定见 `.ad_records/`；逐提交变更历史见 git log / PR。
 
 - Project skeleton: package manifest, TypeScript config, Biome config, Vitest config.
-- `src/safety.ts` with `isDangerousCommand()` and the dangerous-command pattern list (product safety red line).
-- `src/index.ts` extension entry registering the `/vf-debug` command.
-- Test layers: `tests/safety.pure.test.ts` (pure), `tests/index.smoke.test.ts` (factory smoke); `load` layer runs via `scripts/pi-load-check.mjs` in `npm run check`.
+- Nuclei template pipeline (first feature) and the seven-part check gate are in place; see `README.md` for the current tool surface.
