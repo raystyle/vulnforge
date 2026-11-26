@@ -26,6 +26,7 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 - 所有模板工具在任意子目录操作时**自动向上查找最近的 `.vulnforge.json`**——从语料深处（如 `nuclei-templates/http/cves/...`）直接调用即可，嵌套 git clone 不阻断（上游语料自带 `.git` 也能找到工作区配置）
 - 配置定义 db 文件名/封版记录、nuclei/yamllint 路径（空 = 自动发现）、同步过滤 8 键（语料子目录、include/exclude 目录/文件/正则）
 - **缺配置不静默**：报诊断错误（搜索起点 + 层数 + 内联最小配置示例，装好的插件无需翻仓库文档）
+- **错误信封（智能体自纠偏）**：一切工具失败原子暴露 `vf-error code=<稳定码>` + detail + hint 三行——按错误码分支纠偏，无需解析散文
 
 ```json
 {

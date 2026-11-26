@@ -2,6 +2,32 @@
 
 扩展入口 `src/index.ts` 注册的全部工具面。Pi 会话中模型按需调用；本文档为完整参考，代码为准（由 contracts-lint 的工具清单检查防漂移）。
 
+## 错误信封（智能体自纠偏契约）
+
+一切工具失败都原子暴露为三行信封（`src/templates/errors.ts`）：
+
+```
+vf-error code=<稳定错误码>
+<detail： offending 输入 + 解析后的实际值>
+hint: <下一步怎么改>
+```
+
+| 错误码               | 触发                                                             | hint 方向                           |
+| -------------------- | ---------------------------------------------------------------- | ----------------------------------- |
+| `CONFIG_NOT_FOUND`   | 向上找不到 `.vulnforge.json`                                     | 内联最小配置示例（不指向仓库 docs） |
+| `CONFIG_INVALID`     | 配置 JSON/正则非法                                               | 修 JSON 或跑 vf_env_check           |
+| `PATH_ESCAPE`        | 路径逃逸模板仓根                                                 | 给出仓根 + 相对路径示例             |
+| `PATH_NOT_FOUND`     | 模板文件不存在                                                   | 检查路径拼写                        |
+| `PARAM_CONFLICT`     | 参数互斥冲突（target/routes、patch/content、engine=mock+target） | 列出收到的字段 + 正确组合示例       |
+| `NO_FIX_COMMANDS`    | env_install 项名无对应命令                                       | 指回 vf_env_check 的合法项名        |
+| `TEMPLATE_INVALID`   | 模板 YAML/契约失败                                               | lint 规则名                         |
+| `EDIT_REJECTED`      | 编辑补丁越界/结构不符                                            | 调整索引或用 content 模式           |
+| `ENGINE_UNAVAILABLE` | real 引擎缺失                                                    | 安装指引 + engine=mock 备选         |
+| `CANCELLED`          | 用户在 confirm 门拒绝                                            | 重试需用户同意                      |
+| `INTERNAL`           | 未分类                                                           | 报 bug 附原始调用                   |
+
+错误码枚举是封闭集（`VF_ERROR_CODES`）；智能体按 code 分支纠偏，无需解析散文。zod 拒绝（枚举合法值）、lint findings（`[level] rule: msg`）本身就是原子形态，不再二次包装。
+
 ## 工具（registerTool）
 
 | 工具               | 用途一句话                                             | 写操作                | 确认         |

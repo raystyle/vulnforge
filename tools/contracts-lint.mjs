@@ -40,6 +40,8 @@ const MAPPING = {
   "edit.ts": "run-contracts.md",
   "lint.ts": "run-contracts.md",
   "scaffold.ts": "run-contracts.md",
+  "errors.ts": "run-contracts.md",
+  "tool-machine.ts": "run-contracts.md",
 };
 
 /** Exported symbol names, per export statement form. */

@@ -8,6 +8,7 @@ import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { probeEngine } from "./templates/engine-probe.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
+import { type VfErrorCode, vfError, wrapAsVfError } from "./templates/errors.ts";
 import type { LintFinding } from "./templates/lint.ts";
 import { type MetaColumn, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
@@ -83,13 +84,57 @@ function findingsText(findings: LintFinding[]): string {
   return findings.map((finding) => `[${finding.level}] ${finding.rule}: ${finding.message}`).join("\n");
 }
 
+/** Wrap a boundary error in the agent-correction envelope with a stable code. */
+function envelope(error: unknown) {
+  const wrapped = wrapAsVfError(error, (message) => {
+    if (message.includes("no .vulnforge.json")) {
+      return {
+        code: "CONFIG_NOT_FOUND" as const,
+        hint: "create .vulnforge.json in the workspace root or run the tool from inside it",
+      };
+    }
+    if (message.includes("invalid .vulnforge.json")) {
+      return { code: "CONFIG_INVALID" as const, hint: "fix the JSON (run vf_env_check for the templates-repo item)" };
+    }
+    if (message.includes("path escapes")) {
+      return {
+        code: "PATH_ESCAPE" as const,
+        hint: 'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
+      };
+    }
+    if (
+      message.startsWith("edit rejected") ||
+      message.includes("out of range") ||
+      message.includes("no http request block")
+    ) {
+      return {
+        code: "EDIT_REJECTED" as const,
+        hint: "adjust the patch indexes or use content mode with a full valid template",
+      };
+    }
+    return {
+      code: "INTERNAL" as const,
+      hint: "inspect the detail; if it is a bug, report it with the exact tool call",
+    };
+  });
+  return textResult(wrapped.message, true);
+}
+
+function errResult(code: VfErrorCode, detail: string, hint: string) {
+  return textResult(vfError(code, detail, hint).message, true);
+}
+
 /** Resolve a user-supplied path inside the templates repo, refusing escapes. */
 function resolveInsideRepo(repo: TemplatesRepo, userPath: string): string {
   const absolute = resolve(repo.root, userPath);
   const normalizedRoot = repo.root.replaceAll("\\", "/");
   const normalizedAbsolute = absolute.replaceAll("\\", "/");
   if (normalizedAbsolute !== normalizedRoot && !normalizedAbsolute.startsWith(`${normalizedRoot}/`)) {
-    throw new Error(`path escapes the templates repo: ${userPath}`);
+    throw vfError(
+      "PATH_ESCAPE",
+      `path "${userPath}" escapes the templates repo root ${normalizedRoot} (resolved to ${normalizedAbsolute})`,
+      'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
+    );
   }
   return absolute;
 }
@@ -132,7 +177,11 @@ export default function (pi: ExtensionAPI): void {
       const before = await checkEnvironment(ctx.cwd);
       const commands = fixCommandsFor(before, params.name);
       if (commands === undefined) {
-        return textResult(`no fix commands for "${params.name}" — item ok, unknown, or manual-only guidance`, true);
+        return errResult(
+          "NO_FIX_COMMANDS",
+          `no fix commands for item "${params.name}" (ok, unknown, or manual-only)`,
+          "call vf_env_check and use one of its item names (winget, node, fnm, bun, uv, go, rust, msvc, zig, nuclei)",
+        );
       }
       if (ctx.hasUI) {
         const ok = await ctx.ui.confirm(
@@ -169,7 +218,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
@@ -190,6 +239,8 @@ export default function (pi: ExtensionAPI): void {
           `lint ${params.path}:\n${yamlText.length > 0 ? `${yamlText}\n` : ""}${findingsText(findings)}`,
           hasError,
         );
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }
@@ -244,13 +295,17 @@ export default function (pi: ExtensionAPI): void {
     }),
     execute: withToolMachine("vf_nuclei_edit", async (_id, params, _signal, _onUpdate, ctx) => {
       if ((params.patch === undefined) === (params.content === undefined)) {
-        return textResult("provide exactly one of patch or content", true);
+        return errResult(
+          "PARAM_CONFLICT",
+          "provide exactly one of patch or content — both rules received neither or both",
+          'structured edit: {kind:"info"|"matcher"|"path", ...}; whole-document replace: content',
+        );
       }
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
@@ -326,16 +381,24 @@ export default function (pi: ExtensionAPI): void {
     }),
     execute: withToolMachine("vf_nuclei_run", async (_id, params, _signal, _onUpdate, ctx) => {
       if (params.target !== undefined && params.engine === "mock") {
-        return textResult("engine=mock cannot be combined with a remote target — mock is local-only", true);
+        return errResult(
+          "PARAM_CONFLICT",
+          "engine=mock cannot be combined with a remote target — the in-process mock answers locally only",
+          "drop target for the local mock, or keep target and use the default real engine",
+        );
       }
       if (params.target !== undefined && params.routes !== undefined) {
-        return textResult("provide either target (remote) or routes (local mock), not both", true);
+        return errResult(
+          "PARAM_CONFLICT",
+          "both target and routes provided — they are mutually exclusive scan modes",
+          "use routes (local mock) OR target (remote scan), never both",
+        );
       }
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
@@ -422,6 +485,8 @@ export default function (pi: ExtensionAPI): void {
         } finally {
           await target.close();
         }
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }
@@ -443,7 +508,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const { syncFilterFromConfig } = await import("./templates/sync-machine.ts");
@@ -462,6 +527,8 @@ export default function (pi: ExtensionAPI): void {
           ].join("\n"),
           result.failed.length > 0,
         );
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }
@@ -483,7 +550,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const severity = params.severity as "info" | "low" | "medium" | "high" | "critical" | undefined;
@@ -506,6 +573,8 @@ export default function (pi: ExtensionAPI): void {
             `- ${row.id} [${row.severity}] ${row.relativePath} :: ${row.snippet.slice(0, 80)}`,
         );
         return textResult(`${rows.length} match(es):\n${lines.join("\n")}`);
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }
@@ -531,7 +600,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         const input: ScaffoldInput = {
@@ -550,6 +619,8 @@ export default function (pi: ExtensionAPI): void {
         const filePath = join(dir, fileName);
         writeFileSync(filePath, skeleton);
         return textResult(`scaffolded ${filePath}\n\n${skeleton}`);
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }
@@ -578,10 +649,12 @@ export default function (pi: ExtensionAPI): void {
       try {
         tools = openRepoTools(ctx.cwd);
       } catch (error) {
-        return textResult((error as Error).message, true);
+        return envelope(error);
       }
       try {
         return textResult(renderStats(tools.db, params.dimension as MetaColumn, params.limit ?? 15));
+      } catch (error) {
+        return envelope(error);
       } finally {
         tools.db.close();
       }

@@ -99,7 +99,7 @@ describe("tool-level execute coverage", () => {
       engine: "mock",
     });
     expect(conflict.isError).toBe(true);
-    expect(conflict.text).toContain("cannot be combined");
+    expect(conflict.text).toContain("vf-error code=PARAM_CONFLICT");
 
     const both = await call("vf_nuclei_run", {
       path: "http/vulnerabilities/tool-test-rce.yaml",
@@ -107,7 +107,8 @@ describe("tool-level execute coverage", () => {
       routes: [{ method: "GET", path: "/" }],
     });
     expect(both.isError).toBe(true);
-    expect(both.text).toContain("not both");
+    expect(both.text).toContain("vf-error code=PARAM_CONFLICT");
+    expect(both.text).toContain("hint:");
   });
 
   it("vf_nuclei_run mock engine asserts expectedHits end-to-end", async () => {

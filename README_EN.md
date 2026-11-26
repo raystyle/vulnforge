@@ -26,6 +26,7 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 - Every template tool automatically walks up to the nearest `.vulnforge.json` — call them from deep inside the corpus (e.g. `nuclei-templates/http/cves/...`) and the workspace config is found; nested git clones do not block the walk (an upstream corpus with its own `.git` still resolves to the enclosing workspace)
 - The config defines db filenames, nuclei/yamllint paths (empty = auto-discover), and the 8-key sync filter (corpus dir, include/exclude dirs/files/regex patterns)
 - **Missing config fails loudly**: a diagnostic error with the search start, levels walked, and an inline minimal config example — installed extensions need no repo docs
+- **Error envelope (agent self-correction)**: every tool failure surfaces atomically as three lines — `vf-error code=<stable-code>` + detail + hint — so agents branch on the code instead of parsing prose
 
 ```json
 {

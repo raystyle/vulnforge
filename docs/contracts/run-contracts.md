@@ -265,3 +265,25 @@ driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式�
 | `yaml/comment-spacing` | warning | 注释前多于一个空格                                             |
 
 实现要点：`parseDocument` + 遍历 `items` 树读 `flow` 标志（普通 `parse()` 丢失该信息——实测教训）；纯 TS 跨三平台，消除 Python/uv 运行时依赖。
+
+## 6. 错误信封契约（errors.ts / tool-machine.ts）
+
+### 6.1 错误信封（智能体自纠偏）
+
+一切工具失败原子暴露为三行信封：`vf-error code=<稳定码>` / detail（offending 输入 + 解析后实际值）/ `hint: <下一步>`。错误码封闭集：
+
+| 符号                                    | 形态  | 说明                                                                                                                                                                                                  |
+| --------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VF_ERROR_CODES`                        | const | 封闭枚举（11 码）：CONFIG_NOT_FOUND / CONFIG_INVALID / PATH_ESCAPE / PATH_NOT_FOUND / PARAM_CONFLICT / NO_FIX_COMMANDS / TEMPLATE_INVALID / EDIT_REJECTED / ENGINE_UNAVAILABLE / CANCELLED / INTERNAL |
+| `VfErrorCode`                           | type  | 上述联合的元素类型                                                                                                                                                                                    |
+| `vfError(code, detail, hint): Error`    | 函数  | 构造信封 Error（name=VfError，message 三行）                                                                                                                                                          |
+| `wrapAsVfError(error, classify): Error` | 函数  | 边界错误包装：classify(message) → {code, hint}；已是信封的透传                                                                                                                                        |
+
+### 6.2 工具执行最小状态机
+
+| 符号                              | 形态      | 说明                                                                                           |
+| --------------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `ToolExecutionMachine`            | XState    | idle → START → executing → SUCCEED \| FAIL → done / failed；全部 9 个工具的 execute 经此状态机 |
+| `assertToolExecutionEventHandled` | 函数      | 编译期穷尽守卫（switch 全 case + never 兜底），新事件未处理 = tsc 失败                         |
+| `withToolMachine(label, execute)` | 函数      | 签名保持包装器（恒等返回类型 + Parameters 传播）：工具 execute 包装入口                        |
+| `ToolMachineObservation`          | interface | `{ phase: "idle" \| "executing" \| "done" \| "failed"; error?: string }`——观察回调载荷         |
