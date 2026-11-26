@@ -25,9 +25,9 @@
 - 骨架 ` ```cargo ` 依赖块默认带 vf_rust_lib + serde_json + rustls
 - 坑（先例教训记录在案）：rustls 0.23 无静态 RSA 密钥交换，老栈需 legacy 通道；heavy 依赖进 lib 需 ADR
 
-## exploit 状态机框架（用户裁定，2026-11-27：**exploit 利用流程与步骤状态机化的框架**）
+## exploit 状态机模板（用户裁定，2026-11-27：**rs 脚本写 exploit 必须以状态机化模板实现——强制结构，非可选**）
 
-vf_rust_lib 提供一等的状态机**框架**（非仅模板）——每个 exploit 的利用流程与步骤在框架内声明式表达：
+vf_rust_lib 提供状态机**模板实现**，rs 脚本写 exploit **一律基于此模板**（等价 TS 侧"状态机默认必用，无豁免"纪律的 Rust 侧对应物）：
 
 ```
 // vf_rust_lib 提供（示意）
@@ -40,8 +40,9 @@ Machine::new(steps)      // 声明本 exploit 的步骤序列（脚本顶部，�
   .run()                 // match 穷尽驱动循环；阶段轨迹自动记录
 ```
 
+- **强制模板**：exploit_rs 脚本的结构即 Machine 声明 + 步骤闭包——rs_edit/rs lint（advisory 层）检查 Machine::new 存在性；不符合模板的 exploit 脚本 lint 报错
 - **步骤序列声明式**：脚本顶部 `Machine::new([...])` 写本 exploit 的状态图；不同利用类型可扩展步骤集
 - **转移三形**：Advance（进下一步）/ Fail（ErrorKind + message，即出信封）/ Done（data 终态出信封）——转移穷尽由 match + 编译期保证
 - **轨迹自动记录**：框架收集执行过的步骤序列 + 每步耗时，落入信封 `data.steps`——AgentResult 自带利用流程回放
-- **rs_new 骨架按框架展开**：Machine 声明 + 每步闭包框架预置，脚本作者只填每步逻辑
+- **rs_new 骨架按模板展开**：Machine 声明 + 每步闭包框架预置，脚本作者只填每步逻辑
 - **并发预留**：sweep 型（一步内打 N 目标）在闭包内用 par_map，框架不管并发只收敛回 Transition
