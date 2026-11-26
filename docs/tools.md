@@ -4,17 +4,17 @@
 
 ## 工具（registerTool）
 
-| 工具               | 用途一句话                                             | 写操作                | 确认    |
-| ------------------ | ------------------------------------------------------ | --------------------- | ------- |
-| `vf_env_check`     | 环境体检：三平台工具链 + 中国镜像 + 模板仓 + mock 端口 | 否（只读探测）        | —       |
-| `vf_env_install`   | 修复一项环境缺失：跑 fix 命令 → 复检回告               | 是（安装软件/改配置） | confirm |
-| `vf_nuclei_new`    | 生成模板骨架写入模板仓                                 | 是（新文件）          | —       |
-| `vf_nuclei_lint`   | 模板静态检查：YAML+结构/元数据/弱 matcher              | 否                    | —       |
-| `vf_nuclei_edit`   | 契约化编辑（patch 或 content），编辑后自动 lint        | 是（改文件）          | —       |
-| `vf_nuclei_run`    | 本地 mock 靶机验证 + 无害反证                          | 否（临时端口）        | —       |
-| `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —       |
-| `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —       |
-| `vf_nuclei_stats`  | 元数据分析：维度分组/年份直方图/查重                   | 否                    | —       |
+| 工具               | 用途一句话                                             | 写操作                | 确认         |
+| ------------------ | ------------------------------------------------------ | --------------------- | ------------ |
+| `vf_env_check`     | 环境体检：三平台工具链 + 中国镜像 + 模板仓 + mock 端口 | 否（只读探测）        | —            |
+| `vf_env_install`   | 修复一项环境缺失：跑 fix 命令 → 复检回告               | 是（安装软件/改配置） | confirm      |
+| `vf_nuclei_new`    | 生成模板骨架写入模板仓                                 | 是（新文件）          | —            |
+| `vf_nuclei_lint`   | 模板静态检查：YAML+结构/元数据/弱 matcher              | 否                    | —            |
+| `vf_nuclei_edit`   | 契约化编辑（patch 或 content），编辑后自动 lint        | 是（改文件）          | —            |
+| `vf_nuclei_run`    | 双模式验证：本地 mock 靶机 + 无害反证 / 远程目标扫描   | 否（远程需确认）      | 远程 confirm |
+| `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —            |
+| `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —            |
+| `vf_nuclei_stats`  | 元数据分析：维度分组/年份直方图/查重                   | 否                    | —            |
 
 ## 命令（registerCommand）
 
@@ -62,10 +62,17 @@
 
 ### vf_nuclei_run
 
-- **参数**：`path`；`routes?`（`{method, path, status?, body?}[]` 可编程靶机路由）
-- **行为**：**先 benign 反证**（无害页 0 hit，有 hit = weak matcher 直接报错）；再起可编程 mock 靶机（127.0.0.1 随机端口）跑真实 nuclei `-jsonl`
-- **返回**：反证结论或命中列表（templateId + matchedAt）；0 hit 也报错（提示路由与模板路径不匹配）
-- **何时用**：模板 lint 通过后的动态验证——本地即可，无需真实目标
+- **参数**：
+  - `path`（模板相对路径）
+  - 本地模式：`routes?`（`{method, path, status?, body?}[]` 可编程 mock 靶机路由，127.0.0.1）
+  - 远程模式：`target?`（真实目标 URL，如 `http://lab-host:8080`）——与 routes 互斥
+  - `engine?`（`real` 默认 / `mock` 进程内 scan port）；`expectedHits?`（mock 引擎断言命中集）
+- **行为**：
+  - 本地模式：**先 benign 无害反证**（有 hit = weak matcher 直接拒），再编程路由跑扫描
+  - 远程模式：**confirm 确认后**用真实 nuclei 扫描授权目标（headless 会话拒跑，安全红线）；mock 引擎不可与远程组合
+  - engine 解析：real 探测 nuclei（config tools.nucleiPath → PATH），不可用时给安装指引并提示 mock 备选；mock 用注入 expectedHits 的进程内 scan port（断言确定性，无二进制环境可用）
+- **返回**：反证结论 / 命中列表 / mock 断言结果
+- **何时用**：模板 lint 后的动态验证；本地 mock 优先，远程仅对授权测试环境
 
 ### vf_nuclei_sync
 

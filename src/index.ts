@@ -9,8 +9,15 @@ import { applyContent, applyEdit, EditError, validateEditPatch } from "./templat
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
 import { type LintFinding, lintDocument, type TemplateInfo } from "./templates/lint.ts";
 import { type MetaColumn, parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
-import { benignProfile, type MockRoute, startMockTarget } from "./templates/mock.ts";
-import { verifyNoFalsePositive } from "./templates/run.ts";
+import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
+import {
+  checkNuclei,
+  createMockScanPort,
+  type MockFinding,
+  runTemplateAgainst,
+  type ScanPort,
+  verifyNoFalsePositive,
+} from "./templates/run.ts";
 import {
   type ScaffoldInput,
   skeletonFor,
@@ -28,6 +35,37 @@ function textResult(text: string, isError = false) {
     content: [{ type: "text" as const, text }],
     details: { summary: text.slice(0, 200) },
     ...(isError ? { isError: true } : {}),
+  };
+}
+
+/**
+ * Engine resolution for vf_nuclei_run: explicit mock wins; otherwise probe
+ * nuclei (config path first, then PATH) and fail with install guidance when
+ * absent — never silently fall back to a different engine.
+ */
+async function resolveScanPortForRun(
+  repo: TemplatesRepo,
+  engine: "real" | "mock" | undefined,
+  expectedHits: readonly string[] | undefined,
+): Promise<ScanPort> {
+  if (engine === "mock") {
+    const findings: MockFinding[] = (expectedHits ?? []).map((templateId) => ({ templateId }));
+    return createMockScanPort(findings);
+  }
+  const explicitPath = repo.config.tools.nucleiPath;
+  const availability = await checkNuclei(explicitPath.length > 0 ? { nucleiPath: explicitPath } : {});
+  if (!availability.available) {
+    throw new Error(
+      `nuclei engine unavailable (engine="real" default): ${availability.reason}. Pass engine="mock" with expectedHits for the in-process scan port.`,
+    );
+  }
+  return {
+    mode: "real",
+    scan: (tplPath, url, options) =>
+      runTemplateAgainst(tplPath, url, {
+        ...options,
+        ...(explicitPath.length > 0 ? { nucleiPath: explicitPath } : {}),
+      }),
   };
 }
 
@@ -239,22 +277,51 @@ export default function (pi: ExtensionAPI): void {
     name: "vf_nuclei_run",
     label: "VulnForge template run",
     description:
-      "Validate a template against a local mock target: first the benign counter-check (any hit = weak matcher), then the programmed routes. Pass routes as [{method, path, status, body}]. Local-only: the mock binds 127.0.0.1.",
+      "Validate a template against a target. Two target modes: (a) local mock — routes program a 127.0.0.1 target; the benign counter-check runs first (any hit = weak matcher). (b) remote target — pass target=<url> to scan a real host (requires explicit user confirmation; use authorized test environments only). Engine: 'real' nuclei binary (config or PATH), or 'mock' in-process scan port with expectedHits for environments without the binary.",
     parameters: Type.Object({
       path: Type.String({ description: "Template path relative to the templates repo root" }),
       routes: Type.Optional(
         Type.Array(
           Type.Object({
-            method: Type.String({ description: "HTTP method, e.g. GET or POST" }),
+            method: StringEnum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "*"], {
+              description: "HTTP method the route answers ('*' matches any)",
+            }),
             path: Type.String({ description: "Request path; '*' matches any, 'prefix/*' matches prefixes" }),
             status: Type.Optional(Type.Integer({ description: "Response status (default 200)" })),
             body: Type.Optional(Type.String({ description: "Response body" })),
           }),
-          { description: "Programmed vulnerable routes for the mock target" },
+          {
+            description:
+              "Programmed routes for the local mock target (local mode) — validated against the MockRoute contract",
+          },
         ),
+      ),
+      target: Type.Optional(
+        Type.String({
+          description:
+            "Remote target URL (e.g. http://lab-host:8080) — remote mode: scan a real authorized target instead of the local mock; requires user confirmation",
+        }),
+      ),
+      engine: Type.Optional(
+        StringEnum(["real", "mock"] as const, {
+          description:
+            "real: spawn the nuclei binary (config tools.nucleiPath or PATH). mock: in-process scan port seeded with expectedHits — no nuclei binary needed. Remote targets always use real.",
+        }),
+      ),
+      expectedHits: Type.Optional(
+        Type.Array(Type.String(), {
+          description:
+            "mock engine only: template-ids the scan is expected to report (asserts pipeline determinism without a real engine)",
+        }),
       ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
+      if (params.target !== undefined && params.engine === "mock") {
+        return textResult("engine=mock cannot be combined with a remote target — mock is local-only", true);
+      }
+      if (params.target !== undefined && params.routes !== undefined) {
+        return textResult("provide either target (remote) or routes (local mock), not both", true);
+      }
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -263,9 +330,37 @@ export default function (pi: ExtensionAPI): void {
       }
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
+        const engine = (params.engine ?? "real") as "real" | "mock" | undefined;
+        const scanPort = await resolveScanPortForRun(tools.repo, engine, params.expectedHits);
+
+        if (params.target !== undefined) {
+          // Remote mode: an authorized real-host scan — confirm before any packet leaves.
+          if (ctx.hasUI) {
+            const ok = await ctx.ui.confirm(
+              "Remote scan",
+              `About to run the template against ${params.target} with the real nuclei engine.\n\nOnly proceed against targets you are authorized to test. Allow?`,
+            );
+            if (!ok) return textResult("cancelled by user", true);
+          } else {
+            return textResult(
+              "remote target scans require an interactive session (headless runs are refused for safety)",
+              true,
+            );
+          }
+          const result = await runTemplateAgainst(absolute, params.target, { scanPort });
+          const hitLines = result.hits.map((hit) => `- ${hit.templateId} at ${hit.matchedAt}`).join("\n");
+          return textResult(
+            result.hits.length > 0
+              ? `remote scan ${params.target}: ${result.hits.length} hit(s)\n${hitLines}`
+              : `remote scan ${params.target}: 0 hits`,
+            false,
+          );
+        }
+
+        // Local mode: benign counter-check first.
         const benign = await startMockTarget(benignProfile());
         try {
-          const verdict = await verifyNoFalsePositive(absolute, benign.url);
+          const verdict = await verifyNoFalsePositive(absolute, benign.url, { scanPort });
           if (verdict.weakMatcher) {
             return textResult(
               `WEAK MATCHER: template hits the benign target (${verdict.hits
@@ -277,12 +372,33 @@ export default function (pi: ExtensionAPI): void {
         } finally {
           await benign.close();
         }
-        const routes: MockRoute[] = params.routes ?? [];
+
+        const routes: MockRoute[] = (params.routes ?? []).map(mockRoute);
         const target = await startMockTarget(routes);
         try {
-          const { runTemplateAgainst } = await import("./templates/run.ts");
-          const result = await runTemplateAgainst(absolute, target.url);
+          const result = await runTemplateAgainst(absolute, target.url, { scanPort });
           const hitLines = result.hits.map((hit) => `- ${hit.templateId} at ${hit.matchedAt}`).join("\n");
+          if (engine === "mock") {
+            const expected = params.expectedHits ?? [];
+            const got = result.hits.map((hit) => hit.templateId);
+            const missing = expected.filter((id) => !got.includes(id));
+            const unexpected = got.filter((id) => !expected.includes(id));
+            if (missing.length > 0 || unexpected.length > 0) {
+              return textResult(
+                [
+                  "mock engine mismatch:",
+                  missing.length > 0 ? `  missing: ${missing.join(", ")}` : "",
+                  unexpected.length > 0 ? `  unexpected: ${unexpected.join(", ")}` : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                true,
+              );
+            }
+            return textResult(
+              `mock engine: ${got.length}/${expected.length} expected hit(s) confirmed — pipeline deterministic`,
+            );
+          }
           return textResult(
             result.hits.length > 0
               ? `vulnerable profile: ${result.hits.length} hit(s)\n${hitLines}`

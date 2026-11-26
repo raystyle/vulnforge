@@ -63,15 +63,24 @@ Mock 语义（契约）：空 findings = 0 hit（benign 反证绿）；注入 fi
 
 ## 2. mock.ts — 可编程靶机
 
-### 2.1 `MockRoute`
+### 2.1 `MockRoute`（品牌契约，边界校验）
 
-| 字段      | 类型                            | 说明                             |
+| 符号                                 | 形态            | 说明                                                                                                   |
+| ------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `HttpMethodSchema` / `HttpMethod`    | zod 枚举 + type | `GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS/*`——方法即契约，非法值解析期拒绝                               |
+| `MockRouteSchema` / `MockRoute`      | zod + type      | `method: HttpMethod` + `path`（`*`、`/*` 后缀或 `/` 开头，refine）+ `status: 100-599` + `body/headers` |
+| `MockRouteInput`                     | type            | zod 输入侧（status/body/headers 可选）                                                                 |
+| `mockRoute(raw: unknown): MockRoute` | 函数            | 运行时构造器：Pi 工具边界的非类型 payload 经 parse 打契约                                              |
+
+| 字段      | 契约                            | 说明                             |
 | --------- | ------------------------------- | -------------------------------- |
-| `method`  | `string`                        | 匹配请求方法（`"*"` 通配）       |
-| `path`    | `string`                        | 精确 / `prefix/*` / `*` 三种匹配 |
-| `status`  | `number`（可选）                | 默认 200                         |
+| `method`  | `HttpMethod`（枚举）            | 匹配请求方法（`"*"` 通配）       |
+| `path`    | `string`（refine）              | 精确 / `prefix/*` / `*` 三种匹配 |
+| `status`  | `100-599` 整数（可选）          | 默认 200                         |
 | `body`    | `string`（可选）                | 响应体                           |
 | `headers` | `Record<string,string>`（可选） | 响应头                           |
+
+预期语义：**mock 接受预期请求 → 返回预期数据 → 客户端（nuclei/scanPort）解析返回数据给出预期结果**——route 即"预期请求→预期数据"的契约化声明。
 
 ### 2.2 `MockTarget`
 

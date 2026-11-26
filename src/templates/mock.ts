@@ -1,11 +1,34 @@
 import { createServer, type Server } from "node:http";
+import { z } from "zod";
 
-export interface MockRoute {
-  method: string;
-  path: string;
-  status?: number;
-  body?: string;
-  headers?: Record<string, string>;
+/**
+ * Mock-server contract (branded): a programmed route the mock target serves.
+ * Every field is validated at the boundary — method uppercase, path shape
+ * (exact | prefix/* | *), status 1xx-5xx — so malformed expectations fail at
+ * parse time, never mid-scan.
+ */
+export const HttpMethodSchema = z.enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "*"]);
+export type HttpMethod = z.infer<typeof HttpMethodSchema>;
+
+export const MockRouteSchema = z.object({
+  method: HttpMethodSchema,
+  path: z
+    .string()
+    .min(1)
+    .refine(
+      (value) => value === "*" || value.startsWith("/") || value.endsWith("/*"),
+      "path must be '*', '/*'-suffixed, or start with '/'",
+    ),
+  status: z.number().int().min(100).max(599).optional(),
+  body: z.string().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+});
+export type MockRouteInput = z.input<typeof MockRouteSchema>;
+export type MockRoute = z.infer<typeof MockRouteSchema>;
+
+/** Runtime-checked constructor: untyped route payload → branded MockRoute. */
+export function mockRoute(raw: unknown): MockRoute {
+  return MockRouteSchema.parse(raw);
 }
 
 export interface MockTarget {
