@@ -1,11 +1,11 @@
 ---
 
-name: self-exam
+name: self-reflection
 description: 会话自省流程：用 intent-trace 分析对话历史，提炼修正模式，晋级为 rule/skill/hook/ADR，并定义可验证的改进指标。当会话结束前、阶段性收口时、或用户要求"自省一次"时使用。
 
 ---
 
-# self-exam — 会话自省与改进闭环流程
+# self-reflection — 会话自省与改进闭环流程
 
 ## 输入
 
