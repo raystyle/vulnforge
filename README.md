@@ -21,6 +21,20 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 - `vf_env_check` — 三平台（Windows/Linux/macOS）逐项检测：pi 版本对齐、fnm/bun/uv、go（GOPROXY 镜像）、rust（rsproxy 镜像）、MSVC、zig、nuclei、yamllint、模板仓、mock 端口
 - `vf_env_install` — 按平台命令矩阵（winget/brew/apt/官方发行版）安装缺失项，执行前确认、装后复检
 
+**配置自动发现（零硬编码）**：
+
+- 所有模板工具在任意子目录操作时**自动向上查找最近的 `.vulnforge.json`**——从语料深处（如 `nuclei-templates/http/cves/...`）直接调用即可，嵌套 git clone 不阻断（上游语料自带 `.git` 也能找到工作区配置）
+- 配置定义 db 文件名/封版记录、nuclei/yamllint 路径（空 = 自动发现）、同步过滤 8 键（语料子目录、include/exclude 目录/文件/正则）
+- **缺配置不静默**：报诊断错误（搜索起点 + 层数 + 内联最小配置示例，装好的插件无需翻仓库文档）
+
+```json
+{
+  "db": { "filename": "templates.db", "sealFile": "templates-lock.json" },
+  "tools": { "nucleiPath": "" },
+  "sync": { "corpusDir": "nuclei-templates" }
+}
+```
+
 **工程纪律**：
 
 - **品牌契约**：全部领域值经 zod 契约化（`.brand<>()`），brand-lint 静态扫描强制入检查门

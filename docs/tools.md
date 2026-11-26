@@ -23,6 +23,16 @@
 | `/vf`       | 状态总览：模板仓位置、索引统计、安全模式数 |
 | `/vf-debug` | 内部状态：危险命令模式表与匹配自检         |
 
+## 配置自动发现
+
+所有 `vf_nuclei_*` 工具的定位规则：从会话工作目录向上查找**最近的 `.vulnforge.json`**，一次取齐 root / db / seal / sync 过滤。
+
+- 嵌套 git clone 不阻断——语料目录（如 `nuclei-templates/`，自带上游 `.git`）内任意深度调用都能找到工作区配置
+- 多层 `.vulnforge.json` 并存时就近优先
+- 缺配置 = 诊断错误（起点 + 层数 + 内联最小配置示例），绝不静默
+
+配置字段全量契约见 `docs/contracts/config-contracts.md`（db 文件名/封版记录、nuclei/yamllint 路径空值自动发现、sync 过滤 8 键含正则边界校验）。
+
 ## 逐项参考
 
 ### vf_env_check

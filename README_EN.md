@@ -21,6 +21,20 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 - `vf_env_check` — per-item checks on Windows/Linux/macOS: pi version alignment, fnm/bun/uv, go (GOPROXY mirror), rust (rsproxy mirror), MSVC, zig, nuclei, yamllint, templates repo, mock port
 - `vf_env_install` — per-platform command matrix (winget/brew/apt/official distributions), confirmed before running, re-checked after
 
+**Config auto-discovery (zero hardcoding)**:
+
+- Every template tool automatically walks up to the nearest `.vulnforge.json` — call them from deep inside the corpus (e.g. `nuclei-templates/http/cves/...`) and the workspace config is found; nested git clones do not block the walk (an upstream corpus with its own `.git` still resolves to the enclosing workspace)
+- The config defines db filenames, nuclei/yamllint paths (empty = auto-discover), and the 8-key sync filter (corpus dir, include/exclude dirs/files/regex patterns)
+- **Missing config fails loudly**: a diagnostic error with the search start, levels walked, and an inline minimal config example — installed extensions need no repo docs
+
+```json
+{
+  "db": { "filename": "templates.db", "sealFile": "templates-lock.json" },
+  "tools": { "nucleiPath": "" },
+  "sync": { "corpusDir": "nuclei-templates" }
+}
+```
+
 **Engineering discipline**:
 
 - **Branded contracts**: every domain value typed through zod (`.brand<>()`), enforced statically by brand-lint in the check gate
