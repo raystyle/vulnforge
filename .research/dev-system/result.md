@@ -8,6 +8,12 @@
 - 修复方向：改派生物，不改检查（误报经用户确认后调整规则正本）。
 - 命令：`node tools/system-lint.mjs` → `system-lint: all 14 checks pass`，退出码 0。
 
+## 错误信封（Round 8）
+
+- 一切工具失败原子暴露：vf-error code=<稳定码>（11 码封闭集）+ detail（offending 输入 + 解析后实际值）+ hint（下一步）
+- 实测表明：contracts-lint 映射缺 errors.ts/tool-machine.ts（导出符号未被核查）——补映射后 143→151 全文档化
+- 三平台全绿（Windows 106+9 / ubuntu 103+12 / mac 103+12，共 115）；wrapAsVfError 幂等（重包装信封是 no-op）
+
 ## 配置自动发现修复（Round 7）
 
 - 实测表明：工具从语料 clone 内调用时 findUp 被止于 .git 守卫阻断，永远找不到工作区配置——修复为就近标记 findUp（嵌套 clone 穿透）
