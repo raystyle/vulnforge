@@ -27,12 +27,12 @@
     ]
   },
   "scripts": {
-    "check": "biome check . && tsc --noEmit && node scripts/brand-lint.mjs && node scripts/contracts-lint.mjs && vitest run && node scripts/pi-load-check.mjs",
+    "check": "biome check . && tsc --noEmit && node tools/brand-lint.mjs && node tools/contracts-lint.mjs && vitest run && node tools/pi-load-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "biome check .",
-    "brand-lint": "node scripts/brand-lint.mjs",
-    "contracts-lint": "node scripts/contracts-lint.mjs"
+    "brand-lint": "node tools/brand-lint.mjs",
+    "contracts-lint": "node tools/contracts-lint.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

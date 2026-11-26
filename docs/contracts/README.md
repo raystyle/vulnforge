@@ -16,5 +16,5 @@
 - **品牌契约默认必用**：领域值一律 zod + `.brand<>()`；校验前置边界（YAML safeParse / DB 行 decode / 配置 parse），内部免检
 - 边界违规形态：裸 `string` 传领域值、`as` 逃避检查、`String()` 强转契约字段
 - 机械强制（均已入 `npm run check` 门禁）：
-  - `npm run brand-lint`（scripts/brand-lint.mjs）——契约强转静态扫描；单行豁免 `// brand-allow` 需注明原因
-  - `npm run contracts-lint`（scripts/contracts-lint.mjs）——**文档完整性**：src/templates/ 每个导出契约符号必须出现在对应文档，缺失即 fail（防文档漂移）
+  - `npm run brand-lint`（tools/brand-lint.mjs）——契约强转静态扫描；单行豁免 `// brand-allow` 需注明原因
+  - `npm run contracts-lint`（tools/contracts-lint.mjs）——**文档完整性**：src/templates/ 每个导出契约符号必须出现在对应文档，缺失即 fail（防文档漂移）
