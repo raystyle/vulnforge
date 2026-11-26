@@ -67,9 +67,9 @@ export const TemplateInfoSchema = z.object({
     .min(1)
     .refine((value) => value === value.trim(), "name must not have leading/trailing spaces"),
   author: StringSlice,
-  // Upstream tolerates `severity: unknown` (42 files) — parse keeps it, lint flags it.
-  severity: z.union([SeveritySchema, z.literal("unknown")]),
-  // 9% of upstream templates omit description — parse tolerates, lint requires.
+  // Upstream tolerates `severity: unknown` (59 files); workflows may omit it entirely.
+  severity: z.union([SeveritySchema, z.literal("unknown")]).optional(),
+  // ~9% of upstream templates omit description — parse tolerates, lint requires.
   description: z.string().optional().default(""),
   impact: z.string().optional(),
   remediation: z.string().optional(),
@@ -288,7 +288,7 @@ export function parseTemplateFile(path: string): { meta: Omit<TplMetaContract, "
       id: doc.id,
       name: doc.info.name,
       author: doc.info.author.join(","),
-      severity: doc.info.severity === "unknown" ? "info" : doc.info.severity,
+      severity: !doc.info.severity || doc.info.severity === "unknown" ? "info" : doc.info.severity,
       description: doc.info.description,
       tags: doc.info.tags.join(","),
       cve,
@@ -505,6 +505,9 @@ export interface SyncResult {
   removed: string[];
 }
 
+/** Directories under the template repo root that never contain templates. */
+const SYNC_EXCLUDED_DIRS = [".git", ".github", "node_modules"];
+
 export async function syncFromFiles(db: TemplateDb, root: string): Promise<SyncResult> {
   const result: SyncResult = { synced: [], failed: [], removed: [] };
   const seen = new Set<string>();
@@ -513,6 +516,7 @@ export async function syncFromFiles(db: TemplateDb, root: string): Promise<SyncR
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
+        if (dir === root && SYNC_EXCLUDED_DIRS.includes(entry.name)) continue;
         walk(full);
         continue;
       }

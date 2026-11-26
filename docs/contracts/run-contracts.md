@@ -117,6 +117,31 @@ lint 的输入视图（宽松结构）：`id?`、`info?{name,author,severity,des
 - `skeletonFor(input: ScaffoldInput): string`——完整 yaml 骨架（五类 matcher 结构各异，均含 proof 标记思想）
 - `targetDirectory(input: ScaffoldInput): string`——cve→`http/cves`；panel/detect→`http/exposures`；其余→`http/vulnerabilities`
 
-## 5. mock-nuclei CLI（scripts/mock-nuclei.py）
+## 5. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
+
+### 5.1 `YamlLintFinding`
+
+| 字段      | 类型                   | 说明                                               |
+| --------- | ---------------------- | -------------------------------------------------- |
+| `level`   | `"error" \| "warning"` | 语法/flow-style/空行超限 = error；风格类 = warning |
+| `rule`    | `string`               | 规则 id（下）                                      |
+| `message` | `string`               | 含文件名与行号                                     |
+| `line`    | `number`               | 行号（1 起）                                       |
+
+### 5.2 `lintYaml(source, fileName): YamlLintFinding[]`
+
+规则全集（对齐上游 .yamllint 实际启用的规则）：
+
+| 规则                   | 级别    | 说明                                                           |
+| ---------------------- | ------- | -------------------------------------------------------------- |
+| `yaml/syntax`          | error   | 解析错误，带行列（parseDocument errors，取前 5 条）            |
+| `yaml/flow-style`      | error   | flow 映射 `{}` / 序列 `[]` 禁用（上游 braces/brackets forbid） |
+| `yaml/empty-lines`     | error   | 连续空行 > 5                                                   |
+| `yaml/trailing-spaces` | warning | 行尾空格                                                       |
+| `yaml/comment-spacing` | warning | 注释前多于一个空格                                             |
+
+实现要点：`parseDocument` + 遍历 `items` 树读 `flow` 标志（普通 `parse()` 丢失该信息——实测教训）；纯 TS 跨三平台，消除 Python/uv 运行时依赖。
+
+## 6. mock-nuclei CLI（scripts/mock-nuclei.py）
 
 测**调用方**的假 nuclei（uv 自包含，PEP 723）：`MOCK_NUCLEI_FINDINGS` 注入 findings JSON、`-version`/`-jsonl`/`-severity`/`-tags` 兼容、`MOCK_NUCLEI_DELAY`/`MOCK_NUCLEI_EXIT` 控制行为。与 mock 靶机分工：**靶机+真 nuclei 验证模板本身；mock CLI 确定性测试我们的工具代码**。

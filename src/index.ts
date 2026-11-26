@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -24,6 +24,7 @@ import {
   VULN_TYPES,
   type VulnType,
 } from "./templates/scaffold.ts";
+import { lintYaml } from "./templates/yamllint.ts";
 
 function textResult(text: string, isError = false) {
   return {
@@ -115,7 +116,7 @@ export default function (pi: ExtensionAPI): void {
     name: "vf_nuclei_lint",
     label: "VulnForge template lint",
     description:
-      "Lint a nuclei template: structure and metadata checks plus weak-matcher analysis. Pass a path relative to the templates repo root.",
+      "Lint a nuclei template: YAML syntax/style (built-in TS yamllint), structure and metadata checks, plus weak-matcher analysis. Pass a path relative to the templates repo root.",
     parameters: Type.Object({
       path: Type.String({ description: "Template path relative to the templates repo root" }),
     }),
@@ -128,14 +129,22 @@ export default function (pi: ExtensionAPI): void {
       }
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
+        const source = readFileSync(absolute, "utf8");
+        const yamlFindings = lintYaml(source, params.path);
+        const yamlText = yamlFindings
+          .map((finding) => `[${finding.level}] ${finding.rule} (line ${finding.line}): ${finding.message}`)
+          .join("\n");
         const parsed = parseTemplateFile(absolute);
         if ("parseError" in parsed) {
-          return textResult(`parse failed: ${parsed.parseError}`, true);
+          return textResult(`parse failed: ${parsed.parseError}\n${yamlText}`, true);
         }
         const findings = lintDocument(parsed.meta as unknown as TemplateInfo);
+        const hasError =
+          yamlFindings.some((finding) => finding.level === "error") ||
+          findings.some((finding) => finding.level === "error");
         return textResult(
-          `lint ${params.path}:\n${findingsText(findings)}`,
-          findings.some((f) => f.level === "error"),
+          `lint ${params.path}:\n${yamlText.length > 0 ? `${yamlText}\n` : ""}${findingsText(findings)}`,
+          hasError,
         );
       } finally {
         tools.db.close();
