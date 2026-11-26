@@ -12,15 +12,30 @@
 
 ## 物化基础库（pi_rust_lib 0.6.3 实读，模块清单）
 
-| 模块 | 能力 | 采纳 |
-| ---- | ---- | ---- |
-| report | success/failure_json/failure 信封打印 | ✅ 直接对应 AgentResultSchema |
-| tls | rustls danger_client_config（零校验，`--insecure`）+ roots_client_config（webpki 默认）；ring provider 安装 | ✅ 用户裁定的忽略证书校验能力（默认 roots，选配 danger） |
-| net | PI_RS_VIA SOCKS5 路由（fail-closed，绝不静默直连） | 后续（打内网靶需要时） |
-| timeout | cancel-this 协作取消 + stage 活动追踪 + 子进程兜底 kill + panic hook | 后续（先例成熟态；第一批用 PI_TIMEOUT_SECS 简化） |
-| error_atom | {kind, message, detail, context, error_code} + envelope_sha256 | ✅ 简化版（kind/code/message） |
-| builders/codec/payload/longrun | jc 解析器/jaq/duct 子进程 | 后续按需 |
+| 模块                           | 能力                                                                                                        | 采纳                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| report                         | success/failure_json/failure 信封打印                                                                       | ✅ 直接对应 AgentResultSchema                            |
+| tls                            | rustls danger_client_config（零校验，`--insecure`）+ roots_client_config（webpki 默认）；ring provider 安装 | ✅ 用户裁定的忽略证书校验能力（默认 roots，选配 danger） |
+| net                            | PI_RS_VIA SOCKS5 路由（fail-closed，绝不静默直连）                                                          | 后续（打内网靶需要时）                                   |
+| timeout                        | cancel-this 协作取消 + stage 活动追踪 + 子进程兜底 kill + panic hook                                        | 后续（先例成熟态；第一批用 PI_TIMEOUT_SECS 简化）        |
+| error_atom                     | {kind, message, detail, context, error_code} + envelope_sha256                                              | ✅ 简化版（kind/code/message）                           |
+| builders/codec/payload/longrun | jc 解析器/jaq/duct 子进程                                                                                   | 后续按需                                                 |
 
 - **第一批最小物化库 `vf_rust_lib` crate**：报告信封（report 对应实现）+ rustls 双配置（roots 默认 / danger `--insecure`）+ 基础 HTTP 请求面 + 错误原子（kind/code/message）——以 path 依赖注入 exploit 脚本（源码位置无关，先例同款）
-- 骨架 ```` ```cargo ```` 依赖块默认带 vf_rust_lib + serde_json + rustls
+- 骨架 ` ```cargo ` 依赖块默认带 vf_rust_lib + serde_json + rustls
 - 坑（先例教训记录在案）：rustls 0.23 无静态 RSA 密钥交换，老栈需 legacy 通道；heavy 依赖进 lib 需 ADR
+
+## exploit 状态机模型模板（用户裁定，2026-11-27）
+
+利用链是状态过程，脚本层需要一等的状态机模型模板（非框架）——vf_rust_lib 提供 `ExploitMachine` 模型：
+
+```
+enum Stage { Probe, Craft, Deliver, Verify }
+enum Transition { Ok(Stage), Fail(ErrorKind, String), Done(data) }
+```
+
+- 四阶段封闭：Probe（探测指纹/前提）→ Craft（构造 payload）→ Deliver（投递）→ Verify（验证利用成功）
+- 转移穷尽：match 全分支 + ErrorKind 七词表兜底——编译期穷尽守卫（Rust 天然）
+- 每阶段出口统一：Ok 进下一阶段 / Fail 产 error_atom / Done 出信封
+- 骨架生成时 rs_new 按此模板展开四阶段 fn
+- 脚本作者只需填每阶段逻辑；阶段跳跃显式（Craft 直接 Done 需明写）
