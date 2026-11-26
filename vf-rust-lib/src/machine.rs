@@ -300,12 +300,12 @@ mod delivery_forms_tests {
 
     #[test]
     fn with_deliver_encodes_form_in_step_name() {
-        let m = Machine::with_deliver(DeliverForm::Callback);
+        let m = Machine::with_deliver(DeliverForm::RevShell);
         let deliver = m
             .steps
             .iter()
             .find(|s| matches!(s, Step::Deliver(_)))
             .unwrap();
-        assert_eq!(deliver.name(), "callback");
+        assert_eq!(deliver.name(), "rev_shell");
     }
 }
