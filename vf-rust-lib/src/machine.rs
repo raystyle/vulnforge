@@ -44,32 +44,50 @@ pub enum Step {
     Custom(String),
 }
 
-/// The four delivery forms (user ruling). Verify pairs with the form:
-/// submit → response/side-effect evidence; webshell → shell usability;
-/// callback → the OOB callback face received the rebound connection;
-/// in-memory → residency evidence (no on-disk artifact).
+/// The delivery forms reduce to TWO ATOMIC ACTIONS on the target (user
+/// ruling after the cheat-sheet study): WRITE FILE and EXECUTE COMMAND.
+/// Every form is a composition over them:
+///   Submit   — neither (payload is data; the bug itself processes it)
+///   Command  — execute ×1
+///   Webshell — write, then execute THROUGH the planted file
+///   Callback — execute (a dial-back one-liner) + our listener
+///
+/// The four delivery forms (user ruling, semantics from the
+/// d4t4s3c/OffensiveReverseShellCheatSheet study). Verify pairs with the
+/// form:
+/// submit → response/side-effect evidence;
+/// command → the executed command's output (the most common RCE form —
+///           the payload IS a command line);
+/// webshell → script file written (PHP/JSP/ASP file on target) and shell
+///           usability (command echo through the planted file);
+/// callback → reverse shell command executed on target (bash -i >&
+///            /dev/tcp/…, nc -e sh, mkfifo pipe …), verify the listener
+///            receives the interactive session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeliverForm {
     /// Submit the payload over the wire (HTTP param/header/body/path) —
-    /// the default web-exploit form.
+    /// the web form for non-RCE bugs (SQLi, SSTI-less injection).
     Submit,
-    /// Plant a webshell; verify shell usability (command echo / auth round-trip).
+    /// Execute a single command on the target (RCE/SSTI: popen-style) and
+    /// take its output — the most common form.
+    Command,
+    /// Write a script file to the target (webshell: PHP/JSP/ASP file via
+    /// upload, log poisoning, exif data…), then execute commands THROUGH
+    /// the planted file (cmd.php?cmd=id).
     Webshell,
-    /// Trigger a reverse callback; verify the OOB callback face caught it
-    /// (the pi-rs2 oob-callback-family precedent — read-only log channel).
+    /// Execute a reverse-shell command on the target (bash/nc/mkfifo/
+    /// powershell one-liner from the cheat sheet) — the target dials back
+    /// to our listener; verify the session lands.
     Callback,
-    /// In-memory execution, nothing lands on disk (deserialization / memory
-    /// shell); verify residency evidence.
-    InMemory,
 }
 
 impl DeliverForm {
     pub fn name(&self) -> &'static str {
         match self {
             DeliverForm::Submit => "submit",
+            DeliverForm::Command => "command",
             DeliverForm::Webshell => "webshell",
             DeliverForm::Callback => "callback",
-            DeliverForm::InMemory => "in-memory",
         }
     }
 }
@@ -267,5 +285,29 @@ mod tests {
         let (ok, value) = m.run(|_, _| Outcome::Success(json!({})));
         assert!(!ok);
         assert_eq!(value["atom"]["kind"], json!("soft_success"));
+    }
+}
+
+#[cfg(test)]
+mod delivery_forms_tests {
+    use super::*;
+
+    #[test]
+    fn deliver_form_names_are_stable() {
+        assert_eq!(DeliverForm::Submit.name(), "submit");
+        assert_eq!(DeliverForm::Command.name(), "command");
+        assert_eq!(DeliverForm::Webshell.name(), "webshell");
+        assert_eq!(DeliverForm::Callback.name(), "callback");
+    }
+
+    #[test]
+    fn with_deliver_encodes_form_in_step_name() {
+        let m = Machine::with_deliver(DeliverForm::Callback);
+        let deliver = m
+            .steps
+            .iter()
+            .find(|s| matches!(s, Step::Deliver(_)))
+            .unwrap();
+        assert_eq!(deliver.name(), "callback");
     }
 }
