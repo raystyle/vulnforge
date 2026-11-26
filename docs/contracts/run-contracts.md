@@ -82,6 +82,17 @@ Mock 语义（契约）：空 findings = 0 hit（benign 反证绿）；注入 fi
 
 预期语义：**mock 接受预期请求 → 返回预期数据 → 客户端（nuclei/scanPort）解析返回数据给出预期结果**——route 即"预期请求→预期数据"的契约化声明。
 
+### 2.1.1 mock-client 控制通道契约（品牌化）
+
+| 符号 | 契约 | 说明 |
+| ---- | ---- | ---- |
+| `ControlEventSchema` / `ControlEvent` | zod discriminatedUnion("event") | child→parent：ready(url+`MockPort` brand)/closed/error(message)；控制线消息经 parse 打契约 |
+| `ControlOpSchema` / `ControlOp` | zod discriminatedUnion("op") | parent→child：start(routes 经 `MockRouteSchema` 二次校验)/close；写 stdin 前解析 |
+| `MockTargetPhase` | 字面量联合 | spawning/ready/closing/closed/failed——生命周期状态穷尽 |
+| `SpawnedMockTarget` | interface | url + branded port + `phase` + close() |
+
+`mockPort` 为品牌数字（正整数 brand `"MockPort"`）；坏端口、坏方法、坏路由在跨进程边界即拒绝（实测验证）。
+
 ### 2.2 `MockTarget`
 
 | 字段      | 类型                  | 说明                                  |

@@ -11,6 +11,8 @@ export interface TemplateInfo {
       cwe_id?: unknown;
     };
   };
+  workflows?: unknown;
+  workflow?: unknown;
   http?: Array<{
     matchers?: Array<{
       type?: unknown;
@@ -160,6 +162,17 @@ export function checkWeakMatchers(doc: TemplateInfo): LintFinding[] {
       rule: "matcher/weak-word",
       message: `weak matcher words (false-positive prone): ${summary.weakHits.join(", ")}`,
     });
+  }
+  // Workflow templates orchestrate other templates; they carry no matchers by
+  // design (engine WorkflowProtocol semantics) and need a workflows block instead.
+  const isWorkflow = doc.workflows !== undefined || doc.workflow !== undefined;
+  if (summary.total === 0 && isWorkflow) {
+    findings.push({
+      level: "info",
+      rule: "workflow/no-matchers",
+      message: "workflow template: subtemplates are referenced in the workflows block; matcher analysis not applicable",
+    });
+    return findings;
   }
   if (summary.total === 0) {
     findings.push({ level: "error", rule: "matcher/missing", message: "template has no matchers" });

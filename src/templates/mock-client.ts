@@ -7,24 +7,46 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import type { MockRoute } from "./mock.ts";
+import { z } from "zod";
+import { type MockRoute, MockRouteSchema } from "./mock.ts";
+
+/** Lifecycle state of the spawned mock child (exhaustive literal union). */
+export type MockTargetPhase = "spawning" | "ready" | "closing" | "closed" | "failed";
+
+/** Control-channel contract (child→parent stdio JSON lines). */
+export const ControlEventSchema = z.discriminatedUnion("event", [
+  z.object({
+    event: z.literal("ready"),
+    url: z.url(),
+    port: z.number().int().positive().brand<"MockPort">(),
+  }),
+  z.object({ event: z.literal("closed") }),
+  z.object({ event: z.literal("error"), message: z.string() }),
+]);
+export type ControlEvent = z.infer<typeof ControlEventSchema>;
+
+/** Parent→child ops (start/close), validated before writing to stdin. */
+export const ControlOpSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("start"),
+    routes: z.array(MockRouteSchema),
+  }),
+  z.object({ op: z.literal("close") }),
+]);
+export type ControlOp = z.infer<typeof ControlOpSchema>;
 
 export interface SpawnedMockTarget {
   url: string;
   port: number;
+  phase: MockTargetPhase;
   close(): Promise<void>;
 }
 
 const READY_TIMEOUT_MS = 15_000;
 
-interface ControlEvent {
-  event?: string;
-  url?: string;
-  port?: number;
-  message?: string;
-}
-
 export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget> {
+  // Validate the route payload at the boundary before it crosses the process.
+  const startOp: ControlOp = ControlOpSchema.parse({ op: "start", routes });
   return new Promise((resolve, reject) => {
     const serverEntry = join(import.meta.dirname, "mock-server.ts");
     // execArg mirrors this process's TS loader so the .ts child runs directly.
@@ -38,8 +60,6 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
       return;
     }
     let settled = false;
-    let url = "";
-    let port = 0;
     let closeResolve: (() => void) | undefined;
     const timer = setTimeout(() => {
       if (settled) return;
@@ -54,22 +74,21 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
       if (trimmed.length === 0) return;
       let event: ControlEvent;
       try {
-        event = JSON.parse(trimmed);
+        event = ControlEventSchema.parse(JSON.parse(trimmed));
       } catch {
         return;
       }
       if (event.event === "ready" && !settled) {
         settled = true;
         clearTimeout(timer);
-        url = typeof event.url === "string" ? event.url : "";
-        port = typeof event.port === "number" ? event.port : 0;
         resolve({
-          url,
-          port,
+          url: event.url,
+          port: event.port,
+          phase: "ready",
           close: () =>
             new Promise<void>((resolveClose) => {
               closeResolve = resolveClose;
-              child.stdin?.write(`${JSON.stringify({ op: "close" })}\n`);
+              child.stdin?.write(`${JSON.stringify({ op: "close" } satisfies ControlOp)}\n`);
             }),
         });
       } else if (event.event === "closed") {
@@ -92,7 +111,7 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
       }
     });
 
-    child.stdin.write(`${JSON.stringify({ op: "start", routes })}\n`);
+    child.stdin.write(`${JSON.stringify(startOp)}\n`);
   });
 }
 
