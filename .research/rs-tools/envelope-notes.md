@@ -2,7 +2,7 @@
 
 ## 信封语义（pi-rs2 实读：piece-envelope-cta.md + ADR-0023 + report.rs）
 
-- 先例：AgentResult 单行 JSON，成败同形；失败必带 next_suggestion（CTA = 纯下一步建议，机器可读）；error 内嵌原子错误（error_atom：kind 封闭七词表 + error_code `E_<KIND>_<NNN>` + message + context）
+- 先例：AgentResult 单行 JSON，成败同形；失败必带 next_suggestion（CTA = 纯下一步建议，机读）；error 内嵌原子错误（error_atom：kind 封闭七词表 + error_code `E_<KIND>_<NNN>` + message + context）
 - ADR-0023 先例裁决：CTA 与知识库分离，CTA 只专注下一步建议（1315 条注册表 + 1311 页知识库的耦合曾拖慢入册）
 - **本项目裁定（用户令）**：
   - 工具级 = vf-error 的 `hint:`（纠偏指引、工具用法、稳定文案）
