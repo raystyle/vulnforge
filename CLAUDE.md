@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 纪律红线（每个会话都要遵守）
 
-- **ADR 只记用户决定**：每条 ADR 必须经用户确认后写入 `adr/`；Claude 只起草，不擅自落笔。参考资料不记为需求。
+- **ADR 只记用户决定**：每条 ADR 必须经用户确认后写入 `.ad_records/`；Claude 只起草，不擅自落笔。参考资料不记为需求。
 - **新需求先搜先例**：gh-mcp 搜同类实现 → 研究先例的错误与 bug → 再设计；深入分析可 clone 到 `.reference/`（流程见 `/precedent` skill）。
 - **品牌契约默认必用**：领域值（ID/枚举语义/路径/版本）一律 zod + `.brand<>()`；校验前置边界，内部免检；裸 `string` 传领域值、`as` 逃避检查、`String()` 强转契约字段是违规。
 - **安全约束（Pi 无沙箱）**：扩展代码与用户同权限——危险命令（网络/删除/进程）必须拦截确认；敏感操作写独立日志审计；开发测试在 VM/容器中跑目标服务。
@@ -30,7 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **主闭环**：Research → Plan（人工批准）→ Implement（TDD+worktree）→ Verify → 独立审查 → Ship；失败回路 ≤3 轮。产物链落 `.research/<feature>/`（进 git）。
 - **审查**：规则正本根目录 `REVIEW.md`（三档分级，从 main 读取）；审查代理 `.claude/agents/reviewer.md` + `security-reviewer.md`（新上下文、未参与编写）
-- **决策跟踪**：`adr/`（需求/进度状态/最终产物/是否满足四节，索引见 `adr/README.md`）
+- **决策跟踪**：`.ad_records/`（需求/进度状态/最终产物/是否满足四节，索引见 `.ad_records/README.md`）
 - Pi 扩展开发规则、检查门 `npm run check`、四层测试、调试循环 → **`.claude/rules/pi-extension.md`**（改 src/tests 时自动载入）
 - 参考资料区：`.reference/`——只读，不进 git
 

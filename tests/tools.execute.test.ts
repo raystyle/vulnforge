@@ -24,7 +24,9 @@ writeFileSync(
 
 const ctx = { cwd: WORKSPACE, hasUI: false };
 
-const UNUSED_TEMPLATE = null as string | null; void UNUSED_TEMPLATE; const TEMPLATE = [
+const UNUSED_TEMPLATE = null as string | null;
+void UNUSED_TEMPLATE;
+const _TEMPLATE = [
   "id: tool-test-rce",
   "info:",
   "  name: Tool Test - RCE",

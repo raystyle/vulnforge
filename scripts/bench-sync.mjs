@@ -17,14 +17,14 @@ import { runBatchSync } from "../src/templates/sync-machine.ts";
 function resolveRoot() {
   // Config-driven: .vulnforge.json workspace marker discovered upward from
   // VULNFORGE_WORKSPACE (config dir) or cwd; env VULNFORGE_UPSTREAM only as an override.
-  const workspace = process.env["VULNFORGE_WORKSPACE"] ?? process.cwd();
+  const workspace = process.env.VULNFORGE_WORKSPACE ?? process.cwd();
   try {
     return findTemplatesRoot(workspace);
   } catch {
     const fallback = join(homedir(), "repos", "vulnforge-workspace");
     if (existsSync(join(fallback, ".vulnforge.json"))) return fallback;
-    if (process.env["VULNFORGE_UPSTREAM"] !== undefined && process.env["VULNFORGE_UPSTREAM"].length > 0) {
-      return process.env["VULNFORGE_UPSTREAM"];
+    if (process.env.VULNFORGE_UPSTREAM !== undefined && process.env.VULNFORGE_UPSTREAM.length > 0) {
+      return process.env.VULNFORGE_UPSTREAM;
     }
     throw new Error(
       "No templates workspace found: run from a directory under the templates repo, or set VULNFORGE_WORKSPACE=<dir under the templates repo>, or VULNFORGE_UPSTREAM=<corpus root>",
@@ -39,7 +39,7 @@ const SCRATCH = mkdtempSync(join(tmpdir(), "vf-bench-"));
 
 // Corpus subdirs: template repos only, or explicit dir list via env.
 const CORPUS_DIRS =
-  process.env["VULNFORGE_BENCH_DIRS"] ?? "http,dns,ssl,network,file,headless,websocket,workflows,javascript,code";
+  process.env.VULNFORGE_BENCH_DIRS ?? "http,dns,ssl,network,file,headless,websocket,workflows,javascript,code";
 
 function collectFiles() {
   const files = [];

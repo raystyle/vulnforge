@@ -4,14 +4,14 @@
 
 ## 跑过的命令与结果
 
-| 门 | 命令 | 结果 | 证据 |
-| -- | ---- | ---- | ---- |
-| biome | `npx biome check .` | ✅ 0 违规（63 文件） | vitest-verbose.log 之外，biome 每轮 gate 输出 |
-| tsc | `npx tsc --noEmit` | ✅ 0 错误 | 同上 |
-| brand-lint | `node scripts/brand-lint.mjs` | ✅ clean（含 tool-loop 规则） | 同上 |
-| contracts-lint | `node scripts/contracts-lint.mjs` | ✅ 110/110 符号有文档 | 同上 |
-| vitest | `npx vitest run` | ✅ **77 passed / 77（14 文件）** | `evidence/vitest-verbose.log` |
-| pi load | `node scripts/pi-load-check.mjs` | ✅ extension loads | 同上 |
+| 门             | 命令                              | 结果                             | 证据                                          |
+| -------------- | --------------------------------- | -------------------------------- | --------------------------------------------- |
+| biome          | `npx biome check .`               | ✅ 0 违规（63 文件）             | vitest-verbose.log 之外，biome 每轮 gate 输出 |
+| tsc            | `npx tsc --noEmit`                | ✅ 0 错误                        | 同上                                          |
+| brand-lint     | `node scripts/brand-lint.mjs`     | ✅ clean（含 tool-loop 规则）    | 同上                                          |
+| contracts-lint | `node scripts/contracts-lint.mjs` | ✅ 110/110 符号有文档            | 同上                                          |
+| vitest         | `npx vitest run`                  | ✅ **77 passed / 77（14 文件）** | `evidence/vitest-verbose.log`                 |
+| pi load        | `node scripts/pi-load-check.mjs`  | ✅ extension loads               | 同上                                          |
 
 SKIP 显式报告：无（本机有 nuclei 3.11.1，runtime 层 3 测试真实执行；无核跳过）。三平台工作台（lan-ubuntu/lan-mac）无 nuclei 二进制时对应 3 个 runtime 测试显式 SKIP——round 3 报告已记录，属环境性而非回归。
 

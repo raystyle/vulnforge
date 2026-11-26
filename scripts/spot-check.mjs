@@ -92,9 +92,9 @@ for (const rel of sample) {
   }
 }
 console.log("    error rule distribution:");
-Object.entries(ruleFreq)
-  .sort((a, b) => b[1] - a[1])
-  .forEach(([rule, n]) => console.log(`      ${String(n).padStart(4)}  ${rule}`));
+for (const [rule, n] of Object.entries(ruleFreq).sort((a, b) => b[1] - a[1])) {
+  console.log(`      ${String(n).padStart(4)}  ${rule}`);
+}
 
 // Stage 2: seed scratch db + FTS lookup per sample id
 const scratch = mkdtempSync(join(tmpdir(), "vf-spot-"));

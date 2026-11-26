@@ -7,8 +7,8 @@ import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
-import { type LintFinding, lintDocument, type TemplateInfo } from "./templates/lint.ts";
-import { type MetaColumn, parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
+import type { LintFinding } from "./templates/lint.ts";
+import { type MetaColumn, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
 import {
   checkNuclei,
@@ -28,7 +28,6 @@ import {
 } from "./templates/scaffold.ts";
 import { renderStats } from "./templates/stats-report.ts";
 import { runBatchSync } from "./templates/sync-machine.ts";
-import { lintYaml } from "./templates/yamllint.ts";
 
 function textResult(text: string, isError = false) {
   return {

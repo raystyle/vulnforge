@@ -64,14 +64,14 @@ vulnforge-templates（独立模板仓，本计划初始化）
 
 注册 6 工具 + 1 命令（typebox 参数，execute 返回 `{content:[{type:"text",text}],details,isError?}`）：
 
-| 工具 | 参数 | 行为 |
-|------|------|------|
-| `vf_template_new` | vulnType, cve?, name | 生成骨架到模板仓正确目录，返回路径 |
-| `vf_template_lint` | path | yamllint+validate+结构+弱matcher 四合一，结构化结果 |
-| `vf_template_run` | path, routes? | 起 mock 靶机 → 跑 nuclei → 返回命中+证据；**先跑 benign profile 0-hit 反证** |
-| `vf_template_search` | query, filters? | FTS 搜索元数据 |
-| `vf_template_sync` | — | 文件→SQLite 同步（写库前 confirm） |
-| `vf_template_list` | dir?, tag? | 清单/查重报告 |
+| 工具                 | 参数                 | 行为                                                                         |
+| -------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `vf_template_new`    | vulnType, cve?, name | 生成骨架到模板仓正确目录，返回路径                                           |
+| `vf_template_lint`   | path                 | yamllint+validate+结构+弱matcher 四合一，结构化结果                          |
+| `vf_template_run`    | path, routes?        | 起 mock 靶机 → 跑 nuclei → 返回命中+证据；**先跑 benign profile 0-hit 反证** |
+| `vf_template_search` | query, filters?      | FTS 搜索元数据                                                               |
+| `vf_template_sync`   | —                    | 文件→SQLite 同步（写库前 confirm）                                           |
+| `vf_template_list`   | dir?, tag?           | 清单/查重报告                                                                |
 
 命令 `/vf`：状态（模板仓路径、db 统计、nuclei/yamllint 可用性）。
 

@@ -6,13 +6,7 @@ export interface CapturedTool {
   label: string;
   description: string;
   parameters: unknown;
-  execute: (
-    id: string,
-    params: unknown,
-    signal: unknown,
-    onUpdate: unknown,
-    ctx: unknown,
-  ) => Promise<unknown>;
+  execute: (id: string, params: unknown, signal: unknown, onUpdate: unknown, ctx: unknown) => Promise<unknown>;
 }
 
 export interface CapturedCommand {
