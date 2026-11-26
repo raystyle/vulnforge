@@ -36,3 +36,9 @@
 
 - 交付：`.claude/rules/docs-style.md`（四原则 + 术语表 + 句长 + 代码命名形）+ system-lint 三项机械执法（docs-terminology / docs-sentence-length / code-naming）
 - 实测表明：首跑即抓出存量违例（9 个中文文档 20 处近义词指代、3 处超长句），当日全部修正
+
+## 全量审查（reviewer + security-reviewer 独立代理）
+
+- 代码审查：1 blocking（rules 与功能代码混 commit，e4e23d0/713e8d2）；4 report（README_EN/CLAUDE.md 实际未被术语检查扫到=执法静默缩水；信封 4 个死码+2 处散文残留；hook URL.pathname 百分号编码路径不匹配；reachability 只处理一层 ../）
+- 安全审查：1 blocking（transcript 含密钥载体永久留仓，defeats 全局清理）；4 report（intent-trace 终端转义注入；findUp 信任边界扩大到根+ReDoS；session_id 未验形；gitignore 不匹配子目录）
+- 修复裁定待用户确认

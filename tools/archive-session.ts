@@ -56,6 +56,11 @@ export function indexLine(input: { sessionId: string; reason: string; isoDate: s
 
 export function archiveSession(input: ArchiveInput): ArchiveOutcome {
   const { projectRoot, sessionId, transcriptPath, reason } = input;
+  // Defense-in-depth: the harness sends UUIDs, but a crafted session_id like
+  // "../x" must never reach join() (path traversal / gitignore escape).
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/.test(sessionId)) {
+    return { archived: false, reason: "session id failed shape validation" };
+  }
   if (input.guardRepoRoot !== undefined) {
     const root = input.guardRepoRoot.replaceAll("\\", "/").replace(/\/$/, "");
     const candidate = projectRoot.replaceAll("\\", "/");
@@ -80,9 +85,9 @@ export function archiveSession(input: ArchiveInput): ArchiveOutcome {
     const rows = existing
       .split("\n")
       .filter((row) => row.length > 0 && !(row.includes(`| ${sessionId} |`) || row.includes(`| ${sessionId}|`)));
-    indexText = [...rows, line].join("\n") + "\n";
+    indexText = `${[...rows, line].join("\n")}\n`;
   } else {
-    indexText = ["# Sessions — 会话归档索引（jsonl 实体不进 git，--resume <path> 可恢复）", "", line].join("\n") + "\n";
+    indexText = `${["# Sessions — 会话归档索引（jsonl 实体不进 git，--resume <path> 可恢复）", "", line].join("\n")}\n`;
   }
   writeFileSync(indexPath, indexText);
   return { archived: true, archivePath };

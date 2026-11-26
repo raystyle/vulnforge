@@ -60,9 +60,22 @@ function textOf(content: unknown): {
   return result;
 }
 
+const ESC_CH = String.fromCharCode(27);
+const BEL_CH = String.fromCharCode(7);
+// CSI: ESC [ params... final   OSC: ESC ] payload (BEL | ESC \)
+const CSI_RE = new RegExp(`${ESC_CH}\\[[0-9;?]*[ -/]*[@-~]`, "g");
+const OSC_RE = new RegExp(`${ESC_CH}\\][^${BEL_CH}${ESC_CH}]*(?:${BEL_CH}|${ESC_CH}\\\\)`, "g");
+const CONTROL_RE = new RegExp(
+  `[${String.fromCharCode(0)}-${String.fromCharCode(8)}${String.fromCharCode(11)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`,
+  "g",
+);
+
 function compact(text: string | undefined, max = 220): string | undefined {
   if (text === undefined) return undefined;
-  const cleaned = text.replaceAll(/\s+/g, " ").trim();
+  // Transcripts are untrusted output: strip terminal control sequences (ESC
+  // initiated CSI/OSC — e.g. OSC 52 clipboard writes) before printing.
+  const stripped = text.replaceAll(CSI_RE, "").replaceAll(OSC_RE, "");
+  const cleaned = stripped.replace(CONTROL_RE, "").replaceAll(/\s+/g, " ").trim();
   return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
 }
 
@@ -95,7 +108,7 @@ export function traceIntent(transcriptJsonl: string): TraceEvent[] {
     if (thinking !== undefined && thinking.length > 0) lastThinking = thinking;
     for (const use of toolUses) {
       if (!FILE_TOOLS.has(use.name)) continue;
-      const file = use.input["file_path"] ?? use.input["notebook_path"];
+      const file = use.input.file_path ?? use.input.notebook_path;
       if (typeof file !== "string") continue;
       events.push({
         timestamp: entry.timestamp ?? "",

@@ -435,7 +435,11 @@ function* markdownFiles(dirRel) {
     const rel = dirRel === "." ? entry.name : `${dirRel}/${entry.name}`;
     if (entry.isDirectory()) {
       yield* markdownFiles(rel);
-    } else if (entry.name === "README.md" || (entry.name.endsWith(".md") && dirRel !== ".")) {
+    } else if (
+      dirRel === "."
+        ? ["README.md", "README_EN.md", "CLAUDE.md", "CHANGELOG.md"].includes(entry.name)
+        : entry.name.endsWith(".md")
+    ) {
       yield rel;
     }
   }

@@ -96,10 +96,22 @@ function envelope(error: unknown) {
     if (message.includes("invalid .vulnforge.json")) {
       return { code: "CONFIG_INVALID" as const, hint: "fix the JSON (run vf_env_check for the templates-repo item)" };
     }
+    if (message.includes("nuclei engine unavailable")) {
+      return {
+        code: "ENGINE_UNAVAILABLE" as const,
+        hint: 'install nuclei (go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest) or pass engine="mock" with expectedHits',
+      };
+    }
     if (message.includes("path escapes")) {
       return {
         code: "PATH_ESCAPE" as const,
         hint: 'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
+      };
+    }
+    if (/ENOENT|no such file or directory/i.test(message)) {
+      return {
+        code: "PATH_NOT_FOUND" as const,
+        hint: "check the path spelling relative to the templates repo root, or run vf_nuclei_sync to index it",
       };
     }
     if (
@@ -183,12 +195,24 @@ export default function (pi: ExtensionAPI): void {
           "call vf_env_check and use one of its item names (winget, node, fnm, bun, uv, go, rust, msvc, zig, nuclei)",
         );
       }
-      if (ctx.hasUI) {
-        const ok = await ctx.ui.confirm(
-          "Env install",
-          `About to run for ${params.name}:\n${commands.map((command) => `- ${command}`).join("\n")}\n\nAllow?`,
+      if (!ctx.hasUI) {
+        // Headless sessions cannot confirm a system-modifying action.
+        return errResult(
+          "CANCELLED",
+          "env install requires an interactive confirmation; this session is headless",
+          "run from an interactive session, or install the tool manually per vf_env_check fix guidance",
         );
-        if (!ok) return textResult("cancelled by user", true);
+      }
+      const ok = await ctx.ui.confirm(
+        "Env install",
+        `About to run for ${params.name}:\n${commands.map((command) => `- ${command}`).join("\n")}\n\nAllow?`,
+      );
+      if (!ok) {
+        return errResult(
+          "CANCELLED",
+          "user declined the confirmation gate",
+          "retry requires the user to approve the confirmation",
+        );
       }
       const outcome = await runInstallAction({ name: params.name, commands });
       const after = await checkEnvironment(ctx.cwd);
@@ -226,7 +250,7 @@ export default function (pi: ExtensionAPI): void {
         const { lintTemplateFile } = await import("./templates/sync-machine.ts");
         const lint = lintTemplateFile(source, params.path);
         if (lint.error !== undefined) {
-          return textResult(`parse failed: ${lint.error}`, true);
+          return errResult("TEMPLATE_INVALID", `yaml parse failed: ${lint.error}`, "fix the yaml syntax, then re-lint");
         }
         const yamlText = lint.yamlFindings
           .map((finding) => `[${finding.level}] ${finding.rule} (line ${finding.line}): ${finding.message}`)
@@ -327,7 +351,11 @@ export default function (pi: ExtensionAPI): void {
           );
         } catch (error) {
           if (error instanceof EditError) {
-            return textResult(`edit rejected: ${error.message}`, true);
+            return errResult(
+              "EDIT_REJECTED",
+              error.message,
+              "adjust the patch indexes or use content mode with a full valid template",
+            );
           }
           throw error;
         }
@@ -412,11 +440,17 @@ export default function (pi: ExtensionAPI): void {
               "Remote scan",
               `About to run the template against ${params.target} with the real nuclei engine.\n\nOnly proceed against targets you are authorized to test. Allow?`,
             );
-            if (!ok) return textResult("cancelled by user", true);
+            if (!ok)
+              return errResult(
+                "CANCELLED",
+                "user declined the confirmation gate",
+                "retry requires the user to approve the confirmation",
+              );
           } else {
-            return textResult(
-              "remote target scans require an interactive session (headless runs are refused for safety)",
-              true,
+            return errResult(
+              "CANCELLED",
+              "remote target scans require an interactive confirmation; this session is headless",
+              "run from an interactive session against authorized targets only",
             );
           }
           const result = await runTemplateAgainst(absolute, params.target, { scanPort });

@@ -79,4 +79,30 @@ describe("intent trace", () => {
     const traces = traceByFile(traceIntent(transcript));
     expect(traces.every((trace) => !trace.file.includes("\\"))).toBe(true);
   });
+
+  it("strips terminal control sequences from untrusted transcript text", () => {
+    const malicious = [
+      entry("user", "inject\x1b]52;c;base64payload\x07run", "2026-11-26T04:00:00.000Z"),
+      entry(
+        "assistant",
+        [{ type: "thinking", thinking: "csi\x1b[31m color \x1b[0m reset\x1b[2J clear" }],
+        "2026-11-26T04:00:01.000Z",
+      ),
+      entry(
+        "assistant",
+        [{ type: "tool_use", name: "Edit", input: { file_path: "D:\\repo\\x.ts" } }],
+        "2026-11-26T04:00:02.000Z",
+      ),
+    ].join("\n");
+    const events = traceIntent(malicious);
+    const flat = JSON.stringify(events);
+    expect(flat).not.toContain("base64payload");
+    expect(flat).not.toContain(String.fromCharCode(27));
+    expect(events[0]?.userPrompt).toContain("inject");
+    expect(events[0]?.userPrompt).toContain("run");
+    expect(events[0]?.intent).toContain("csi");
+    expect(events[0]?.intent).toContain("reset");
+    // CSI/OSC sequences gone; the words between them survive as plain text
+    expect(events[0]?.intent).not.toContain(String.fromCharCode(27));
+  });
 });

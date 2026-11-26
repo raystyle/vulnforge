@@ -44,6 +44,14 @@
 - 实测表明：修正模式与本会话沉淀的规则一一对应——先例优先（→ /precedent skill）、SKILL 自包含去噪（→ skill-authoring.md）、ADR 独立目录（→ adr-docs.md）、运行时纪律（→ pi-extension.md）、术语铁律（→ docs-style.md）、轨迹边界（→ .claude/README.md 判据）——闭环验证成立
 - 用法：`npm run intent-trace -- .claude/sessions/<id>.jsonl --limit N --file <substr>`
 
+## 全量对话自省（2026-11-26 会话全量数据）
+
+- 规模：121 条用户指令 / 21 次中断 / 117 文件 521 次修改 / 61 个编辑关联 prompt
+- 修正模式：流程纪律类 21 条、架构边界类 9 条、术语概念类 8 条——全部已晋级为规则/skill/lint（先例优先、ADR 边界、术语铁律、轨迹边界、tools 边界、状态机无豁免）
+- 卡壳信号：同文件同意图连续编辑 ≥3 次的运行 38 段（最长 8 连发）——集中在类型错误级联（修一个 tsc 错 → 冒下一个）与格式循环
+- 中断分布：04:00-07:00 区间 12 次（首功能攻坚期：路径/SQLite/同步），10:00 后 9 次多为新需求插入而非返工
+- **未晋级教训候选**：类型错误级联——逐个修同文件类型错误产生 3-8 连发编辑；应先跑完整 tsc 收集全量错误清单、按文件分组一次改完（候选规则，待用户确认后进 pi-extension.md）
+
 ## 单步工具最小状态机
 
 - `ToolExecutionMachine`（idle → START → executing → SUCCEED|FAIL → done|failed）+ `withToolMachine` 签名保持包装器：全部 9 个工具 execute 过状态机

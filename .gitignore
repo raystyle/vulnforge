@@ -3,4 +3,4 @@ node_modules/
 dist/
 .claude/worktrees/
 .claude/settings.local.json
-.claude/sessions/*.jsonl
+.claude/sessions/**/*.jsonl

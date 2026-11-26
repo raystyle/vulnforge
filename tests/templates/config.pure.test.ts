@@ -49,6 +49,30 @@ describe("findTemplatesRoot", () => {
     expect(findTemplatesRoot(join(repo, "nuclei-templates", "http", "cves"))).toBe(repo);
   });
 
+  it("refuses markers more than one level above a git root (planted home/drive config)", () => {
+    const base = mkdtempSync(join(tmpdir(), "vf-plant-"));
+    // victim repo nested one level inside base; marker planted at base = TWO levels above the repo
+    mkdirSync(join(base, "workdir", "repo", ".git"), { recursive: true });
+    writeFileSync(join(base, ".vulnforge.json"), "{}");
+    expect(() => findTemplatesRoot(join(base, "workdir", "repo", "sub"))).toThrow(/not trusted/);
+  });
+
+  it("trusts the direct parent of a git root (the workspace position)", () => {
+    const outer = mkdtempSync(join(tmpdir(), "vf-parent-"));
+    mkdirSync(join(outer, "repo", ".git"), { recursive: true });
+    writeFileSync(join(outer, ".vulnforge.json"), "{}");
+    expect(findTemplatesRoot(join(outer, "repo", "sub"))).toBe(outer);
+  });
+
+  it("nested clone inside a git workspace still finds the workspace marker", () => {
+    const outer = mkdtempSync(join(tmpdir(), "vf-ws2-"));
+    // workspace is a git repo with the marker; corpus is a nested clone
+    mkdirSync(join(outer, ".git"), { recursive: true });
+    writeFileSync(join(outer, ".vulnforge.json"), "{}");
+    mkdirSync(join(outer, "nuclei-templates", ".git"), { recursive: true });
+    expect(findTemplatesRoot(join(outer, "nuclei-templates", "http"))).toBe(outer);
+  });
+
   it("throws a diagnostic error when no marker exists up to the filesystem root", () => {
     const dir = mkdtempSync(join(tmpdir(), "vf-empty-"));
     expect(() => findTemplatesRoot(join(dir, "sub"))).toThrow(/no \.vulnforge\.json/);

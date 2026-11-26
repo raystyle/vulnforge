@@ -109,14 +109,28 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
 }
 
 /**
- * Walk up from `start` looking for `.vulnforge.json` — nearest wins. Deliberately
- * NOT bounded by `.git`: a nested corpus clone (e.g. upstream nuclei-templates
- * with its own .git) must still find the enclosing workspace config.
+ * Walk up from `start` looking for `.vulnforge.json` — nearest wins. Inside
+ * git repos the walk is unbounded. Leaving a git repository (a nested corpus
+ * clone such as upstream nuclei-templates has its own .git) is allowed once,
+ * but only the IMMEDIATE parent chain is then searched: the workspace config
+ * is always the direct parent of the corpus git root. Markers further up
+ * (home dir, drive root) are treated as planted — a planted config's
+ * tools.nucleiPath would be an arbitrary executable.
  */
 export function findTemplatesRoot(start: string): string {
   const visited: string[] = [];
   let dir = start;
+  let levelsAboveGitRoot = Number.POSITIVE_INFINITY;
   for (;;) {
+    if (levelsAboveGitRoot !== Number.POSITIVE_INFINITY && levelsAboveGitRoot > 1) {
+      throw new Error(
+        [
+          `no .vulnforge.json found from ${start} within the enclosing workspace.`,
+          `Stopped above the git root at ${dir} — markers further up are not trusted.`,
+          "Create .vulnforge.json in the workspace root (the direct parent of the corpus git root).",
+        ].join("\n"),
+      );
+    }
     if (existsSync(join(dir, ".vulnforge.json"))) {
       return dir;
     }
@@ -131,6 +145,11 @@ export function findTemplatesRoot(start: string): string {
           "or run the tool from a directory inside the workspace that already has one.",
         ].join("\n"),
       );
+    }
+    if (existsSync(join(dir, ".git")) && !existsSync(join(parent, ".git"))) {
+      levelsAboveGitRoot = 1;
+    } else if (levelsAboveGitRoot !== Number.POSITIVE_INFINITY) {
+      levelsAboveGitRoot += 1;
     }
     dir = parent;
   }

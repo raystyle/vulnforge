@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import loadExtension, { type CapturedTool } from "./helpers/capture.ts";
 
-const WORKSPACE = process.env["VULNFORGE_E2E_WORKSPACE"] ?? join(homedir(), "repos", "vulnforge-workspace");
+const WORKSPACE = process.env.VULNFORGE_E2E_WORKSPACE ?? join(homedir(), "repos", "vulnforge-workspace");
 const WORKSPACE_READY = existsSync(join(WORKSPACE, ".vulnforge.json"));
 const SAMPLE_REL = "nuclei-templates/http/cves/2026/CVE-2026-0545.yaml";
 

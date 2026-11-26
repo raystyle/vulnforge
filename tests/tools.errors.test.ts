@@ -114,4 +114,20 @@ describe("tool error envelope (agent self-correction)", () => {
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "PARAM_CONFLICT");
   });
+
+  it("nonexistent template path → PATH_NOT_FOUND with sync hint", async () => {
+    const ws = makeWorkspace();
+    const outcome = await call("vf_nuclei_lint", { path: "http/definitely-missing.yaml" }, ws);
+    expect(outcome.isError).toBe(true);
+    expectEnvelope(outcome.text, "PATH_NOT_FOUND");
+    expect(outcome.text).toContain("vf_nuclei_sync");
+  });
+
+  it("confirm-gate refusal → CANCELLED envelope, not prose", async () => {
+    const ws = makeWorkspace();
+    const outcome = await call("vf_env_install", { name: "nuclei" }, ws);
+    // headless: either NO_FIX_COMMANDS (item ok) or CANCELLED — both must be envelopes
+    expect(outcome.isError).toBe(true);
+    expect(outcome.text.startsWith("vf-error code=")).toBe(true);
+  });
 });
