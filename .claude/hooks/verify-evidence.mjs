@@ -1,33 +1,34 @@
 #!/usr/bin/env node
 /**
- * Stop hook: when a turn ends with uncommitted src/tests/scripts changes and
- * the last change predates the last check-gate run, remind (observe mode —
- * never block) that npm run check must pass with fresh evidence before ship.
+ * Stop hook: when a turn ends with src/tests/scripts changes newer than the
+ * last gate run, remind (observe mode — never block) that npm run check must
+ * pass with fresh evidence before ship.
  *
- * Input (stdin JSON): { stop_hook_active, transcript_path, ... }
- * Output: exit 0 with optional JSON { decision: "block", reason } — we only
- * observe for now, printing the reminder as plain text for the transcript.
+ * Input (stdin JSON): { stop_hook_active, ... }
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..", "..");
-const GATE_MARKERS = [join(ROOT, "node_modules", ".cache"), join(ROOT, ".git", "HEAD")];
 const CODE_DIRS = ["src", "tests", "scripts"].map((dir) => join(ROOT, dir));
+const GATE_MARKERS = [join(ROOT, ".git", "HEAD")];
 
 function newestMtime(dir, best = 0) {
-  if (!existsSync(dir)) return best;
-  const entries = execFileSync("cmd.exe", ["/d", "/s", "/c", `dir /s /b "${dir.replaceAll("/", "\\")}"`], {
-    encoding: "utf8",
-    windowsHide: true,
-  })
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0);
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return best;
+  }
   for (const entry of entries) {
+    const full = join(dir, entry.name);
     try {
-      const mtime = statSync(entry).mtimeMs;
-      if (mtime > best) best = mtime;
+      if (entry.isDirectory()) {
+        best = newestMtime(full, best);
+      } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".mjs") || entry.name.endsWith(".json")) {
+        const mtime = statSync(full).mtimeMs;
+        if (mtime > best) best = mtime;
+      }
     } catch {
       // unreadable entry — skip
     }
