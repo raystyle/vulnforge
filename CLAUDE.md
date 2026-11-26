@@ -36,6 +36,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 当前状态
 
-- 首功能（nuclei 模板一条龙）实现中：模板仓 `D:\repos\vulnforge-templates`、Pi 工具面（lint/run/sync/search/new/env_check/env_install）
+- 首功能（nuclei 模板一条龙）实现中：**当前任务 = 针对 projectdiscovery/nuclei-templates 上游做规则工作**（工作区 D:
+  eposulnforge-workspace）：模板仓 `D:\repos\vulnforge-workspace`、Pi 工具面（lint/run/sync/search/new/env_check/env_install）
 - 跨平台验证工作台：lan-ubuntu、lan-mac（herdr `peer-linux`/`peer-mac`）
-- git init 待用户指令执行；暂不建远程
+- 云端仓 github.com/raystyle/vulnforge（已建，main 推送中）

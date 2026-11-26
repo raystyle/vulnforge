@@ -10,27 +10,31 @@
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { findTemplatesRoot } from "../src/templates/config.ts";
 import { parseTemplateFile, TemplateDb } from "../src/templates/meta.ts";
 import { runBatchSync } from "../src/templates/sync-machine.ts";
 
 function resolveRoot() {
-  if (process.env["VULNFORGE_UPSTREAM"] !== undefined && process.env["VULNFORGE_UPSTREAM"].length > 0) {
-    return process.env["VULNFORGE_UPSTREAM"];
+  // Config-driven: .vulnforge.json workspace marker discovered upward from
+  // VULNFORGE_WORKSPACE (config dir) or cwd; env VULNFORGE_UPSTREAM only as an override.
+  const workspace = process.env["VULNFORGE_WORKSPACE"] ?? process.cwd();
+  try {
+    return findTemplatesRoot(workspace);
+  } catch {
+    const fallback = join(homedir(), "repos", "vulnforge-workspace");
+    if (existsSync(join(fallback, ".vulnforge.json"))) return fallback;
+    if (process.env["VULNFORGE_UPSTREAM"] !== undefined && process.env["VULNFORGE_UPSTREAM"].length > 0) {
+      return process.env["VULNFORGE_UPSTREAM"];
+    }
+    throw new Error(
+      "No templates workspace found: run from a directory under the templates repo, or set VULNFORGE_WORKSPACE=<dir under the templates repo>, or VULNFORGE_UPSTREAM=<corpus root>",
+    );
   }
-  const candidates = [
-    join(homedir(), "repos", "vulnforge-templates"),
-    join(homedir(), "repos", "nuclei-templates"),
-    "D:/repos/vulnforge-templates",
-  ];
-  for (const candidate of candidates) {
-    if (existsSync(join(candidate, ".vulnforge.json"))) return candidate;
-  }
-  throw new Error(
-    `No template corpus root found. Set VULNFORGE_UPSTREAM=<dir containing yaml corpus> (candidates tried: ${candidates.join(", ")})`,
-  );
 }
 
 const ROOT = resolveRoot();
+// Scratch db for bench; the real repo db (config db.filename under ROOT) is
+// only written by vf_nuclei_sync in a live session.
 const SCRATCH = mkdtempSync(join(tmpdir(), "vf-bench-"));
 
 // Corpus subdirs: template repos only, or explicit dir list via env.

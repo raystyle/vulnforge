@@ -43,7 +43,7 @@
 
 | 产物                                     | 路径                                                             |
 | ---------------------------------------- | ---------------------------------------------------------------- |
-| 配置（模板仓定位+工具路径+托管根）       | `src/templates/config.ts`、`vulnforge-templates/.vulnforge.json` |
+| 配置（模板仓定位+工具路径+托管根）       | `src/templates/config.ts`、`vulnforge-workspace/.vulnforge.json` |
 | YAML lint（TS 版，跨运行时）             | `src/templates/yamllint.ts`                                      |
 | lint（结构/元数据/弱 matcher）           | `src/templates/lint.ts`                                          |
 | mock 靶机（路由+benign profile）         | `src/templates/mock.ts`                                          |

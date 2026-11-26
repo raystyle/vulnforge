@@ -507,10 +507,12 @@ export class TemplateDb {
 
   /** Read-only analytical group-by over the metadata index (stats/search support). */
   groupBy(column: MetaColumn, limit = 20, where = ""): GroupByRow[] {
-    const whereClause = where.length > 0 ? `WHERE ${where}` : "";
+    // Empty-key rows are "field not filled" upstream, not a real bucket — skip them.
+    const whereParts = [`${column} != ''`];
+    if (where.length > 0) whereParts.push(where);
     const rows = this.client
       .prepare(
-        `SELECT ${column} AS key, COUNT(*) AS n FROM tpl_meta ${whereClause} GROUP BY ${column} ORDER BY n DESC LIMIT ?`,
+        `SELECT ${column} AS key, COUNT(*) AS n FROM tpl_meta WHERE ${whereParts.join(" AND ")} GROUP BY ${column} ORDER BY n DESC LIMIT ?`,
       )
       .all(limit);
     return rows.filter(isRecord).map((row) => GroupByRowSchema.parse({ key: row.key ?? "", count: row.n })); // brand-allow: zod boundary decode
