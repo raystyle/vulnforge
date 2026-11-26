@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createActor, setup } from "xstate";
+import { parse } from "yaml";
 import { type LintFinding, lintDocument, type TemplateInfo } from "./lint.ts";
 import { parseTemplateFile, type SyncResult, type TemplateDb } from "./meta.ts";
 import { lintYaml, type YamlLintFinding } from "./yamllint.ts";
@@ -80,19 +81,16 @@ function collectYamlFiles(root: string): string[] {
 export function lintTemplateFile(
   source: string,
   fileName: string,
-): { yamlFindings: YamlLintFinding[]; docFindings: LintFinding[]; error?: string } {
+): { yamlFindings: YamlLintFinding[]; docFindings: LintFinding[]; error?: string | undefined } {
   const yamlFindings = lintYaml(source, fileName);
-  const parsed = parseTemplateFileFromSource(source);
-  if (typeof parsed === "string") {
-    return { yamlFindings, docFindings: [], error: parsed };
+  let parsed: unknown;
+  try {
+    parsed = parse(source);
+  } catch (error) {
+    return { yamlFindings, docFindings: [], error: (error as Error).message.split("\n")[0] ?? "yaml parse failed" };
   }
   const docFindings = lintDocument(parsed as TemplateInfo);
-  return { yamlFindings, docFindings };
-}
-
-function parseTemplateFileFromSource(source: string): unknown {
-  const { parse: yamlParse } = require("yaml") as { parse: (text: string) => unknown };
-  return yamlParse(source);
+  return { yamlFindings, docFindings, error: undefined };
 }
 
 /**

@@ -5,37 +5,64 @@
  * (3) FTS search latency at scale, (4) duplicate detection, (5) seal.
  * Scratch db — never touches the real templates repo db.
  */
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+// Template-repo root: read from the real config (no hardcoded paths).
+// Resolution order: VULNFORGE_UPSTREAM env → .vulnforge.json sibling of ROOT → error.
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { parseTemplateFile, TemplateDb } from "../src/templates/meta.ts";
 import { runBatchSync } from "../src/templates/sync-machine.ts";
 
-const ROOT = process.env["VULNFORGE_UPSTREAM"] ?? "D:/repos/vulnforge/.reference/nuclei-templates";
+function resolveRoot() {
+  if (process.env["VULNFORGE_UPSTREAM"] !== undefined && process.env["VULNFORGE_UPSTREAM"].length > 0) {
+    return process.env["VULNFORGE_UPSTREAM"];
+  }
+  const candidates = [
+    join(homedir(), "repos", "vulnforge-templates"),
+    join(homedir(), "repos", "nuclei-templates"),
+    "D:/repos/vulnforge-templates",
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, ".vulnforge.json"))) return candidate;
+  }
+  throw new Error(
+    `No template corpus root found. Set VULNFORGE_UPSTREAM=<dir containing yaml corpus> (candidates tried: ${candidates.join(", ")})`,
+  );
+}
+
+const ROOT = resolveRoot();
 const SCRATCH = mkdtempSync(join(tmpdir(), "vf-bench-"));
+
+// Corpus subdirs: template repos only, or explicit dir list via env.
+const CORPUS_DIRS =
+  process.env["VULNFORGE_BENCH_DIRS"] ?? "http,dns,ssl,network,file,headless,websocket,workflows,javascript,code";
 
 function collectFiles() {
   const files = [];
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (dir === ROOT && [".git", ".github", "node_modules"].includes(entry.name)) continue;
-        walk(full);
-        continue;
+  for (const dir of CORPUS_DIRS.split(",")
+    .map((d) => d.trim())
+    .filter(Boolean)) {
+    const abs = join(ROOT, dir);
+    const walk = (d) => {
+      let entries;
+      try {
+        entries = readdirSync(d, { withFileTypes: true });
+      } catch {
+        return;
       }
-      if (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) {
-        files.push(relative(ROOT, full).replaceAll("\\", "/"));
+      for (const entry of entries) {
+        const full = join(d, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml")) {
+          files.push(relative(ROOT, full).replaceAll("\\", "/"));
+        }
       }
-    }
-  };
-  walk(ROOT);
+    };
+    walk(abs);
+  }
   return files;
 }
 
@@ -58,7 +85,9 @@ async function main() {
     }
   }
   const parseMs = Date.now() - t1;
-  console.log(`[1] parse-only: ${ok} ok / ${fail} fail in ${parseMs}ms = ${(files.length / (parseMs / 1000)).toFixed(0)} files/sec`);
+  console.log(
+    `[1] parse-only: ${ok} ok / ${fail} fail in ${parseMs}ms = ${(files.length / (parseMs / 1000)).toFixed(0)} files/sec`,
+  );
   for (const line of fails) console.log(`    ${line}`);
 
   // Stage 2: full batch sync (machine: parse+lint+upsert)
