@@ -265,6 +265,8 @@ export interface PlatformCommands {
   go: string;
   rustup: string;
   zig: string;
+  java: string;
+  dotnet: string;
 }
 
 async function detectPackageManager(): Promise<PackageManager> {
@@ -293,6 +295,9 @@ export async function platformCommands(): Promise<PlatformCommands> {
       uv: 'powershell -c "irm astral.sh/uv/install.ps1 | iex"',
       // Official Go channel: msi from the China mirror (golang.google.cn), PATH configured by installer.
       go: 'powershell -c "irm https://golang.google.cn/dl/go1.27.4.windows-amd64.msi -OutFile $env:TEMP\\go.msi; msiexec /i $env:TEMP\\go.msi /qn"',
+      // Java multi-version: Temurin 21 daily + JDK 8 legacy (deserialization) — MSI per user guide.
+      java: "winget install -e --id EclipseAdoptium.Temurin.21.JDK && winget install -e --id EclipseAdoptium.Temurin.8.JDK",
+      dotnet: "winget install Microsoft.DotNet.SDK.10 && winget install Microsoft.DotNet.SDK.11",
       rustup: "winget install -e --id Rustlang.Rustup",
       zig: "winget install -e --id zig.zig",
     };
@@ -306,6 +311,10 @@ export async function platformCommands(): Promise<PlatformCommands> {
       uv: "brew install uv",
       // Official Go guidance: prebuilt tarball from the China mirror, never brew/apt.
       go: "curl -fsSL -o /tmp/go.tgz https://golang.google.cn/dl/go1.27.4.darwin-arm64.tar.gz && sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf /tmp/go.tgz && echo 'export PATH=$PATH:/usr/local/go/bin:$(go env GOPATH)/bin' >> ~/.zshrc",
+      // Java multi-version via SDKMAN (linux/mac canonical per user guide).
+      java: "curl -s 'https://get.sdkman.io' | bash && sdk install java 21.0.x-tem && sdk install java 8.0.x-tem",
+      dotnet:
+        "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0 && bash /dev/stdin --channel 11.0",
       rustup: "curl --proto '=https' --tlsv1.2 -sSf https://rsproxy.cn/rustup-init.sh | sh",
       zig: "brew install zig",
     };
@@ -318,6 +327,10 @@ export async function platformCommands(): Promise<PlatformCommands> {
     uv: "curl -LsSf https://astral.sh/uv/install.sh | sh",
     // Official Go guidance: prebuilt tarball from the China mirror, never apt (stale, unsupported).
     go: "curl -fsSL -o /tmp/go.tgz https://golang.google.cn/dl/go1.27.4.linux-amd64.tar.gz && sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf /tmp/go.tgz && echo 'export PATH=$PATH:/usr/local/go/bin:$(go env GOPATH)/bin' >> ~/.bashrc",
+    // Java multi-version via SDKMAN (linux/mac canonical per user guide).
+    java: "curl -s 'https://get.sdkman.io' | bash && sdk install java 21.0.x-tem && sdk install java 8.0.x-tem",
+    dotnet:
+      "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0 && bash /dev/stdin --channel 11.0",
     rustup: "curl --proto '=https' --tlsv1.2 -sSf https://rsproxy.cn/rustup-init.sh | sh",
     zig: pkg === "apt" ? "sudo apt install -y zig" : "zig: install from https://ziglang.org/download/ (no apt)",
   };
@@ -517,6 +530,27 @@ export async function checkEnvironment(cwd: string): Promise<EnvCheckItem[]> {
   else items.push(rustItems);
 
   items.push(await checkCommand("zig", "zig", ["version"], /(zig [\d.]+)/, commands.zig, managedRoots));
+
+  items.push(
+    await checkCommand("java", "java", ["-version"], /version "?([\d._]+)"?/, commands.java, managedRoots),
+    await checkCommand("dotnet", "dotnet", ["--version"], /([\d.]+)/, commands.dotnet, managedRoots),
+    await checkCommand(
+      "rust-script",
+      "rust-script",
+      ["--version"],
+      /(rust-script [\d.]+)/,
+      "cargo install rust-script --registry rsproxy-sparse (rsproxy mirror)",
+      managedRoots,
+    ),
+    await checkCommand(
+      "cargo-zigbuild",
+      "cargo-zigbuild",
+      ["--help"],
+      /zigbuild/i,
+      "cargo install cargo-zigbuild --registry rsproxy-sparse (rsproxy mirror)",
+      managedRoots,
+    ),
+  );
 
   const nuclei = await checkNuclei();
   items.push({
