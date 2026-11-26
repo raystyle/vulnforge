@@ -10,6 +10,7 @@
 | `vf_env_install`   | 修复一项环境缺失：跑 fix 命令 → 复检回告               | 是（安装软件/改配置） | confirm |
 | `vf_nuclei_new`    | 生成模板骨架写入模板仓                                 | 是（新文件）          | —       |
 | `vf_nuclei_lint`   | 模板静态检查：YAML+结构/元数据/弱 matcher              | 否                    | —       |
+| `vf_nuclei_edit`   | 契约化编辑（patch 或 content），编辑后自动 lint        | 是（改文件）          | —       |
 | `vf_nuclei_run`    | 本地 mock 靶机验证 + 无害反证                          | 否（临时端口）        | —       |
 | `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —       |
 | `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —       |
@@ -50,6 +51,13 @@
 - **行为**：三层检查——内置 TS yamllint（语法行列号/flow-style/空行/尾空格/注释间距）→ parseTemplateFile（zod 契约）→ lintDocument（结构/元数据/弱 matcher）；三层结果合报
 - **返回**：逐条 `[level] rule (line N): message`；任何 error 则 isError
 - **何时用**：模板编辑后、提交前
+
+### vf_nuclei_edit
+
+- **参数**：`path`；`patch?`（三选一判别：`{kind:"info", patch:{name?/author?/severity?/description?/tags?/reference?}}`、`{kind:"matcher", requestIndex?, matcherIndex, patch:{words?/regex?/part?/condition?/status?}}`、`{kind:"path", requestIndex?, paths[]}`）；`content?`（全文替换）——**patch 与 content 二选一**
+- **行为**：YAML parse → 按补丁变更 → 重新序列化回写 → **自动 lint**（yaml 语法/风格 + 结构/弱 matcher），错误和警告随返回暴露；content 模式先过契约门（合法 yaml + 有 id + 有 name）才落盘，拒绝即不写
+- **返回**：applied 字段清单、lint error 数、逐条 findings；有 error 则 isError
+- **何时用**：模型改模板的规范路径——不绕过契约链直接手写文件
 
 ### vf_nuclei_run
 

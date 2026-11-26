@@ -22,6 +22,59 @@ export interface RunOptions {
   nucleiArgs?: string[];
 }
 
+/**
+ * Port (ports-and-adapters): one scan of a template against a URL. Real
+ * implementations spawn nuclei; the mock runs in-process for deterministic
+ * caller testing. Both produce the same RunResult contract.
+ */
+export interface ScanPort {
+  readonly mode: "real" | "mock";
+  scan(tplPath: string, url: string, options: RunOptions): Promise<RunResult>;
+}
+
+export interface MockFinding {
+  templateId: string;
+  name?: string;
+  matchedAt?: string;
+  type?: string;
+}
+
+/**
+ * In-process mock scan port: emits nuclei-compatible JSONL ResultEvents
+ * from injected findings and reuses the production JSONL parser — tests
+ * exercise the real result pipeline, not a parallel fake.
+ */
+export function createMockScanPort(findings: MockFinding[]): ScanPort {
+  return {
+    mode: "mock",
+    async scan(_tplPath: string, url: string): Promise<RunResult> {
+      const lines = findings
+        .map((finding) =>
+          JSON.stringify({
+            "template-id": finding.templateId,
+            info: {
+              name: finding.name ?? `${finding.templateId} finding`,
+              severity: "high",
+              tags: "mock",
+            },
+            "matched-at": finding.matchedAt ?? `${url}/mock-match`,
+            type: finding.type ?? "http",
+            host: url,
+            url,
+          }),
+        )
+        .join("\n");
+      const stdout = lines.length > 0 ? `${lines}\n` : "";
+      return {
+        exitCode: 0,
+        hits: parseJsonlHits(stdout),
+        rawOutput: stdout,
+        stderr: "",
+      };
+    },
+  };
+}
+
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_CHARS = 16 * 1024 * 1024;
 
@@ -78,7 +131,7 @@ function spawnCollect(command: string, args: string[], timeoutMs: number): Promi
   });
 }
 
-function parseJsonlHits(rawOutput: string): NucleiHit[] {
+export function parseJsonlHits(rawOutput: string): NucleiHit[] {
   const hits: NucleiHit[] = [];
   for (const line of rawOutput.split("\n")) {
     const trimmed = line.trim();
@@ -102,15 +155,35 @@ function parseJsonlHits(rawOutput: string): NucleiHit[] {
   return hits;
 }
 
-export function runTemplateAgainst(tplPath: string, url: string, options: RunOptions = {}): Promise<RunResult> {
-  const nuclei = findNuclei(options.nucleiPath);
-  const args = [...(options.nucleiArgs ?? []), "-t", tplPath, "-u", url, "-jsonl", "-no-color", "-silent", "-duc"];
-  return spawnCollect(nuclei, args, options.timeoutMs ?? DEFAULT_TIMEOUT_MS).then((result) => ({
-    exitCode: result.exitCode,
-    hits: parseJsonlHits(result.stdout),
-    rawOutput: result.stdout,
-    stderr: result.stderr,
-  }));
+/**
+ * Real nuclei scan port: spawns the binary via stream-driven collection
+ * (execFile deadlocks on Windows with Go binaries — see spawnCollect).
+ */
+export function createRealScanPort(nucleiPath?: string): ScanPort {
+  return {
+    mode: "real",
+    async scan(tplPath: string, url: string, options: RunOptions = {}): Promise<RunResult> {
+      const nuclei = options.nucleiPath ?? nucleiPath ?? "nuclei";
+      const args = [...(options.nucleiArgs ?? []), "-t", tplPath, "-u", url, "-jsonl", "-no-color", "-silent", "-duc"];
+      const result = await spawnCollect(nuclei, args, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+      return {
+        exitCode: result.exitCode,
+        hits: parseJsonlHits(result.stdout),
+        rawOutput: result.stdout,
+        stderr: result.stderr,
+      };
+    },
+  };
+}
+
+/** Scan with an explicit port; defaults to the real nuclei binary. */
+export async function runTemplateAgainst(
+  tplPath: string,
+  url: string,
+  options: RunOptions & { scanPort?: ScanPort } = {},
+): Promise<RunResult> {
+  const scanPort = options.scanPort ?? createRealScanPort(options.nucleiPath);
+  return scanPort.scan(tplPath, url, options);
 }
 
 export interface BenignVerdict {
@@ -125,7 +198,7 @@ export interface BenignVerdict {
 export async function verifyNoFalsePositive(
   tplPath: string,
   benignUrl: string,
-  options: RunOptions = {},
+  options: RunOptions & { scanPort?: ScanPort } = {},
 ): Promise<BenignVerdict> {
   const result = await runTemplateAgainst(tplPath, benignUrl, options);
   return { weakMatcher: result.hits.length > 0, hits: result.hits };

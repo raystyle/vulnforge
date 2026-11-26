@@ -5,6 +5,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
+import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
 import { type LintFinding, lintDocument, type TemplateInfo } from "./templates/lint.ts";
 import { parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
@@ -141,6 +142,92 @@ export default function (pi: ExtensionAPI): void {
           `lint ${params.path}:\n${yamlText.length > 0 ? `${yamlText}\n` : ""}${findingsText(findings)}`,
           hasError,
         );
+      } finally {
+        tools.db.close();
+      }
+    },
+  });
+
+  pi.registerTool({
+    name: "vf_nuclei_edit",
+    label: "VulnForge template edit",
+    description:
+      "Edit a nuclei template through the contract chain: either a structured patch (info fields, matcher words/regex/part, request paths) or whole-document content. The edit is applied via YAML parse → mutate → re-serialize, then linted; invalid edits are rejected and nothing is written.",
+    parameters: Type.Object({
+      path: Type.String({ description: "Template path relative to the templates repo root" }),
+      patch: Type.Optional(
+        Type.Union(
+          [
+            Type.Object({
+              kind: Type.Literal("info"),
+              patch: Type.Object({
+                name: Type.Optional(Type.String()),
+                author: Type.Optional(Type.String()),
+                severity: Type.Optional(StringEnum(["info", "low", "medium", "high", "critical"])),
+                description: Type.Optional(Type.String()),
+                tags: Type.Optional(Type.String()),
+                reference: Type.Optional(Type.Array(Type.String())),
+              }),
+            }),
+            Type.Object({
+              kind: Type.Literal("matcher"),
+              requestIndex: Type.Optional(Type.Integer({ description: "http request index (default 0)" })),
+              matcherIndex: Type.Integer({ description: "matcher index within the request" }),
+              patch: Type.Object({
+                words: Type.Optional(Type.Array(Type.String())),
+                regex: Type.Optional(Type.Array(Type.String())),
+                part: Type.Optional(Type.String()),
+                condition: Type.Optional(Type.String()),
+                status: Type.Optional(Type.Array(Type.Integer())),
+              }),
+            }),
+            Type.Object({
+              kind: Type.Literal("path"),
+              requestIndex: Type.Optional(Type.Integer({ description: "http request index (default 0)" })),
+              paths: Type.Array(Type.String(), { description: "full replacement path list" }),
+            }),
+          ],
+          { description: "Structured patch: info fields, matcher fields, or request paths" },
+        ),
+      ),
+      content: Type.Optional(
+        Type.String({ description: "Whole-document replacement (validated: yaml + id + name required)" }),
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      if ((params.patch === undefined) === (params.content === undefined)) {
+        return textResult("provide exactly one of patch or content", true);
+      }
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return textResult((error as Error).message, true);
+      }
+      try {
+        const absolute = resolveInsideRepo(tools.repo, params.path);
+        try {
+          const outcome =
+            params.content !== undefined
+              ? applyContent(absolute, params.path, params.content)
+              : applyEdit(absolute, params.path, validateEditPatch(params.patch));
+          const findingsTextValue = outcome.lintFindings
+            .map((finding) => `[${finding.level}] ${finding.rule}: ${finding.message}`)
+            .join("\n");
+          return textResult(
+            [
+              `applied: ${outcome.applied.join(", ")}`,
+              `lint: ${outcome.lintErrors} error(s)`,
+              findingsTextValue.length > 0 ? findingsTextValue : "no lint findings",
+            ].join("\n"),
+            outcome.lintErrors > 0,
+          );
+        } catch (error) {
+          if (error instanceof EditError) {
+            return textResult(`edit rejected: ${error.message}`, true);
+          }
+          throw error;
+        }
       } finally {
         tools.db.close();
       }

@@ -24,7 +24,7 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 - **Branded contracts**: every domain value typed through zod (`.brand<>()`), enforced statically by brand-lint in the check gate
 - **Contract docs**: every exported contract symbol must be documented in docs/contracts/, verified mechanically by contracts-lint
 - **Six-part check gate**: biome → tsc → brand-lint → contracts-lint → vitest → pi load check
-- **Test layers**: pure / smoke / runtime (real nuclei + mock target end-to-end) / load; a mock-nuclei CLI deterministically tests caller code
+- **Test layers**: pure / smoke / runtime (real nuclei + mock target end-to-end) / load; an in-process mock ScanPort deterministically tests caller code (zero external dependencies)
 
 ## Requirements
 

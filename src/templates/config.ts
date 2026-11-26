@@ -9,7 +9,6 @@ export interface VulnforgeTemplatesConfig {
   tools: {
     nucleiPath: string;
     yamllintPath: string;
-    mockNucleiScript: string;
   };
 }
 
@@ -21,7 +20,6 @@ const DEFAULT_CONFIG: VulnforgeTemplatesConfig = {
   tools: {
     nucleiPath: "",
     yamllintPath: "",
-    mockNucleiScript: "",
   },
 };
 
@@ -47,10 +45,8 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
   if (typeof tools === "object" && tools !== null) {
     const nucleiPath = (tools as { nucleiPath?: unknown }).nucleiPath;
     const yamllintPath = (tools as { yamllintPath?: unknown }).yamllintPath;
-    const mockNucleiScript = (tools as { mockNucleiScript?: unknown }).mockNucleiScript;
     if (typeof nucleiPath === "string") config.tools.nucleiPath = nucleiPath;
     if (typeof yamllintPath === "string") config.tools.yamllintPath = yamllintPath;
-    if (typeof mockNucleiScript === "string") config.tools.mockNucleiScript = mockNucleiScript;
   }
   return config;
 }

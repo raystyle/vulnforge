@@ -45,6 +45,7 @@ describe("extension factory", () => {
       "vf_env_check",
       "vf_env_install",
       "vf_nuclei_lint",
+      "vf_nuclei_edit",
       "vf_nuclei_run",
       "vf_nuclei_sync",
       "vf_nuclei_search",

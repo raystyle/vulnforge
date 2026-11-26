@@ -48,6 +48,19 @@
 
 **执行纪律**：内部 `spawnCollect` 用 **spawn 流式收集——不用 execFile**（Windows 上 execFile 对 Go 二进制 pipe 死锁：nuclei 190ms 退出但回调永不触发，实测教训）；`shell:false`、参数数组化、`windowsHide:true`。
 
+### 1.1 端口-适配器（ScanPort，进程内 mock 替代外部 CLI）
+
+| 符号                                            | 形态      | 说明                                                                                                                                                                       |
+| ----------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ScanPort`                                      | interface | `{ mode: "real"\|"mock"; scan(tplPath, url, options): Promise<RunResult> }`——扫描器端口，两个可注入适配器                                                                  |
+| `createRealScanPort(nucleiPath?)`               | 函数      | 真实 nuclei 适配器（spawn 路径）                                                                                                                                           |
+| `createMockScanPort(findings: MockFinding[])`   | 函数      | **进程内 mock 适配器**：findings 注入 → 直接生成 nuclei 兼容 JSONL → 走生产 `parseJsonlHits`（测的是真实结果管线，非平行 fake）——零进程开销、零外部依赖，替代外部 CLI 方案 |
+| `MockFinding`                                   | interface | `{ templateId, name?, matchedAt?, type? }`                                                                                                                                 |
+| `parseJsonlHits(rawOutput): NucleiHit[]`        | 函数      | JSONL → 命中（template-id 必填行）                                                                                                                                         |
+| `runTemplateAgainst(tplPath, url, {scanPort?})` | 函数      | 显式端口注入；缺省真实 nuclei                                                                                                                                              |
+
+Mock 语义（契约）：空 findings = 0 hit（benign 反证绿）；注入 findings 即对任意 URL 命中（weak-matcher 反证红）——两个方向都过生产解析链。
+
 ## 2. mock.ts — 可编程靶机
 
 ### 2.1 `MockRoute`
@@ -161,7 +174,25 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 
 driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式）决定起始偏移；机器内 `files` 是**剩余切片**（total=切片长度，非全量）；PAUSE/BATCH_COMPLETE 都先进 sealing 落 seal+done 快照。
 
-## 6. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
+## 6. edit.ts — 契约化编辑
+
+编辑走 YAML parse → 变更 → 序列化回写 → 自动 lint；拒绝不落盘（EditError 即拒绝信号）。
+
+| 符号                                                             | 形态                   | 说明                                                                                   |
+| ---------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `EditPatchSchema`                                                | zod discriminatedUnion | 三种补丁：info / matcher / path                                                        |
+| `EditPatch`                                                      | type                   | 判别联合推断                                                                           |
+| `InfoPatchSchema` / `InfoPatch`                                  | zod + type             | name/author/severity(枚举)/description/tags/reference?                                 |
+| `MatcherPatchSchema` / `MatcherPatch`                            | zod + type             | index + words/regex/part/condition/status                                              |
+| `validateEditPatch(raw): EditPatch`                              | 函数                   | Pi 工具边界：EditPatchSchema.parse                                                     |
+| `EditError`                                                      | class                  | 拒绝信号（越界 index/无 http 块/坏 severity 等）                                       |
+| `EditOutcome`                                                    | interface              | updatedYaml / applied[] / lintFindings[] / lintErrors                                  |
+| `applyEdit(absolutePath, relativePath, raw): EditOutcome`        | 函数                   | patch 模式：asRecord 视图 mutate → stringify（PLAIN、lineWidth 0）→ lint 全文档 → 回写 |
+| `applyContent(absolutePath, relativePath, content): EditOutcome` | 函数                   | content 模式：yaml lint + id + name 契约门通过才写                                     |
+
+**自动 lint 暴露**：两模式返回都含 lintFindings（yaml 语法/风格 + 结构/弱 matcher 全套），error 计入 lintErrors；Pi 工具层据此 isError。
+
+## 7. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
 
 ### 5.1 `YamlLintFinding`
 
@@ -185,7 +216,3 @@ driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式�
 | `yaml/comment-spacing` | warning | 注释前多于一个空格                                             |
 
 实现要点：`parseDocument` + 遍历 `items` 树读 `flow` 标志（普通 `parse()` 丢失该信息——实测教训）；纯 TS 跨三平台，消除 Python/uv 运行时依赖。
-
-## 6. mock-nuclei CLI（scripts/mock-nuclei.py）
-
-测**调用方**的假 nuclei（uv 自包含，PEP 723）：`MOCK_NUCLEI_FINDINGS` 注入 findings JSON、`-version`/`-jsonl`/`-severity`/`-tags` 兼容、`MOCK_NUCLEI_DELAY`/`MOCK_NUCLEI_EXIT` 控制行为。与 mock 靶机分工：**靶机+真 nuclei 验证模板本身；mock CLI 确定性测试我们的工具代码**。

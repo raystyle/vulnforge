@@ -24,7 +24,7 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 - **品牌契约**：全部领域值经 zod 契约化（`.brand<>()`），brand-lint 静态扫描强制入检查门
 - **契约文档**：每个导出契约符号必须在 docs/contracts/ 有文档，contracts-lint 机械核查
 - **六项检查门**：biome → tsc → brand-lint → contracts-lint → vitest → pi 加载检查
-- **测试分层**：pure / smoke / runtime（真实 nuclei + mock 靶机端到端）/ load 四层；mock-nuclei CLI 确定性测试调用方代码
+- **测试分层**：pure / smoke / runtime（真实 nuclei + mock 靶机端到端）/ load 四层；进程内 mock ScanPort 确定性测试调用方代码（零外部依赖）
 
 ## 环境要求
 

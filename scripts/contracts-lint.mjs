@@ -33,6 +33,7 @@ const MAPPING = {
   "mock.ts": "run-contracts.md",
   "yamllint.ts": "run-contracts.md",
   "sync-machine.ts": "run-contracts.md",
+  "edit.ts": "run-contracts.md",
   "lint.ts": "run-contracts.md",
   "scaffold.ts": "run-contracts.md",
 };
