@@ -24,3 +24,4 @@ pub mod payload;
 pub mod report;
 pub mod runtime;
 pub mod tls;
+pub mod webshell;

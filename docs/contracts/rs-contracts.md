@@ -31,18 +31,32 @@
 
 ## 运行时小部件（runtime.rs / payload.rs，供 rs 脚本使用）
 
-| 符号 | 形态 | 说明 |
-| ---- | ---- | ---- |
-| `SerializedKind` | enum | 序列化家族指纹：JavaNative/Nrbf/ViewState/JsonTyped/Unknown |
-| `serialized_kind(data)` | 函数 | 二进制魔数识别（AC ED 00 05 / NRBF 头 / /w 或 FF 01 / ） |
-| `serialized_kind_b64(text)` | 函数 | base64 标记快筛（rO0AB / AAEAAAD） |
-| `NATIVE_JAVA_CHAINS` | const | ysoserial-rs 原生链集（24 链） |
-| `JavaPayload` | struct | 链+命令绑定；is_native 判定；generate 原生 pending/运行时路由 |
-| `DOTNET_FORMATTERS` | const | ysonet 格式器词表 |
-| `DotnetPayload` | struct | 格式器+gadget+命令；generate 路由运行时工具 |
-| `WebshellKind` | enum | PhpGet/PhpPost/Jsp/Aspx——template() 模板面 + drive_query() 驱动面（webshell 专库种子） |
-| `b64_encode / url_encode / hex_encode` | 函数 | payload 变形原语（RFC 4648 向量测试） |
-| `ShellPayload` / `DataPayload` | struct | Newtype 防 payload 串门；as_b64/as_url/as_hex 三传输 |
+| 符号                                   | 形态   | 说明                                                                                   |
+| -------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
+| `SerializedKind`                       | enum   | 序列化家族指纹：JavaNative/Nrbf/ViewState/JsonTyped/Unknown                            |
+| `serialized_kind(data)`                | 函数   | 二进制魔数识别（AC ED 00 05 / NRBF 头 / /w 或 FF 01 / ）                               |
+| `serialized_kind_b64(text)`            | 函数   | base64 标记快筛（rO0AB / AAEAAAD）                                                     |
+| `NATIVE_JAVA_CHAINS`                   | const  | ysoserial-rs 原生链集（24 链）                                                         |
+| `JavaPayload`                          | struct | 链+命令绑定；is_native 判定；generate 原生 pending/运行时路由                          |
+| `DOTNET_FORMATTERS`                    | const  | ysonet 格式器词表                                                                      |
+| `DotnetPayload`                        | struct | 格式器+gadget+命令；generate 路由运行时工具                                            |
+| `WebshellKind`                         | enum   | PhpGet/PhpPost/Jsp/Aspx——template() 模板面 + drive_query() 驱动面（webshell 专库种子） |
+| `b64_encode / url_encode / hex_encode` | 函数   | payload 变形原语（RFC 4648 向量测试）                                                  |
+| `ShellPayload` / `DataPayload`         | struct | Newtype 防 payload 串门；as_b64/as_url/as_hex 三传输                                   |
+
+## 无特征 webshell 专库（webshell.rs）
+
+| 符号                                                     | 形态   | 说明                                                                                        |
+| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `ChannelConfig` / `DerivedChannel`                       | struct | 通道凭证（key/pass/header 门）与派生束（md5_key/md5/pass/header）；密钥只在生成期           |
+| `derive_md5_key(key)` / `derive_md5_pass(pass, md5_key)` | 函数   | godzilla 三段派生链（md5(key)[0..16] → md5(pass+md5Key) 大写）                              |
+| `stream_cipher(data, md5_key)`                           | 函数   | XOR 流密（第一批依赖零；AES 形态后续 ADR）                                                  |
+| `wrap_command(command, md5_key)`                         | 函数   | 请求包装：cipher → base64（报文=密文）                                                      |
+| `unwrap_response(sandwich, md5, md5_key)`                | 函数   | 响应三明治解包：md5[0..16]+b64(cipher)+md5[16]，标记不匹配即拒绝（完整性门）                |
+| `php_channel_template(derived)`                          | 函数   | 植入模板：header 门 + 密文参数 + 三明治回显——无 shell 语法特征串（one-liner 降为 fallback） |
+| `drive_request(url, command, derived)`                   | 函数   | 操作面：构造门 header + 密文 body（WAF 视角=普通 POST + 密文）                              |
+| `b64_decode(input)`                                      | 函数   | 依赖零 base64 解码                                                                          |
+| `DriveRequest`                                           | struct | 驱动请求元数据                                                                              |
 
 ## RsDb（rs.db / rs-lock.json）
 

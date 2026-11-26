@@ -85,14 +85,14 @@ Java 内存马生成器生态标杆（类 Jenkins 般全面）：
 
 ### 5.2 隐蔽机制（吸收点）
 
-| 机制 | 效果 | 吸收方式 |
-| ---- | ---- | ---- |
-| 配置化 header 门 | 通信入口不在 URL 特征里 | vf_rust_lib webshell 模块：植入/驱动均带随机 header 门 |
-| AES 密文通信 | 报文/响应无明文命令或回显 | 驱动走 AES(base64()) 双向 |
-| md5 派生链 | 密钥不出现在通信/文件中 | key/pass 只在生成期，只存派生结果 |
-| ClassLoader defineClass | 字节码不落盘 | Java 生态能力；Rust 侧 ristretto 生成 .class |
-| 混淆 + shrink | class 内无常量特征串 | ristretto 生成后做名称/常量混淆 |
-| 无侵入验证 | 探测不产生可疑流量 | Verify 步骤用 Response 回显三态 |
+| 机制                    | 效果                      | 吸收方式                                               |
+| ----------------------- | ------------------------- | ------------------------------------------------------ |
+| 配置化 header 门        | 通信入口不在 URL 特征里   | vf_rust_lib webshell 模块：植入/驱动均带随机 header 门 |
+| AES 密文通信            | 报文/响应无明文命令或回显 | 驱动走 AES(base64()) 双向                              |
+| md5 派生链              | 密钥不出现在通信/文件中   | key/pass 只在生成期，只存派生结果                      |
+| ClassLoader defineClass | 字节码不落盘              | Java 生态能力；Rust 侧 ristretto 生成 .class           |
+| 混淆 + shrink           | class 内无常量特征串      | ristretto 生成后做名称/常量混淆                        |
+| 无侵入验证              | 探测不产生可疑流量        | Verify 步骤用 Response 回显三态                        |
 
 ### 5.3 落入 vf_rust_lib webshell 模块的裁定
 
