@@ -294,7 +294,7 @@ mod delivery_forms_tests {
     fn deliver_form_names_are_stable() {
         assert_eq!(DeliverForm::Submit.name(), "submit");
         assert_eq!(DeliverForm::ExecCommand.name(), "exec_command");
-        assert_eq!(DeliverForm::WriteFile.name(), "write_shell");
+        assert_eq!(DeliverForm::WriteFile.name(), "write_file");
         assert_eq!(DeliverForm::RevShell.name(), "rev_shell");
     }
 
