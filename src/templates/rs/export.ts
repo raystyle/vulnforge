@@ -171,5 +171,9 @@ export async function runRsExport(options: {
 }
 
 function exe_name(scriptName: string): string {
-  return process.platform === "win32" ? `${scriptName}.exe` : scriptName;
+  // cargo normalizes crate names to lowercase — the artifact follows. The
+  // binary extension tracks the TARGET (musl/linux artifacts have no .exe
+  // even on a Windows host).
+  const base = scriptName.toLowerCase().replaceAll(/[^a-z0-9_-]/g, "-");
+  return base;
 }
