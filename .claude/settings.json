@@ -1,5 +1,5 @@
 {
-  "plansDirectory": ".research/plans",
+  "plansDirectory": ".claude/plans",
   "permissions": {
     "allow": [
       "Bash(pi *)",
