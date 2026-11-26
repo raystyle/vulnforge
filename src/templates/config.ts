@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, parse } from "node:path";
+import { z } from "zod";
 
 export interface VulnforgeTemplatesConfig {
   db: {
@@ -10,7 +11,26 @@ export interface VulnforgeTemplatesConfig {
     nucleiPath: string;
     yamllintPath: string;
   };
+  sync: {
+    /** Subdirectory of the repo root holding the template corpus ("" = root). */
+    corpusDir: string;
+    /** Directory names included in batch sync (relative to corpusDir; empty = all). */
+    includeDirs: string[];
+    /** Directory names excluded from batch sync at any depth. */
+    excludeDirs: string[];
+    /** File names included in batch sync (empty = *.yaml/*.yml default). */
+    includeFiles: string[];
+    /** File names excluded from batch sync. */
+    excludeFiles: string[];
+    /** Regex source strings (case-insensitive) matched against relative paths. */
+    includePatterns: string[];
+    excludePatterns: string[];
+  };
 }
+
+/** Defaults mirror the upstream corpus layout: engine configs and payloads
+ * never contain templates. Merge with the config file's sync.* keys. */
+export const DEFAULT_SYNC_EXCLUDED_DIRS = [".git", ".github", "node_modules", "profiles", "helpers"];
 
 const DEFAULT_CONFIG: VulnforgeTemplatesConfig = {
   db: {
@@ -20,6 +40,15 @@ const DEFAULT_CONFIG: VulnforgeTemplatesConfig = {
   tools: {
     nucleiPath: "",
     yamllintPath: "",
+  },
+  sync: {
+    corpusDir: "",
+    includeDirs: [],
+    excludeDirs: DEFAULT_SYNC_EXCLUDED_DIRS,
+    includeFiles: [],
+    excludeFiles: [],
+    includePatterns: [],
+    excludePatterns: [],
   },
 };
 
@@ -47,6 +76,34 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
     const yamllintPath = (tools as { yamllintPath?: unknown }).yamllintPath;
     if (typeof nucleiPath === "string") config.tools.nucleiPath = nucleiPath;
     if (typeof yamllintPath === "string") config.tools.yamllintPath = yamllintPath;
+  }
+  const sync = (parsed as { sync?: unknown }).sync;
+  if (typeof sync === "object" && sync !== null) {
+    // String-list contract via zod at the boundary — no cast.
+    const StringList = z.array(z.string()).optional();
+    const strList = (value: unknown): string[] | undefined => StringList.parse(value);
+    const corpusDir = (sync as { corpusDir?: unknown }).corpusDir;
+    if (typeof corpusDir === "string") config.sync.corpusDir = corpusDir;
+    const includeDirs = strList((sync as { includeDirs?: unknown }).includeDirs);
+    if (includeDirs !== undefined) config.sync.includeDirs = includeDirs;
+    const excludeDirs = strList((sync as { excludeDirs?: unknown }).excludeDirs);
+    if (excludeDirs !== undefined) config.sync.excludeDirs = excludeDirs;
+    const includeFiles = strList((sync as { includeFiles?: unknown }).includeFiles);
+    if (includeFiles !== undefined) config.sync.includeFiles = includeFiles;
+    const excludeFiles = strList((sync as { excludeFiles?: unknown }).excludeFiles);
+    if (excludeFiles !== undefined) config.sync.excludeFiles = excludeFiles;
+    const includePatterns = strList((sync as { includePatterns?: unknown }).includePatterns);
+    if (includePatterns !== undefined) config.sync.includePatterns = includePatterns;
+    const excludePatterns = strList((sync as { excludePatterns?: unknown }).excludePatterns);
+    if (excludePatterns !== undefined) config.sync.excludePatterns = excludePatterns;
+  }
+  // Validate pattern syntax at the boundary — bad regex fails config parse.
+  for (const source of [...config.sync.includePatterns, ...config.sync.excludePatterns]) {
+    try {
+      void new RegExp(source, "i");
+    } catch (error) {
+      throw new Error(`invalid .vulnforge.json: bad sync pattern /${source}/: ${(error as Error).message}`);
+    }
   }
   return config;
 }

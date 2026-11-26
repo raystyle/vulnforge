@@ -14,6 +14,7 @@ import {
   checkNuclei,
   createMockScanPort,
   type MockFinding,
+  type RunOptions,
   runTemplateAgainst,
   type ScanPort,
   verifyNoFalsePositive,
@@ -60,11 +61,16 @@ async function resolveScanPortForRun(
   }
   return {
     mode: "real",
-    scan: (tplPath, url, options) =>
-      runTemplateAgainst(tplPath, url, {
-        ...options,
+    scan: (tplPath, url, options) => {
+      // Strip any scanPort from the options — this IS the scan port; passing
+      // it through would recurse into itself.
+      const rest: RunOptions = { ...options };
+      delete (rest as { scanPort?: unknown }).scanPort;
+      return runTemplateAgainst(tplPath, url, {
+        ...rest,
         ...(explicitPath.length > 0 ? { nucleiPath: explicitPath } : {}),
-      }),
+      });
+    },
   };
 }
 
@@ -436,8 +442,10 @@ export default function (pi: ExtensionAPI): void {
         return textResult((error as Error).message, true);
       }
       try {
+        const { syncFilterFromConfig } = await import("./templates/sync-machine.ts");
         const result = await runBatchSync(tools.db, tools.repo.root, {
           ...(params.resumeFrom !== undefined ? { resumeFrom: params.resumeFrom } : {}),
+          filter: syncFilterFromConfig(tools.repo.config),
         });
         const seal = tools.db.seal();
         const lintErrors = result.lintFindings.filter((finding) => finding.errors > 0).length;

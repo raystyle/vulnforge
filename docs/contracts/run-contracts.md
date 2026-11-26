@@ -179,7 +179,15 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 | `assertSyncEventHandled(event)`                 | 函数           | **编译期穷尽守卫**：switch 全 case + never 兜底                                                    |
 | `SYNC_EVENT_TYPES`                              | ReadonlySet    | 已处理事件类型集（运行时镜像）                                                                     |
 
-### 5.4 断点续跑语义
+### 5.4 文件收集（config 驱动）
+
+| 符号                              | 形态      | 说明                                                                                                                         |
+| --------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `SyncFilter`                      | interface | corpusDir + include/exclude Dirs/Files/Patterns（正则已编译 RegExp）                                                         |
+| `syncFilterFromConfig(config)`    | 函数      | `.vulnforge.json` sync 段 → SyncFilter（模式串编译为忽略大小写 RegExp）                                                      |
+| `collectYamlFiles(root, filter?)` | 函数      | 按 filter 收集语料相对路径：corpusDir 起步 → 目录任意深度排除 → includeDirs 顶层过滤 → 文件名 include/exclude → 正则路径过滤 |
+
+### 5.5 断点续跑语义
 
 driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式）决定起始偏移；机器内 `files` 是**剩余切片**（total=切片长度，非全量）；PAUSE/BATCH_COMPLETE 都先进 sealing 落 seal+done 快照。
 

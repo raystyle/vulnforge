@@ -42,7 +42,9 @@ export type SyncEvent =
   | { type: "RESUME" }
   | { type: "ABORT"; reason: string };
 
-const SYNC_EXCLUDED_DIRS = [".git", ".github", "node_modules"];
+// Upstream non-template dirs: profiles/ and helpers/ hold engine configs and
+// payload files, never templates.
+const SYNC_EXCLUDED_DIRS = [".git", ".github", "node_modules", "profiles", "helpers"];
 
 export interface SyncMachineInput {
   jobId: number;
@@ -53,7 +55,53 @@ export interface SyncMachineInput {
   results: BatchItemOutcome[];
 }
 
-function collectYamlFiles(root: string): string[] {
+export interface SyncFilter {
+  corpusDir: string;
+  includeDirs: string[];
+  excludeDirs: string[];
+  includeFiles: string[];
+  excludeFiles: string[];
+  includePatterns: RegExp[];
+  excludePatterns: RegExp[];
+}
+
+/** Build the sync filter from a parsed config (patterns compiled here). */
+export function syncFilterFromConfig(config: {
+  sync: {
+    corpusDir: string;
+    includeDirs: string[];
+    excludeDirs: string[];
+    includeFiles: string[];
+    excludeFiles: string[];
+    includePatterns: string[];
+    excludePatterns: string[];
+  };
+}): SyncFilter {
+  return {
+    corpusDir: config.sync.corpusDir,
+    includeDirs: config.sync.includeDirs,
+    excludeDirs: config.sync.excludeDirs,
+    includeFiles: config.sync.includeFiles,
+    excludeFiles: config.sync.excludeFiles,
+    includePatterns: config.sync.includePatterns.map((source) => new RegExp(source, "i")),
+    excludePatterns: config.sync.excludePatterns.map((source) => new RegExp(source, "i")),
+  };
+}
+
+const DEFAULT_FILTER: SyncFilter = {
+  corpusDir: "",
+  includeDirs: [],
+  excludeDirs: SYNC_EXCLUDED_DIRS,
+  includeFiles: [],
+  excludeFiles: [],
+  includePatterns: [],
+  excludePatterns: [],
+};
+
+/** Config-driven file collection: corpusDir → include/exclude dirs, files, and
+ * regex patterns (relative path, case-insensitive). */
+export function collectYamlFiles(root: string, filter: SyncFilter = DEFAULT_FILTER): string[] {
+  const corpusRoot = filter.corpusDir.length > 0 ? join(root, filter.corpusDir) : root;
   const files: string[] = [];
   const walk = (dir: string): void => {
     let entries: Array<{ name: string; isDirectory(): boolean }>;
@@ -65,15 +113,29 @@ function collectYamlFiles(root: string): string[] {
     for (const entry of entries) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (dir === root && SYNC_EXCLUDED_DIRS.includes(entry.name)) continue;
+        // Excluded at any depth — nested corpora put excluded dirs below the root.
+        if (filter.excludeDirs.includes(entry.name)) continue;
         walk(full);
         continue;
       }
-      if (!entry.name.endsWith(".yaml") && !entry.name.endsWith(".yml")) continue;
-      files.push(relative(root, full).replaceAll("\\", "/"));
+      const rel = relative(corpusRoot, full).replaceAll("\\", "/");
+      if (filter.includeDirs.length > 0) {
+        const top = rel.split("/")[0] ?? "";
+        if (!filter.includeDirs.includes(top)) continue;
+      }
+      const fileName = entry.name;
+      if (filter.includeFiles.length > 0) {
+        if (!filter.includeFiles.includes(fileName)) continue;
+      } else if (!fileName.endsWith(".yaml") && !fileName.endsWith(".yml")) {
+        continue;
+      }
+      if (filter.excludeFiles.includes(fileName)) continue;
+      if (filter.excludePatterns.some((pattern) => pattern.test(rel))) continue;
+      if (filter.includePatterns.length > 0 && !filter.includePatterns.some((pattern) => pattern.test(rel))) continue;
+      files.push(rel);
     }
   };
-  walk(root);
+  walk(corpusRoot);
   return files.sort();
 }
 
@@ -282,7 +344,7 @@ export interface BatchRunResult extends SyncResult {
 export async function runBatchSync(
   db: TemplateDb,
   root: string,
-  options: { jobId?: number; resumeFrom?: number } = {},
+  options: { jobId?: number; resumeFrom?: number; filter?: SyncFilter } = {},
 ): Promise<BatchRunResult> {
   ensureJobTable(db);
   const jobId = options.jobId ?? Date.now();
@@ -294,8 +356,11 @@ export async function runBatchSync(
     startCursor = previous.cursor;
   }
 
-  const files = collectYamlFiles(root);
+  const files = collectYamlFiles(root, options.filter);
   const batch = files.slice(startCursor);
+  // Relative paths are corpus-relative; reads must resolve against the corpus root.
+  const corpusRoot =
+    options.filter !== undefined && options.filter.corpusDir.length > 0 ? join(root, options.filter.corpusDir) : root;
   const actor = createActor(syncMachine, {
     input: {
       jobId,
@@ -317,7 +382,7 @@ export async function runBatchSync(
   for (const rel of batch) {
     let outcome: BatchItemOutcome;
     try {
-      const absolute = join(root, rel);
+      const absolute = join(corpusRoot, rel);
       const lint = lintTemplateFile(readFileSync(absolute, "utf8"), rel);
       const lintErrors =
         lint.yamlFindings.filter((finding) => finding.level === "error").length +

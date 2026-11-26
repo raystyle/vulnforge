@@ -30,6 +30,20 @@
 | `tools.yamllintPath` | string   | `""`                    | 同上                                                                 |
 | `env.managedRoots`   | string[] | `[]`                    | 托管工具根（如 ohmyenv）——其下工具在环境检测中单独分组，不算系统缺失 |
 
+## sync 过滤契约（8 键）
+
+| 字段              | 类型     | 默认                                                                       | 说明                                                 |
+| ----------------- | -------- | -------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `corpusDir`       | string   | `""`                                                                       | 语料子目录（空 = 仓根）                              |
+| `includeDirs`     | string[] | `[]`（全部）                                                               | 只收这些顶层目录（相对 corpusDir）                   |
+| `excludeDirs`     | string[] | `DEFAULT_SYNC_EXCLUDED_DIRS`：`.git/.github/node_modules/profiles/helpers` | 任意深度排除                                         |
+| `includeFiles`    | string[] | `[]`（默认 _.yaml/_.yml）                                                  | 只收这些文件名                                       |
+| `excludeFiles`    | string[] | `[]`                                                                       | 按文件名排除                                         |
+| `includePatterns` | string[] | `[]`                                                                       | 正则（对相对路径、忽略大小写）；非空时须至少命中一个 |
+| `excludePatterns` | string[] | `[]`                                                                       | 正则命中即排除                                       |
+
+正则语法在 parseConfig 边界校验——坏正则直接抛 `invalid .vulnforge.json`。`DEFAULT_SYNC_EXCLUDED_DIRS` 导出为上游语料布局的默认排除集。
+
 ## 契约类型
 
 | 符号                                          | 形态      | 说明                                                                                                                         |
