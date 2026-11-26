@@ -27,25 +27,26 @@
 
 ## exploit 状态机模板先例研究（2026-11-27）
 
-| 先例 | 机制 | 对我们的裁定 |
-| ---- | ---- | ---- |
-| pentest_rs scanner.rs（自研先例） | **PhantomData 类型状态机**：Configured→Probed→Verified 三态编码进类型；只有 Scanner\<Configured\> 有 probe_with、只有 \<Verified\> 能产报告——**跳步是编译错误**不是运行时警告；IO 与并发归脚本层 | 理念正中靶心（防"以为利用成功"），但 pi-rs2 吸收分析判定它对 agent 现写单文件**过重拖编译** |
-| pi-rs2 pentest-rs-absorption.md | 明确拒绝引入 PhantomData 状态机——"取理念不取代码"，把"先证存在再验证"次序下沉到 selftest 断言 | 直接教训：类型级状态机对薄脚本不经济 |
-| module.rs（Black Hat Rust Ch4） | 检测模块 trait：IO 归脚本层（抓快照）、判定归模块（inspect 纯函数）——快照可缓存重放、模块可规范驱动测试 | 采纳分工纪律：Machine 框架不 IO，步骤闭包做 IO |
-| 业界 typestate builder（gh-mcp 检索：泛型 builder 阶段态，缺字段=编译错） | 编译期已知的固定序列用类型编码 | 验证 typestate 是成熟模式，但 exploit 步骤序列按漏洞而异（运行时声明），不宜全类型化 |
+| 先例                                                                      | 机制                                                                                                                                                                                             | 对我们的裁定                                                                                |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| pentest_rs scanner.rs（自研先例）                                         | **PhantomData 类型状态机**：Configured→Probed→Verified 三态编码进类型；只有 Scanner\<Configured\> 有 probe_with、只有 \<Verified\> 能产报告——**跳步是编译错误**不是运行时警告；IO 与并发归脚本层 | 理念正中靶心（防"以为利用成功"），但 pi-rs2 吸收分析判定它对 agent 现写单文件**过重拖编译** |
+| pi-rs2 pentest-rs-absorption.md                                           | 明确拒绝引入 PhantomData 状态机——"取理念不取代码"，把"先证存在再验证"次序下沉到 selftest 断言                                                                                                    | 直接教训：类型级状态机对薄脚本不经济                                                        |
+| module.rs（Black Hat Rust Ch4）                                           | 检测模块 trait：IO 归脚本层（抓快照）、判定归模块（inspect 纯函数）——快照可缓存重放、模块可规范驱动测试                                                                                          | 采纳分工纪律：Machine 框架不 IO，步骤闭包做 IO                                              |
+| 业界 typestate builder（gh-mcp 检索：泛型 builder 阶段态，缺字段=编译错） | 编译期已知的固定序列用类型编码                                                                                                                                                                   | 验证 typestate 是成熟模式，但 exploit 步骤序列按漏洞而异（运行时声明），不宜全类型化        |
 
 **先例结论（实测表明）**：
+
 1. **两层设计**：Machine 驱动循环（运行时：声明式步骤序列 + Transition 三形 + 轨迹记录）负责 agent 现写脚本的可观测与回放；**类型级防跳步不进第一批**（先例实证对单文件脚本过重）。改为 **Verify 步骤强制在框架内**：最后一步必须是 Verify，或显式 `Done::skip_verify(reason)` 留痕——跳过验证变成显式留痕而非编译错误
 2. 步骤闭包做 IO、判定保持纯函数（module.rs 分工纪律）——快照可测可回放
 3. "以为利用成功"比"利用失败"更危险（scanner.rs 的立论）——Verify 不可静默省略正是框架存在的理由
 
 ### 补充先例（gh-mcp 检索，2026-11-27）
 
-| 先例 | 机制 | 对我们的裁定 |
-| ---- | ---- | ---- |
+| 先例                             | 机制                                                                                                                                                  | 对我们的裁定                                                                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | pallab-js/r-msf（Rust 渗透框架） | Module trait 生命周期 `register → check → run → output`：check 验证必填选项、run 异步执行、output 三态（success/failure/data）；模块注册表 + 按名发现 | 生命周期四段与我们 Machine 的步骤序列同构——**check 阶段独立**值得吸收（选项校验先于任何 IO）；ModuleOutput 三态 ≈ Transition 三形交叉验证 |
-| r-msf TLS 策略 | `--dangerous-accept-invalid-certs` 仅限 lab 自签目标——与我们 `--insecure` 选配同语义（业界再证） | 已采纳的方向无需改 |
-| hieuit095/hieu-pentest | pipeline runner 有 check_required_store 前置校验模式 | 同上：前置校验独立成步 |
+| r-msf TLS 策略                   | `--dangerous-accept-invalid-certs` 仅限 lab 自签目标——与我们 `--insecure` 选配同语义（业界再证）                                                      | 已采纳的方向无需改                                                                                                                        |
+| hieuit095/hieu-pentest           | pipeline runner 有 check_required_store 前置校验模式                                                                                                  | 同上：前置校验独立成步                                                                                                                    |
 
 **综合裁定不变**：运行时 Machine 循环 + Verify 框架层强制 + 显式 skip 留痕；**新增吸收**——Machine 步骤序列第一项固定为 Check（选项/参数完备性校验，纯函数零 IO），与 r-msf check 生命周期对齐；Probe 承接指纹与前提探测。
 
