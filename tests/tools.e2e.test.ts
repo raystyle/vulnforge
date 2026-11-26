@@ -57,21 +57,21 @@ afterAll(() => {
 const describeIf = WORKSPACE_READY ? describe : describe.skip;
 
 describeIf("e2e over the real workspace corpus", () => {
-  it("vf_env_check: reports the real machine, workspace found, nuclei availability stated", async () => {
-    const outcome = await call("vf_env_check", {});
+  it("vf_init: reports the real machine, workspace found, nuclei availability stated", async () => {
+    const outcome = await call("vf_init", {});
     expect(outcome.text).toContain("templates repo");
     expect(outcome.text).toContain(WORKSPACE.slice(0, 20));
     expect(outcome.text).toMatch(/nuclei/);
   });
 
-  it("vf_nuclei_lint: real upstream template parses and lints (CVE-2026-0545)", async () => {
-    const outcome = await call("vf_nuclei_lint", { path: SAMPLE_REL });
+  it("poc_nuclei_lint: real upstream template parses and lints (CVE-2026-0545)", async () => {
+    const outcome = await call("poc_nuclei_lint", { path: SAMPLE_REL });
     expect(outcome.text).toContain("lint");
     // upstream template — may carry lint errors, but must not be a parse failure
     expect(outcome.text).not.toContain("parse failed");
   });
 
-  it("vf_nuclei_run real engine: benign counter-check + programmed route scan", async () => {
+  it("poc_nuclei_run real engine: benign counter-check + programmed route scan", async () => {
     const { checkNuclei } = await import("../src/templates/run.ts");
     const { openTemplatesRepo } = await import("../src/templates/config.ts");
     const repo = openTemplatesRepo(WORKSPACE);
@@ -82,7 +82,7 @@ describeIf("e2e over the real workspace corpus", () => {
       console.warn("SKIP real-engine e2e: nuclei absent on this machine");
       return;
     }
-    const outcome = await call("vf_nuclei_run", {
+    const outcome = await call("poc_nuclei_run", {
       path: SAMPLE_REL,
       routes: [{ method: "GET", path: "/", status: 200, body: "no matching content here" }],
     });
@@ -90,8 +90,8 @@ describeIf("e2e over the real workspace corpus", () => {
     expect(outcome.text).toMatch(/hit|hits/);
   });
 
-  it("vf_nuclei_run mock engine: expectedHits assertion", async () => {
-    const outcome = await call("vf_nuclei_run", {
+  it("poc_nuclei_run mock engine: expectedHits assertion", async () => {
+    const outcome = await call("poc_nuclei_run", {
       path: SAMPLE_REL,
       engine: "mock",
       expectedHits: ["CVE-2026-0545"],
@@ -100,8 +100,8 @@ describeIf("e2e over the real workspace corpus", () => {
     expect(outcome.text).toContain("pipeline deterministic");
   });
 
-  it("vf_nuclei_new + vf_nuclei_edit + vf_nuclei_lint roundtrip on a real-path scaffold", async () => {
-    const created = await call("vf_nuclei_new", {
+  it("poc_nuclei_new + poc_nuclei_edit + poc_nuclei_lint roundtrip on a real-path scaffold", async () => {
+    const created = await call("poc_nuclei_new", {
       vulnType: "detect",
       name: "E2E Roundtrip Detect",
       author: "ray",
@@ -116,48 +116,48 @@ describeIf("e2e over the real workspace corpus", () => {
       .replaceAll("\\", "/")
       .replace(`${WORKSPACE}/`, "");
 
-    const edited = await call("vf_nuclei_edit", {
+    const edited = await call("poc_nuclei_edit", {
       path: rel,
       patch: { kind: "info", patch: { severity: "low" } },
     });
     expect(edited.isError).toBeUndefined();
     expect(edited.text).toContain("applied: info.severity");
 
-    const linted = await call("vf_nuclei_lint", { path: rel });
+    const linted = await call("poc_nuclei_lint", { path: rel });
     expect(linted.text).toContain("lint");
 
     // cleanup: remove our own scaffold file
     unlinkSync(join(WORKSPACE, rel));
   });
 
-  it("vf_nuclei_sync: resume path over the real corpus (seconds, not minutes)", async () => {
+  it("poc_nuclei_sync: resume path over the real corpus (seconds, not minutes)", async () => {
     // The 14k-row full index is already sealed in the workspace db (bench +
     // prior runs). E2E verifies the pipeline end-to-end via a large resume
     // slice — full-corpus throughput belongs to tools/bench-sync.mjs, not the
     // per-commit test gate.
     const before = statSync(join(WORKSPACE, "templates.db")).mtimeMs;
-    const outcome = await call("vf_nuclei_sync", { resumeFrom: 14470 });
+    const outcome = await call("poc_nuclei_sync", { resumeFrom: 14470 });
     expect(outcome.text).toMatch(/synced: \d+/);
     expect(outcome.text).toContain("seal:");
     const after = statSync(join(WORKSPACE, "templates.db")).mtimeMs;
     expect(after).toBeGreaterThanOrEqual(before);
   });
 
-  it("vf_nuclei_search: FTS over the 14k-row real index", async () => {
-    const outcome = await call("vf_nuclei_search", { query: '"CVE-2026-0545"' });
+  it("poc_nuclei_search: FTS over the 14k-row real index", async () => {
+    const outcome = await call("poc_nuclei_search", { query: '"CVE-2026-0545"' });
     expect(outcome.text).toContain("CVE-2026-0545");
   });
 
-  it("vf_nuclei_stats: every dimension over the real index", async () => {
+  it("poc_nuclei_stats: every dimension over the real index", async () => {
     for (const dimension of ["severity", "protocol", "author", "cve"] as const) {
-      const outcome = await call("vf_nuclei_stats", { dimension, limit: 5 });
+      const outcome = await call("poc_nuclei_stats", { dimension, limit: 5 });
       expect(outcome.isError, `dimension ${dimension}`).toBeUndefined();
       expect(outcome.text).toContain("total: 14");
     }
   });
 
   it("vf_env_install: refuses a known-absent item without confirmation in headless", async () => {
-    const outcome = await call("vf_env_install", { name: "nuclei" });
+    const outcome = await call("vf_init", { action: "install", name: "nuclei" });
     // headless ctx (hasUI=false) with nuclei present → fix commands undefined → refused;
     // or confirm required. Either way it must not silently run installs.
     expect(outcome.text).toMatch(/no fix commands|cancelled|ran:/);

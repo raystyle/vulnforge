@@ -8,13 +8,13 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 
 **nuclei 模板一条龙**（工具逐个，全量参考见 docs/tools.md）：
 
-- **骨架生成** — `vf_nuclei_new`：按五类漏洞模式（detect/rce/sqli/lfi/panel）生成模板骨架写入模板仓，id 由名称派生
-- **静态检查** — `vf_nuclei_lint`：内置 TS yamllint（语法/风格）+ zod 契约解析 + 结构/元数据/弱 matcher 检查
-- **契约化编辑** — `vf_nuclei_edit`：结构化 patch（info/matcher/path）或全文替换，编辑后自动 lint，非法编辑拒绝落盘
-- **本地靶机验证** — `vf_nuclei_run`：起可编程 mock HTTP 靶机跑真实 nuclei；先做无害反证（对通用无害页任何命中 = weak matcher，直接拒绝）；支持远程授权目标（confirm 门）
-- **元数据同步** — `vf_nuclei_sync`：事件驱动状态机批量入库（配置驱动 include/exclude 目录/文件/正则），断点续跑，封版记录
-- **检索查重** — `vf_nuclei_search`：FTS5 全文检索（bm25 权重）+ 同键查重
-- **统计分析** — `vf_nuclei_stats`：severity/protocol/tags/cve/author 七维 group-by + CVE 年份直方图 + 重复键报告
+- **骨架生成** — `poc_nuclei_new`：按五类漏洞模式（detect/rce/sqli/lfi/panel）生成模板骨架写入模板仓，id 由名称派生
+- **静态检查** — `poc_nuclei_lint`：内置 TS yamllint（语法/风格）+ zod 契约解析 + 结构/元数据/弱 matcher 检查
+- **契约化编辑** — `poc_nuclei_edit`：结构化 patch（info/matcher/path）或全文替换，编辑后自动 lint，非法编辑拒绝落盘
+- **本地靶机验证** — `poc_nuclei_run`：起可编程 mock HTTP 靶机跑真实 nuclei；先做无害反证（对通用无害页任何命中 = weak matcher，直接拒绝）；支持远程授权目标（confirm 门）
+- **元数据同步** — `poc_nuclei_sync`：事件驱动状态机批量入库（配置驱动 include/exclude 目录/文件/正则），断点续跑，封版记录
+- **检索查重** — `poc_nuclei_search`：FTS5 全文检索（bm25 权重）+ 同键查重
+- **统计分析** — `poc_nuclei_stats`：severity/protocol/tags/cve/author 七维 group-by + CVE 年份直方图 + 重复键报告
 
 **环境体检与安装**：
 

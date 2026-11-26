@@ -42,16 +42,15 @@ describe("extension factory", () => {
   it("registers the full tool and command surface without touching Pi action methods at load time", () => {
     const { tools, commands } = capture();
     expect(tools.map((tool) => tool.name)).toEqual([
-      "vf_env_check",
-      "vf_env_install",
-      "vf_nuclei_lint",
-      "vf_nuclei_edit",
-      "vf_nuclei_run",
-      "vf_nuclei_sync",
-      "vf_nuclei_search",
-      "vf_nuclei_new",
-      "vf_nuclei_stats",
-      "vf_rs_search",
+      "vf_init",
+      "poc_nuclei_lint",
+      "poc_nuclei_edit",
+      "poc_nuclei_run",
+      "poc_nuclei_sync",
+      "poc_nuclei_search",
+      "poc_nuclei_new",
+      "poc_nuclei_stats",
+      "exploit_rs_search",
     ]);
     expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug"]);
   });
@@ -73,9 +72,9 @@ describe("extension factory", () => {
     expect(notifications[0]?.message).toContain("true");
   });
 
-  it("vf_nuclei_lint reports a clear error outside a templates repo", async () => {
+  it("poc_nuclei_lint reports a clear error outside a templates repo", async () => {
     const { tools } = capture();
-    const lint = tools.find((tool) => tool.name === "vf_nuclei_lint");
+    const lint = tools.find((tool) => tool.name === "poc_nuclei_lint");
     const result = (await lint?.execute("1", { path: "x.yaml" }, undefined, undefined, {
       cwd: "Z:/definitely-not-a-repo",
     })) as { content: { text: string }[]; isError?: boolean };
@@ -83,7 +82,7 @@ describe("extension factory", () => {
     expect(result.content[0]?.text).toContain("no .vulnforge.json");
   });
 
-  it("vf_nuclei_new scaffolds into the templates repo and lint flags its weaknesses", async () => {
+  it("poc_nuclei_new scaffolds into the templates repo and lint flags its weaknesses", async () => {
     const { tools } = capture();
     const root = mkdtempSync(join(tmpdir(), "vf-smoke-repo-"));
     smokeDirs.push(root);
@@ -92,7 +91,7 @@ describe("extension factory", () => {
       JSON.stringify({ db: { filename: "templates.db", sealFile: "templates-lock.json" } }),
     );
     const ctx = { cwd: root };
-    const newTool = tools.find((tool) => tool.name === "vf_nuclei_new");
+    const newTool = tools.find((tool) => tool.name === "poc_nuclei_new");
     const created = (await newTool?.execute(
       "1",
       {
@@ -113,7 +112,7 @@ describe("extension factory", () => {
       .replace(/^scaffolded /, "")
       .replaceAll("\\", "/")
       .replace(`${root}/`, "");
-    const lint = tools.find((tool) => tool.name === "vf_nuclei_lint");
+    const lint = tools.find((tool) => tool.name === "poc_nuclei_lint");
     const linted = (await lint?.execute("2", { path: relative }, undefined, undefined, ctx)) as {
       content: { text: string }[];
       isError?: boolean;

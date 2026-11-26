@@ -8,13 +8,13 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 
 **nuclei template pipeline** (per tool; full reference in docs/tools.md):
 
-- **Scaffold** — `vf_nuclei_new`: generate a template skeleton from five vulnerability patterns (detect/rce/sqli/lfi/panel); id derived from the name
-- **Lint** — `vf_nuclei_lint`: built-in TS yaml lint (syntax/style) + zod contract parsing + structure/metadata/weak-matcher checks
-- **Contract edit** — `vf_nuclei_edit`: structured patches (info/matcher/path) or whole-document replacement, auto-linted after edit; invalid edits are rejected before write
-- **Local target validation** — `vf_nuclei_run`: run the real nuclei against a programmable mock HTTP target; benign counter-check first; remote authorized targets supported (confirm-gated)
-- **Metadata sync** — `vf_nuclei_sync`: event-driven state machine batch index (config-driven include/exclude dirs/files/patterns), checkpoint resume, seal record
-- **Search and dedup** — `vf_nuclei_search`: FTS5 full-text search (bm25 weights) plus duplicate-key detection
-- **Analysis** — `vf_nuclei_stats`: severity/protocol/tags/cve/author seven-dimension group-by + CVE year histogram + duplicate-key report
+- **Scaffold** — `poc_nuclei_new`: generate a template skeleton from five vulnerability patterns (detect/rce/sqli/lfi/panel); id derived from the name
+- **Lint** — `poc_nuclei_lint`: built-in TS yaml lint (syntax/style) + zod contract parsing + structure/metadata/weak-matcher checks
+- **Contract edit** — `poc_nuclei_edit`: structured patches (info/matcher/path) or whole-document replacement, auto-linted after edit; invalid edits are rejected before write
+- **Local target validation** — `poc_nuclei_run`: run the real nuclei against a programmable mock HTTP target; benign counter-check first; remote authorized targets supported (confirm-gated)
+- **Metadata sync** — `poc_nuclei_sync`: event-driven state machine batch index (config-driven include/exclude dirs/files/patterns), checkpoint resume, seal record
+- **Search and dedup** — `poc_nuclei_search`: FTS5 full-text search (bm25 weights) plus duplicate-key detection
+- **Analysis** — `poc_nuclei_stats`: severity/protocol/tags/cve/author seven-dimension group-by + CVE year histogram + duplicate-key report
 
 **Environment doctor and install**:
 

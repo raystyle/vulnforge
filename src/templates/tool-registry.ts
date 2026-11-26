@@ -56,13 +56,13 @@ export function envelope(error: unknown) {
     if (/ENOENT|no such file or directory/i.test(message)) {
       return {
         code: "PATH_NOT_FOUND" as const,
-        hint: "check the path spelling relative to the workspace repo root, or run vf_nuclei_sync / rs_search to locate indexed files",
+        hint: "check the path spelling relative to the workspace repo root, or run poc_nuclei_sync / exploit_rs_search to locate indexed files",
       };
     }
     if (message.startsWith("rs script")) {
       return {
         code: "RS_SCRIPT_NOT_FOUND" as VfErrorCode,
-        hint: "search first (rs_search) to list available script names, or create it with rs_new",
+        hint: "search first (exploit_rs_search) to list available script names, or create it with rs_new",
       };
     }
     if (message.startsWith("AgentResult envelope")) {
