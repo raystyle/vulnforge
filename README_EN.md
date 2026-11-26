@@ -13,10 +13,24 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 
 ## Requirements
 
-- Node.js >= 22.19 (fnm recommended)
-- [Pi coding agent](https://github.com/earendil-works/pi-coding-agent)
-- nuclei (`go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest`)
-- yamllint (`uv tool install yamllint`)
+**Core**:
+
+- Node.js >= 22.19 ([fnm](https://github.com/Schniz/fnm) recommended)
+- [Pi coding agent](https://github.com/earendil-works/pi-coding-agent) (version alignment is checked)
+
+**Template pipeline**:
+
+- nuclei: `go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest`
+- Go toolchain (official distribution + `GOPROXY=https://goproxy.cn,direct`)
+- yamllint: `uv tool install yamllint`
+
+**Dev toolchain** (`vf_env_install` can install per platform, see below):
+
+- fnm / [bun](https://bun.sh) / [uv](https://docs.astral.sh/uv/) — runtime policy: bun + uv + node
+- Rust (rustup + rsproxy.cn mirror) / MSVC Build Tools (Windows) / Zig (optional cross-compile)
+- China mirrors: npm/bun (npmmirror), pip/uv (tuna), cargo (rsproxy), rustup (rsproxy), fnm node dist (npmmirror)
+
+**One-command doctor**: after installing the extension, ask the agent to call `vf_env_check` — per-platform checks with fix commands; `vf_env_install` installs after confirmation.
 
 ## Try without installing
 

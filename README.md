@@ -13,10 +13,24 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 
 ## 环境要求
 
-- Node.js >= 22.19（推荐 fnm 管理）
-- [Pi coding agent](https://github.com/earendil-works/pi-coding-agent)
-- nuclei（`go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest`）
-- yamllint（`uv tool install yamllint`）
+**核心必装**：
+
+- Node.js >= 22.19（推荐 [fnm](https://github.com/Schniz/fnm) 管理）
+- [Pi coding agent](https://github.com/earendil-works/pi-coding-agent)（版本与扩展对齐，检查项含版本核对）
+
+**模板工作链**：
+
+- nuclei：`go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest`
+- Go 工具链（官方发行版 + `GOPROXY=https://goproxy.cn,direct`）
+- yamllint：`uv tool install yamllint`
+
+**开发工具链**（`vf_env_install` 可按平台自动安装，见下）：
+
+- fnm / [bun](https://bun.sh) / [uv](https://docs.astral.sh/uv/)——运行时策略：bun + uv + node
+- Rust（rustup + rsproxy.cn 镜像）/ MSVC Build Tools（Windows）/ Zig（可选跨编译）
+- 中国镜像源：npm/bun（npmmirror）、pip/uv（tuna）、cargo（rsproxy）、rustup（rsproxy）、fnm node dist（npmmirror）
+
+**一键体检**：安装扩展后在 Pi 会话里让 Agent 调用 `vf_env_check`——三平台逐项检测并给修复命令，`vf_env_install` 确认后代装。
 
 ## 试用（不安装）
 
