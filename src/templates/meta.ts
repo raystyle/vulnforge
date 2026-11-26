@@ -67,8 +67,10 @@ export const TemplateInfoSchema = z.object({
     .min(1)
     .refine((value) => value === value.trim(), "name must not have leading/trailing spaces"),
   author: StringSlice,
-  severity: SeveritySchema,
-  description: z.string().min(1),
+  // Upstream tolerates `severity: unknown` (42 files) — parse keeps it, lint flags it.
+  severity: z.union([SeveritySchema, z.literal("unknown")]),
+  // 9% of upstream templates omit description — parse tolerates, lint requires.
+  description: z.string().optional().default(""),
   impact: z.string().optional(),
   remediation: z.string().optional(),
   tags: TagsSchema,
@@ -286,7 +288,7 @@ export function parseTemplateFile(path: string): { meta: Omit<TplMetaContract, "
       id: doc.id,
       name: doc.info.name,
       author: doc.info.author.join(","),
-      severity: doc.info.severity,
+      severity: doc.info.severity === "unknown" ? "info" : doc.info.severity,
       description: doc.info.description,
       tags: doc.info.tags.join(","),
       cve,
