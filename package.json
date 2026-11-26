@@ -34,7 +34,8 @@
     "brand-lint": "node tools/brand-lint.mjs",
     "contracts-lint": "node tools/contracts-lint.mjs",
     "intent-trace": "node --experimental-strip-types tools/intent-trace.ts",
-    "session-archive": "node --experimental-strip-types .claude/hooks/archive-session.mjs"
+    "session-archive": "node --experimental-strip-types .claude/hooks/archive-session.mjs",
+    "rs-lib": "cargo fmt --manifest-path vf-rust-lib/Cargo.toml --check && cargo clippy --manifest-path vf-rust-lib/Cargo.toml -- -D warnings && cargo test --manifest-path vf-rust-lib/Cargo.toml"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

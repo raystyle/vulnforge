@@ -1,0 +1,18 @@
+[package]
+name = "vf_rust_lib"
+version = "0.1.0"
+edition = "2021"
+description = "VulnForge materialized base library for exploit rs scripts: AgentResult envelope, atomic errors, rustls dual configs, basic http, and the mandatory exploit state-machine template. Web exploit first."
+license = "MIT"
+
+# Path dependency injected into exploit scripts at execution time (source
+# location independent — the runner rewrites the path per machine).
+[dependencies]
+serde_json = "1"
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
+rustls-pemfile = "2"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+
+[lib]
+name = "vf_rust_lib"
+path = "src/lib.rs"

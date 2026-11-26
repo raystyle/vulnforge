@@ -4,3 +4,4 @@ dist/
 .claude/worktrees/
 .claude/settings.local.json
 .claude/sessions/**/*.jsonl
+vf-rust-lib/target/
