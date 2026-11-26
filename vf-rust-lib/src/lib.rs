@@ -10,10 +10,17 @@
 //!
 //! The exploit flow itself is state-machine-ized (mandatory template):
 //! declare steps at the top of the script (reading the script reads the
-//! state diagram), transitions only via Advance / Fail / Done, the step
+//! state diagram), transitions only via the Outcome vocabulary, the step
 //! trace lands in the envelope's data.steps.
+//!
+//! Widgets: http (snapshot face over rustls), payload (b64/url/bytes),
+//! net (connect + reverse-shell listener), fingerprint (the standard
+//! Probe implementation) — IO stays in closures, judgment stays pure,
+//! every widget ships a selftest.
 
 pub mod error;
 pub mod machine;
+pub mod payload;
 pub mod report;
+pub mod runtime;
 pub mod tls;

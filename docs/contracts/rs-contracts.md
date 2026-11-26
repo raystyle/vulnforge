@@ -29,6 +29,21 @@
 
 判定规则：写的内容是"怎么调工具"→ hint；是"接下来做什么"→ next_suggestion。脚本信封不出现工具用法，工具错误不出现攻击链。
 
+## 运行时小部件（runtime.rs / payload.rs，供 rs 脚本使用）
+
+| 符号 | 形态 | 说明 |
+| ---- | ---- | ---- |
+| `SerializedKind` | enum | 序列化家族指纹：JavaNative/Nrbf/ViewState/JsonTyped/Unknown |
+| `serialized_kind(data)` | 函数 | 二进制魔数识别（AC ED 00 05 / NRBF 头 / /w 或 FF 01 / ） |
+| `serialized_kind_b64(text)` | 函数 | base64 标记快筛（rO0AB / AAEAAAD） |
+| `NATIVE_JAVA_CHAINS` | const | ysoserial-rs 原生链集（24 链） |
+| `JavaPayload` | struct | 链+命令绑定；is_native 判定；generate 原生 pending/运行时路由 |
+| `DOTNET_FORMATTERS` | const | ysonet 格式器词表 |
+| `DotnetPayload` | struct | 格式器+gadget+命令；generate 路由运行时工具 |
+| `WebshellKind` | enum | PhpGet/PhpPost/Jsp/Aspx——template() 模板面 + drive_query() 驱动面（webshell 专库种子） |
+| `b64_encode / url_encode / hex_encode` | 函数 | payload 变形原语（RFC 4648 向量测试） |
+| `ShellPayload` / `DataPayload` | struct | Newtype 防 payload 串门；as_b64/as_url/as_hex 三传输 |
+
 ## RsDb（rs.db / rs-lock.json）
 
 | 符号                                           | 形态      | 说明                                                  |
