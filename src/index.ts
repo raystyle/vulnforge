@@ -12,6 +12,7 @@ import type { LintFinding } from "./templates/lint.ts";
 import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
 import { applyRsEdit, RsEditError, validateRsPatch } from "./templates/rs/edit.ts";
+import { runRsScript } from "./templates/rs/executor.ts";
 import {
   type DeliverFormName,
   type RsExploitType,
@@ -790,6 +791,48 @@ export default function (pi: ExtensionAPI): void {
           }
           throw error;
         }
+      } catch (error) {
+        return envelope(error);
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_execute",
+    label: "VulnForge exploit rs execute",
+    description:
+      "Execute an exploit rs script: advisory //! lint, spawn rust-script (stream collection, timeout kill backstop, VF_TIMEOUT_SECS passthrough), then the single-line AgentResult contract parse. The full flow runs through the rs-execute domain state machine.",
+    parameters: Type.Object({
+      path: Type.String({ description: "Script path relative to the workspace rs directory" }),
+      args: Type.Optional(Type.Array(Type.String(), { description: "Arguments passed to the script" })),
+      timeoutSecs: Type.Optional(
+        Type.Integer({ description: "Deadline in seconds (default 300); the process is killed after it" }),
+      ),
+    }),
+    execute: withToolMachine("exploit_rs_execute", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      try {
+        const absolute = resolveInsideRepo(tools.repo, join(tools.repo.config.rs.scriptsDir, params.path));
+        const outcome = await runRsScript({
+          scriptPath: absolute,
+          args: params.args ?? [],
+          ...(params.timeoutSecs !== undefined ? { timeoutSecs: params.timeoutSecs } : {}),
+        });
+        if (outcome.phase === "done" && outcome.result?.success === true) {
+          return textResult([`exploit done (${outcome.wallMs}ms)`, JSON.stringify(outcome.result, null, 2)].join("\n"));
+        }
+        const ctxText =
+          outcome.context.lintFindings.length > 0 ? `lint: ${outcome.context.lintFindings.join("; ")}` : "";
+        return errResult(
+          "INTERNAL",
+          `script failed at ${outcome.phase}${outcome.context.reason !== undefined ? `: ${outcome.context.reason}` : ""}${ctxText.length > 0 ? `\n${ctxText}` : ""}`,
+          "read the failure detail; fix the script (exploit_rs_edit) or the target state, then retry",
+        );
       } catch (error) {
         return envelope(error);
       }

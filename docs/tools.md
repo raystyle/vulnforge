@@ -73,6 +73,13 @@ hint: <下一步怎么改>
 - **返回**：applied 字段清单 + lint 提示
 - **何时用**：改 exploit 脚本的规范路径
 
+### exploit_rs_execute
+
+- **参数**：`path`；`args?`；`timeoutSecs?`（默认 300，超时 kill 兜底 + VF_TIMEOUT_SECS 透传）
+- **行为**：`//!` 头 advisory lint（无 name 硬拒）→ spawn rust-script（流收集）→ AgentResult 单行契约解析；全流程过 rs-execute 域状态机
+- **返回**：成功 = exploit done + AgentResult JSON（含 Machine 步骤轨迹）；失败 = vf-error（phase/reason/lint findings）
+- **何时用**：exploit 脚本静态完成后
+
 ## 配置自动发现
 
 所有 `poc_*` 工具的定位规则：从会话工作目录向上查找**最近的 `.vulnforge.json`**，一次取齐 root / db / seal / sync 过滤。
