@@ -5,6 +5,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 import type { TemplatesRepo } from "./templates/config.ts";
+import { parseConfig } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { probeEngine } from "./templates/engine-probe.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
@@ -104,16 +105,75 @@ export default function (pi: ExtensionAPI): void {
       "Environment and library entry (idempotent detect / diagnose / repair). Default action=check: per-item status with fix guidance, read-only. action=install + name: fix one failing item after confirmation, then re-check.",
     parameters: Type.Object({
       action: Type.Optional(
-        StringEnum(["check", "install"], {
-          description: "check (default, read-only) or install (confirmed repair of one item)",
+        StringEnum(["check", "install", "init"], {
+          description:
+            "check (default, read-only) or install (confirmed repair of one item) or init (generate .vulnforge.json)",
         }),
       ),
       name: Type.Optional(
         Type.String({ description: "Env item name to repair when action=install, e.g. 'fnm' or 'rust'" }),
       ),
+      force: Type.Optional(
+        Type.Boolean({
+          description:
+            "action=init only: overwrite an existing .vulnforge.json (confirm-gated; the old config is backed up to .vulnforge.json.bak)",
+        }),
+      ),
     }),
     execute: withToolMachine("vf_init", async (_id, params, _signal, _onUpdate, ctx) => {
-      const action = (params.action ?? "check") as "check" | "install";
+      const action = (params.action ?? "check") as "check" | "install" | "init";
+      if (action === "init") {
+        const marker = join(ctx.cwd, ".vulnforge.json");
+        if (existsSync(marker) && params.force !== true) {
+          return textResult(
+            [
+              ".vulnforge.json already exists — idempotent no-op.",
+              `current: ${marker}`,
+              "regenerate with force=true (confirm-gated; backs up the old config to .vulnforge.json.bak).",
+            ].join("\n"),
+          );
+        }
+        if (existsSync(marker) && params.force === true) {
+          if (!ctx.hasUI) {
+            return errResult(
+              "CANCELLED",
+              "force-overwriting .vulnforge.json requires an interactive confirmation; this session is headless",
+              "run from an interactive session, or move the old config manually",
+            );
+          }
+          const ok = await ctx.ui.confirm(
+            "Overwrite config",
+            `About to overwrite ${marker} (a backup is written to .vulnforge.json.bak first).\n\nAllow?`,
+          );
+          if (!ok) {
+            return errResult(
+              "CANCELLED",
+              "user declined the overwrite confirmation",
+              "retry requires the user to approve; or edit the existing config in place",
+            );
+          }
+          writeFileSync(`${marker}.bak`, readFileSync(marker, "utf8"));
+        }
+        const skeleton = [
+          "{",
+          '  "db": { "filename": "templates.db", "sealFile": "templates-lock.json" },',
+          '  "tools": { "nucleiPath": "", "yamllintPath": "", "rustScriptPath": "" },',
+          '  "sync": { "corpusDir": "" },',
+          '  "rs": { "scriptsDir": "rust-scripts", "exportTargets": [] }',
+          "}",
+        ].join("\n");
+        writeFileSync(marker, `${skeleton}\n`);
+        // Immediate lint through the parse boundary (regex validity, field
+        // types, unknown sections surface here).
+        const parsed = parseConfig(skeleton);
+        return textResult(
+          [
+            `scaffolded ${marker} (lint OK: db/tools/sync/rs sections parsed)`,
+            `rs.scriptsDir=${parsed.rs.scriptsDir}; rs.exportTargets=${parsed.rs.exportTargets.length} (derive from rustup targets)`,
+            "next: point sync.corpusDir at the nuclei-templates checkout, drop exploit rs into rust-scripts/, then run the rs sync.",
+          ].join("\n"),
+        );
+      }
       if (action === "check") {
         const items = await checkEnvironment(ctx.cwd);
         return textResult(environmentText(items), !items.every((item) => item.ok));
