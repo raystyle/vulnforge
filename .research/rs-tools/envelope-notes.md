@@ -25,17 +25,23 @@
 - 骨架 ` ```cargo ` 依赖块默认带 vf_rust_lib + serde_json + rustls
 - 坑（先例教训记录在案）：rustls 0.23 无静态 RSA 密钥交换，老栈需 legacy 通道；heavy 依赖进 lib 需 ADR
 
-## exploit 状态机模型模板（用户裁定，2026-11-27）
+## exploit 状态机框架（用户裁定，2026-11-27：**exploit 利用流程与步骤状态机化的框架**）
 
-利用链是状态过程，脚本层需要一等的状态机模型模板（非框架）——vf_rust_lib 提供 `ExploitMachine` 模型：
+vf_rust_lib 提供一等的状态机**框架**（非仅模板）——每个 exploit 的利用流程与步骤在框架内声明式表达：
 
 ```
-enum Stage { Probe, Craft, Deliver, Verify }
-enum Transition { Ok(Stage), Fail(ErrorKind, String), Done(data) }
+// vf_rust_lib 提供（示意）
+enum Step { Probe, Craft, Deliver, Verify, /* 按利用类型扩展 Extract 等 */ }
+enum Transition { Advance, Fail(ErrorKind, String), Done(Value) }
+
+Machine::new(steps)      // 声明本 exploit 的步骤序列（脚本顶部，读脚本即读状态图）
+  .step(Step::Probe, |s| ...)   // 每步一个闭包：入参状态，出 Transition
+  .step(Step::Craft, |s| ...)
+  .run()                 // match 穷尽驱动循环；阶段轨迹自动记录
 ```
 
-- 四阶段封闭：Probe（探测指纹/前提）→ Craft（构造 payload）→ Deliver（投递）→ Verify（验证利用成功）
-- 转移穷尽：match 全分支 + ErrorKind 七词表兜底——编译期穷尽守卫（Rust 天然）
-- 每阶段出口统一：Ok 进下一阶段 / Fail 产 error_atom / Done 出信封
-- 骨架生成时 rs_new 按此模板展开四阶段 fn
-- 脚本作者只需填每阶段逻辑；阶段跳跃显式（Craft 直接 Done 需明写）
+- **步骤序列声明式**：脚本顶部 `Machine::new([...])` 写本 exploit 的状态图；不同利用类型可扩展步骤集
+- **转移三形**：Advance（进下一步）/ Fail（ErrorKind + message，即出信封）/ Done（data 终态出信封）——转移穷尽由 match + 编译期保证
+- **轨迹自动记录**：框架收集执行过的步骤序列 + 每步耗时，落入信封 `data.steps`——AgentResult 自带利用流程回放
+- **rs_new 骨架按框架展开**：Machine 声明 + 每步闭包框架预置，脚本作者只填每步逻辑
+- **并发预留**：sweep 型（一步内打 N 目标）在闭包内用 par_map，框架不管并发只收敛回 Transition
