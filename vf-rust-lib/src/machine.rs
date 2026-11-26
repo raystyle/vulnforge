@@ -47,47 +47,45 @@ pub enum Step {
 /// The delivery forms reduce to TWO ATOMIC ACTIONS on the target (user
 /// ruling after the cheat-sheet study): WRITE FILE and EXECUTE COMMAND.
 /// Every form is a composition over them:
-///   Submit   — neither (payload is data; the bug itself processes it)
-///   Command  — execute ×1
-///   Webshell — write, then execute THROUGH the planted file
-///   Callback — execute (a dial-back one-liner) + our listener
+///   Submit      — neither (payload is data; the bug itself processes it)
+///   ExecCommand — execute ×1, take the output (the classic RCE face)
+///   WriteShell  — write a script file, then execute THROUGH the planted
+///                 file (webshell lifecycle)
+///   RevShell    — execute a dial-back one-liner (bash/nc/mkfifo/powershell
+///                 from the cheat sheet) + our listener catches the session
 ///
 /// The four delivery forms (user ruling, semantics from the
 /// d4t4s3c/OffensiveReverseShellCheatSheet study). Verify pairs with the
 /// form:
 /// submit → response/side-effect evidence;
-/// command → the executed command's output (the most common RCE form —
-///           the payload IS a command line);
-/// webshell → script file written (PHP/JSP/ASP file on target) and shell
-///           usability (command echo through the planted file);
-/// callback → reverse shell command executed on target (bash -i >&
-///            /dev/tcp/…, nc -e sh, mkfifo pipe …), verify the listener
-///            receives the interactive session.
+/// exec_command → the executed command's output;
+/// write_shell → file planted AND command echo through it;
+/// rev_shell → the listener receives the interactive session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeliverForm {
     /// Submit the payload over the wire (HTTP param/header/body/path) —
     /// the web form for non-RCE bugs (SQLi, SSTI-less injection).
     Submit,
-    /// Execute a single command on the target (RCE/SSTI: popen-style) and
-    /// take its output — the most common form.
-    Command,
-    /// Write a script file to the target (webshell: PHP/JSP/ASP file via
-    /// upload, log poisoning, exif data…), then execute commands THROUGH
+    /// Remote command execution: one command, its output comes back in the
+    /// response — the classic RCE form (command injection, SSTI popen).
+    ExecCommand,
+    /// Webshell lifecycle: write a script file to the target (PHP/JSP/ASP
+    /// via upload, log poisoning, exif data…), then drive commands through
     /// the planted file (cmd.php?cmd=id).
-    Webshell,
-    /// Execute a reverse-shell command on the target (bash/nc/mkfifo/
-    /// powershell one-liner from the cheat sheet) — the target dials back
-    /// to our listener; verify the session lands.
-    Callback,
+    WriteShell,
+    /// Reverse shell: the target executes a dial-back one-liner
+    /// (bash -i >& /dev/tcp/…, nc -e sh, mkfifo pipe, powershell…) and
+    /// opens an interactive session to our listener.
+    RevShell,
 }
 
 impl DeliverForm {
     pub fn name(&self) -> &'static str {
         match self {
             DeliverForm::Submit => "submit",
-            DeliverForm::Command => "command",
-            DeliverForm::Webshell => "webshell",
-            DeliverForm::Callback => "callback",
+            DeliverForm::ExecCommand => "exec_command",
+            DeliverForm::WriteShell => "write_shell",
+            DeliverForm::RevShell => "rev_shell",
         }
     }
 }
@@ -295,9 +293,9 @@ mod delivery_forms_tests {
     #[test]
     fn deliver_form_names_are_stable() {
         assert_eq!(DeliverForm::Submit.name(), "submit");
-        assert_eq!(DeliverForm::Command.name(), "command");
-        assert_eq!(DeliverForm::Webshell.name(), "webshell");
-        assert_eq!(DeliverForm::Callback.name(), "callback");
+        assert_eq!(DeliverForm::ExecCommand.name(), "exec_command");
+        assert_eq!(DeliverForm::WriteShell.name(), "write_shell");
+        assert_eq!(DeliverForm::RevShell.name(), "rev_shell");
     }
 
     #[test]
