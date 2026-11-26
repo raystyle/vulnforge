@@ -24,3 +24,22 @@
 2. 未完成的纪律（如状态机全工具覆盖）用 **ratchet 棘轮**：覆盖率底线常量，低于即 blocking，完成一项升一格——进化单向性。
 3. lint 管机械关联；语义级一致（叙述是否过时）由 REVIEW.md 独立审查 + hook 观察提示兜底。
 4. 检查器本身也要可测试：先跑出当前脱节清单（红），修复后（绿）——红绿即证据。
+
+## 受控双语规范先例（2026-11-26，web + gh-mcp 验证）
+
+| 先例/标准                                                                                                                   | 性质                 | 机制                                                                             | 采纳点                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [ASD-STE100 Issue 9](https://www.asd-ste100.org)（[Wikipedia](https://en.wikipedia.org/wiki/Simplified_Technical_English)） | 国际行业标准（航空） | ~65 条写作规则 + ~900 词受控词典；一词一义一词性；主动语态；一句一指令；指令句短 | 四原则骨架（一概念一术语/短句/一句一动作/可追溯）；受控词典 → 我们以术语表+代码标识符三态对齐替代 900 词表 |
+| [Microsoft Writing Style Guide](https://learn.microsoft.com/en-us/style-guide/welcome/)                                     | 业界风格指南         | "Use one term consistently to represent one concept"；术语控制跨注释与文档       | 一概念一术语的英文侧正本；Sentence case                                                                    |
+| [ruanyf/document-style-guide](https://github.com/ruanyf/document-style-guide)（+ 中文文案排版指北、W3C 中文排版需求）       | 中文社区规范         | 标题层级、全半角标点、中英之间加空格、数值                                       | 中文排版细则来源                                                                                           |
+| [errata-ai/vale](https://github.com/errata-ai/vale)                                                                         | 工具先例             | 语法感知 prose linter，可扩展 style 包，CI 集成                                  | 证明 prose lint 可自动化；我们的自定义关联仍自研（pm-skills 结论），Vale 列为未来通用英文检查备选          |
+
+- 坑：STE 词典维护成本高（434 页 Issue 9）；我们不做通用受控英语，只锁**本项目领域术语**（状态机/检查门/模板仓/靶机/契约/封版）
+- 坑：术语检查必须豁免"引用违例形式"的规则文档自身（docs-style.md 禁用列）与物理计算机语境（跨计算机/新计算机）——正则 + 例外表实现
+- 实战触发：用户指出以禁用近义词指代 XState 概念是最严重违例——当日全仓 9 个中文文档 20 处已修正，lint 固化防回退
+
+## 单步工具最小状态机（2026-11-26）
+
+- `ToolExecutionMachine`（idle → START → executing → SUCCEED|FAIL → done|failed）+ `withToolMachine` 签名保持包装器：全部 9 个工具 execute 过状态机
+- 坑：泛型包装器在 registerTool 上下文推断中丢失 ctx 类型 → 用 `<F extends fn>` 恒等返回类型 + `Parameters<F>` 传播（tsc 干净）
+- 先红：模块不存在时测试 import 失败；后绿：7 项 pure 测试通过

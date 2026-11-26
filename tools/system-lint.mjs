@@ -457,7 +457,7 @@ check("docs-terminology", () => {
         for (const match of text.matchAll(new RegExp(rule.pattern.source, "g"))) {
           const line = text.slice(0, match.index).split("\n").length;
           const context = text.slice(Math.max(0, match.index - 12), match.index + 12);
-          if (rule.exception && rule.exception.test(context)) continue;
+          if (rule.exception?.test(context)) continue;
           results.push({
             file: rel,
             text: `line ${line}: "机器" must be "状态机" when referring to the XState concept (docs-style.md term table) — context: ${context.trim()}`,
