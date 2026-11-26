@@ -30,6 +30,7 @@ import {
 } from "./templates/scaffold.ts";
 import { renderStats } from "./templates/stats-report.ts";
 import { runBatchSync } from "./templates/sync-machine.ts";
+import { withToolMachine } from "./templates/tool-machine.ts";
 
 function textResult(text: string, isError = false) {
   return {
@@ -113,10 +114,10 @@ export default function (pi: ExtensionAPI): void {
     description:
       "Check that the environment supports nuclei template work: winget, node/fnm, bun, uv, go (GO111MODULE/GOPROXY), rust (rustup/cargo, rsproxy mirror, msvc, zig), nuclei, template repo, yamllint, mock target. Tools under managed roots (e.g. ohmyenv) are listed separately. Returns per-item status with fix guidance. Read-only.",
     parameters: Type.Object({}),
-    async execute(_id, _params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_env_check", async (_id, _params, _signal, _onUpdate, ctx) => {
       const items = await checkEnvironment(ctx.cwd);
       return textResult(environmentText(items), !items.every((item) => item.ok));
-    },
+    }),
   });
 
   pi.registerTool({
@@ -127,7 +128,7 @@ export default function (pi: ExtensionAPI): void {
     parameters: Type.Object({
       name: Type.String({ description: "Env-check item name to fix, e.g. 'fnm' or 'rust'" }),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_env_install", async (_id, params, _signal, _onUpdate, ctx) => {
       const before = await checkEnvironment(ctx.cwd);
       const commands = fixCommandsFor(before, params.name);
       if (commands === undefined) {
@@ -152,7 +153,7 @@ export default function (pi: ExtensionAPI): void {
         ].join("\n"),
         outcome.exitCode !== 0,
       );
-    },
+    }),
   });
 
   pi.registerTool({
@@ -163,7 +164,7 @@ export default function (pi: ExtensionAPI): void {
     parameters: Type.Object({
       path: Type.String({ description: "Template path relative to the templates repo root" }),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_lint", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -192,7 +193,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -241,7 +242,7 @@ export default function (pi: ExtensionAPI): void {
         Type.String({ description: "Whole-document replacement (validated: yaml + id + name required)" }),
       ),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_edit", async (_id, params, _signal, _onUpdate, ctx) => {
       if ((params.patch === undefined) === (params.content === undefined)) {
         return textResult("provide exactly one of patch or content", true);
       }
@@ -278,7 +279,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -323,7 +324,7 @@ export default function (pi: ExtensionAPI): void {
         }),
       ),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_run", async (_id, params, _signal, _onUpdate, ctx) => {
       if (params.target !== undefined && params.engine === "mock") {
         return textResult("engine=mock cannot be combined with a remote target — mock is local-only", true);
       }
@@ -424,7 +425,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -437,7 +438,7 @@ export default function (pi: ExtensionAPI): void {
         Type.Integer({ description: "Skip the first N files (resume a checkpoint from the job snapshot)" }),
       ),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_sync", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -464,7 +465,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -477,7 +478,7 @@ export default function (pi: ExtensionAPI): void {
       severity: Type.Optional(StringEnum(["info", "low", "medium", "high", "critical"])),
       protocol: Type.Optional(StringEnum(["http", "network", "dns", "ssl", "file", "websocket", "headless"])),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_search", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -508,7 +509,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -525,7 +526,7 @@ export default function (pi: ExtensionAPI): void {
       tags: Type.String({ description: "Lowercase comma-separated tags" }),
       cveId: Type.Optional(Type.String({ description: "CVE id like CVE-2026-1234" })),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_new", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -552,7 +553,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerTool({
@@ -572,7 +573,7 @@ export default function (pi: ExtensionAPI): void {
       ] as const),
       limit: Type.Optional(Type.Integer({ description: "Top-N rows per dimension (default 15)" })),
     }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
+    execute: withToolMachine("vf_nuclei_stats", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -584,7 +585,7 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         tools.db.close();
       }
-    },
+    }),
   });
 
   pi.registerCommand("vf", {

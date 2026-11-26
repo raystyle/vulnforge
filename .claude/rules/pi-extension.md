@@ -16,7 +16,7 @@ paths:
 
 - TypeScript：`strict` + `NodeNext` + `noEmit` + `verbatimModuleSyntax` + `allowImportingTsExtensions`，target ES2022（Pi Jiti 直接加载 TS）；附加 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
 - **品牌契约默认必用（所有工具，新旧一律）**：领域值（ID/枚举语义/路径/版本）一律 zod schema + `.brand<>()` 契约化——校验前置边界（YAML safeParse / DB 行 decode / 配置 parse），内部免检；裸 `string` 传领域值、`as` 逃避检查、`String()` 强转契约字段都是违规（工具 execute 边界的 StringEnum 参数窄化除外）
-- **事件驱动状态机默认必用（所有工具，新旧一律，无豁免）**：一切工具执行逻辑（含单步请求-响应）一律 XState `setup()` 严格类型化（context/events/input）——转换只由事件触发，禁止 `always` 自循环与命令式隐藏状态；事件穷尽用编译期守卫（switch 全 case + never 兜底，模式见 `src/templates/sync-machine.ts` 的 `assertSyncEventHandled`），新事件未处理 = tsc 失败；无"简单单步"豁免——单步工具以最小机器（idle→executing→done/failed）表达，保证生命周期可观测、可断点、可恢复
+- **事件驱动状态机默认必用（所有工具，新旧一律，无豁免）**：一切工具执行逻辑（含单步请求-响应）一律 XState `setup()` 严格类型化（context/events/input）。转换只由事件触发，禁止 `always` 自循环与命令式隐藏状态；事件穷尽用编译期守卫（switch 全 case + never 兜底，模式见 `src/templates/sync-machine.ts` 的 `assertSyncEventHandled`），新事件未处理 = tsc 失败。无"简单单步"豁免——单步工具以最小状态机（idle→executing→done/failed）表达，保证生命周期可观测、可断点、可恢复
 - **编译期暴露警告和错误**：能放 tsc 的约束不放运行时（品牌、判别联合、穷尽检查）；能放机械 lint 的不放人工（brand-lint/contracts-lint）；约定必须能报错和告警
 - Biome 单工具管 format+lint：2 空格缩进、行宽 120、recommended 预设；战史规则挂 grit 插件固化（pi-extensions 模式）
 - 依赖纪律：KISS/YAGNI 只加当前需要的依赖；Pi 核心已有功能不重复造；升级依赖解决类型错误而非降级代码；禁 `npm audit fix --force`
@@ -46,7 +46,9 @@ npm run check
 # = biome check + tsc --noEmit + brand-lint + contracts-lint + system-lint + vitest run + pi 加载检查（spawn 真实 pi --no-extensions -e src/index.ts --help 断言注册面）
 ```
 
-**体系一致性（system-lint 全局核查）**：检查门清单 ↔ 四处文档（rules/verify skill/两份 README）、工具注册面 ↔ docs/tools.md ↔ 测试按名覆盖、ADR 文件 ↔ 索引、研究目录 ↔ 五件套、XState 机器从入口可达（含棘轮底线）、stop hook 监视目录 ↔ 检查脚本位置——任何一处脱节即 gate 失败。改门/改工具面/改资产结构必须同步所有派生文档，system-lint 会强制提醒。
+**体系一致性（system-lint 全局核查）**：检查门清单 ↔ 四处文档（rules/verify skill/两份 README）、工具注册面 ↔ docs/tools.md ↔ 测试按名覆盖、ADR 文件 ↔ 索引、研究目录 ↔ 五件套、XState 状态机从入口可达（含棘轮底线）。任何一处脱节即 gate 失败；改门/改工具面/改资产结构必须同步所有派生文档，system-lint 会强制提醒。
+
+**受控双语规范**：术语表、句长、代码命名形见 `.claude/rules/docs-style.md`。一概念一术语，中英与代码标识符三态对齐；工具 `vf_<域>_<动作>`、状态机 `*Machine`、守卫 `assert<Event>EventHandled`。system-lint 的 docs-terminology / docs-sentence-length / code-naming 三项机械执法。
 
 ## 测试分层
 

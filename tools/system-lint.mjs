@@ -395,6 +395,148 @@ check("test-tool-alignment", () => {
   return results;
 });
 
+// ---------------------------------------------------------------------------
+// 12. Controlled-language terminology (docs-style.md): forbidden synonyms for
+//     fixed terms. "机器" referring to the XState concept is the top violation.
+//     Scope: README/README_EN, docs/, .ad_records/, .research/, .claude/ md files.
+//     "机器" is allowed only for physical machines (跨机器/新机器/机器本身).
+// ---------------------------------------------------------------------------
+const TERM_RULES = [
+  // [forbidden pattern, why, allow-if context matches this exception]
+  { pattern: /机器(?!人)/, term: "状态机", exception: /(跨机器|新机器|本机器|机器本身|peer 机器|物理机器)/ },
+];
+const TERM_SCOPE_DIRS = ["docs", ".ad_records", ".research", ".claude", "."];
+function* markdownFiles(dirRel) {
+  const abs = dirRel === "." ? ROOT : join(ROOT, dirRel);
+  let entries;
+  try {
+    entries = readdirSync(abs, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (
+      entry.name.startsWith(".") &&
+      dirRel === "." &&
+      entry.name !== ".ad_records" &&
+      entry.name !== ".research" &&
+      entry.name !== ".claude"
+    )
+      continue;
+    if (
+      entry.name === "node_modules" ||
+      entry.name === "worktrees" ||
+      entry.name === "plans" ||
+      entry.name === "memory" ||
+      entry.name === "agents"
+    )
+      continue;
+    if (entry.name === "docs-style.md") continue; // the rule itself quotes forbidden terms
+    const rel = dirRel === "." ? entry.name : `${dirRel}/${entry.name}`;
+    if (entry.isDirectory()) {
+      yield* markdownFiles(rel);
+    } else if (entry.name === "README.md" || (entry.name.endsWith(".md") && dirRel !== ".")) {
+      yield rel;
+    }
+  }
+}
+check("docs-terminology", () => {
+  const results = [];
+  const seen = new Set();
+  for (const dir of TERM_SCOPE_DIRS) {
+    for (const rel of markdownFiles(dir)) {
+      if (seen.has(rel)) continue;
+      seen.add(rel);
+      let text;
+      try {
+        text = read(rel);
+      } catch {
+        continue;
+      }
+      for (const rule of TERM_RULES) {
+        for (const match of text.matchAll(new RegExp(rule.pattern.source, "g"))) {
+          const line = text.slice(0, match.index).split("\n").length;
+          const context = text.slice(Math.max(0, match.index - 12), match.index + 12);
+          if (rule.exception && rule.exception.test(context)) continue;
+          results.push({
+            file: rel,
+            text: `line ${line}: "机器" must be "状态机" when referring to the XState concept (docs-style.md term table) — context: ${context.trim()}`,
+          });
+        }
+      }
+    }
+  }
+  return results;
+});
+
+// ---------------------------------------------------------------------------
+// 13. Chinese sentence length: prose sentences ≤60 chars in scoped docs
+//     (table rows, code, paths, frontmatter exempt)
+// ---------------------------------------------------------------------------
+check("docs-sentence-length", () => {
+  const results = [];
+  const seen = new Set();
+  for (const dir of TERM_SCOPE_DIRS) {
+    for (const rel of markdownFiles(dir)) {
+      if (seen.has(rel)) continue;
+      seen.add(rel);
+      let text;
+      try {
+        text = read(rel);
+      } catch {
+        continue;
+      }
+      const lines = text.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.startsWith("|") || line.startsWith("#") || line.startsWith("```") || line.startsWith("  ")) continue;
+        if (!/[一-鿿]/.test(line)) continue;
+        // split on 。；！？ and measure each sentence's han char count
+        for (const sentence of line.split(/(?<=[。；！？])/)) {
+          const hanCount = (sentence.match(/[一-鿿]/g) ?? []).length;
+          if (hanCount > 60) {
+            results.push({ file: rel, text: `line ${i + 1}: sentence exceeds 60 han chars (${hanCount}) — split it` });
+          }
+        }
+      }
+    }
+  }
+  return results;
+});
+
+// ---------------------------------------------------------------------------
+// 14. Code naming shapes (docs-style.md naming table): tools, commands,
+//     machines, guards registered in src must follow the fixed forms.
+// ---------------------------------------------------------------------------
+check("code-naming", () => {
+  const indexSource = read("src/index.ts");
+  const results = [];
+  for (const match of indexSource.matchAll(/registerTool\(\{[\s\S]*?name:\s*"([^"]+)"/g)) {
+    if (!/^vf_[a-z]+_[a-z]+$/.test(match[1])) {
+      results.push({ file: "src/index.ts", text: `tool "${match[1]}" breaks the vf_<domain>_<action> naming form` });
+    }
+  }
+  for (const match of indexSource.matchAll(/registerCommand\(\s*"([^"]+)"/g)) {
+    if (!/^vf(-[a-z-]+)?$/.test(match[1])) {
+      results.push({ file: "src/index.ts", text: `command "${match[1]}" breaks the /vf[-<name>] naming form` });
+    }
+  }
+  for (const entry of readdirSync(join(ROOT, "src", "templates"))) {
+    if (entry.endsWith(".ts")) {
+      const source = readFileSync(join(ROOT, "src", "templates", entry), "utf8");
+      for (const match of source.matchAll(/export const (\w+) = setup\(/g)) {
+        if (!/Machine$/.test(match[1])) {
+          results.push({
+            file: `src/templates/${entry}`,
+            text: `machine export "${match[1]}" lacks the Machine suffix`,
+          });
+        }
+      }
+    }
+  }
+  return results;
+});
+
 if (findings.length > 0) {
   console.error(`system-lint: ${findings.length} finding(s) across ${checked} checks`);
   for (const finding of findings) {

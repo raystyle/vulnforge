@@ -65,7 +65,7 @@
 | `EnvCheckItemSchema` / `EnvCheckItem`                    | zod object                    | 检查行契约（含受管标注）                        |
 | `EnvAcceptanceSchema` / `EnvAcceptance`                  | zod object + `EnvPassed` 品牌 | 验收结论契约                                    |
 
-**EngineProbeMachine**（XState，事件驱动）：probing →（PROBE_RESULT available/unavailable）→ 终态，REPROBE 从任一终态回到 probing。`probeEngine(availability)` 把 checkNuclei 结果映射为机器事件并返回 EngineProbeState。`assertEngineProbeEventHandled`：编译期穷尽守卫。
+**EngineProbeMachine**（XState，事件驱动）：probing →（PROBE_RESULT available/unavailable）→ 终态，REPROBE 从任一终态回到 probing。`probeEngine(availability)` 把 checkNuclei 结果映射为状态机事件并返回 EngineProbeState。`assertEngineProbeEventHandled`：编译期穷尽守卫。
 
 ## 5. 与 Pi 工具的对应
 

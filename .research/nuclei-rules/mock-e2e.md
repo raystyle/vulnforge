@@ -50,4 +50,4 @@
 
 mock 链路的控制通道已品牌契约化：`ControlEventSchema`/`ControlOpSchema`（zod discriminatedUnion，跨进程边界 parse）、`MockPort` 品牌数字、`MockTargetPhase` 穷尽生命周期联合。坏端口/坏方法/坏路由在边界即拒（实测）。MockRoute 本身已是品牌契约（HttpMethod 枚举 + path refine + status 100-599）。
 
-状态机现状：mock 生命周期由回调驱动（ready 握手 → scan 回调 → close 保证拆除）——单次请求-响应形态，无多步状态流转，按"简单单步不需状态机"的项目规则**正确地**不引入 XState；批量/多步场景（sync）已用事件驱动机器。
+状态机现状：mock 生命周期由回调驱动（ready 握手 → scan 回调 → close 保证拆除）——单次请求-响应形态，无多步状态流转，按"简单单步不需状态机"的项目规则**正确地**不引入 XState；批量/多步场景（sync）已用事件驱动状态机。

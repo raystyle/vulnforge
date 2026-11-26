@@ -198,7 +198,7 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 | `trackMockLifecycle(url, port)`      | 函数   | 驱动器：phase()（穷尽联合）/spawn()/controlEvent(evt)——控制通道事件映射为生命周期事件                                         |
 | `assertLifecycleEventHandled(event)` | 函数   | 编译期穷尽守卫（switch 全 case + never 兜底），新生命周期事件未处理 = tsc 失败                                                |
 
-规则：**所有工具（含单步）默认事件驱动状态机，无豁免**（pi-extension.md）。单步工具以最小机器表达，保证生命周期可观测、可断点、可恢复。
+规则：**所有工具（含单步）默认事件驱动状态机，无豁免**（pi-extension.md）。单步工具以最小状态机表达，保证生命周期可观测、可断点、可恢复。
 
 ### 5.5 文件收集（config 驱动）
 
@@ -210,7 +210,7 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 
 ### 5.5 断点续跑语义
 
-driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式）决定起始偏移；机器内 `files` 是**剩余切片**（total=切片长度，非全量）；PAUSE/BATCH_COMPLETE 都先进 sealing 落 seal+done 快照。
+driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式）决定起始偏移；状态机内 `files` 是**剩余切片**（total=切片长度，非全量）；PAUSE/BATCH_COMPLETE 都先进 sealing 落 seal+done 快照。
 
 ## 6. edit.ts — 契约化编辑
 
