@@ -36,10 +36,42 @@ pub enum Step {
     Check,
     Probe,
     Craft,
-    Deliver,
+    /// Deliver is delivery-FORM aware: the payload lands as one of the four
+    /// declared forms (user ruling). The form shapes what Verify asserts.
+    Deliver(DeliverForm),
     Verify,
     /// Custom step (e.g. "extract", "upload").
     Custom(String),
+}
+
+/// The four delivery forms (user ruling). Verify pairs with the form:
+/// submit → response/side-effect evidence; webshell → shell usability;
+/// callback → the OOB callback face received the rebound connection;
+/// in-memory → residency evidence (no on-disk artifact).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeliverForm {
+    /// Submit the payload over the wire (HTTP param/header/body/path) —
+    /// the default web-exploit form.
+    Submit,
+    /// Plant a webshell; verify shell usability (command echo / auth round-trip).
+    Webshell,
+    /// Trigger a reverse callback; verify the OOB callback face caught it
+    /// (the pi-rs2 oob-callback-family precedent — read-only log channel).
+    Callback,
+    /// In-memory execution, nothing lands on disk (deserialization / memory
+    /// shell); verify residency evidence.
+    InMemory,
+}
+
+impl DeliverForm {
+    pub fn name(&self) -> &'static str {
+        match self {
+            DeliverForm::Submit => "submit",
+            DeliverForm::Webshell => "webshell",
+            DeliverForm::Callback => "callback",
+            DeliverForm::InMemory => "in-memory",
+        }
+    }
 }
 
 impl Step {
@@ -48,7 +80,7 @@ impl Step {
             Step::Check => "check",
             Step::Probe => "probe",
             Step::Craft => "craft",
-            Step::Deliver => "deliver",
+            Step::Deliver(form) => form.name(),
             Step::Verify => "verify",
             Step::Custom(name) => name,
         }
@@ -84,13 +116,18 @@ impl Machine {
         }
     }
 
-    /// The standard five-step sequence.
+    /// The standard five-step sequence with the submit delivery form.
     pub fn standard() -> Self {
+        Self::with_deliver(DeliverForm::Submit)
+    }
+
+    /// The standard sequence with an explicit delivery form.
+    pub fn with_deliver(form: DeliverForm) -> Self {
         Self::new(vec![
             Step::Check,
             Step::Probe,
             Step::Craft,
-            Step::Deliver,
+            Step::Deliver(form),
             Step::Verify,
         ])
     }
