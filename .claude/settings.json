@@ -1,4 +1,5 @@
 {
+  "plansDirectory": ".research/plans",
   "permissions": {
     "allow": [
       "Bash(pi *)",

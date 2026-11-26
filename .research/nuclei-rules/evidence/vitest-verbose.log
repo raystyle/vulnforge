@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 D:/repos/vulnforge
+
+
+ Test Files  14 passed (14)
+      Tests  77 passed (77)
+   Start at  17:52:19
+   Duration  3.94s (transform 618ms, setup 0ms, import 5.70s, tests 5.41s, environment 3ms)
+

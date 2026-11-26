@@ -165,17 +165,17 @@ export default function (pi: ExtensionAPI): void {
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
         const source = readFileSync(absolute, "utf8");
-        const yamlFindings = lintYaml(source, params.path);
-        const yamlText = yamlFindings
+        const { lintTemplateFile } = await import("./templates/sync-machine.ts");
+        const lint = lintTemplateFile(source, params.path);
+        if (lint.error !== undefined) {
+          return textResult(`parse failed: ${lint.error}`, true);
+        }
+        const yamlText = lint.yamlFindings
           .map((finding) => `[${finding.level}] ${finding.rule} (line ${finding.line}): ${finding.message}`)
           .join("\n");
-        const parsed = parseTemplateFile(absolute);
-        if ("parseError" in parsed) {
-          return textResult(`parse failed: ${parsed.parseError}\n${yamlText}`, true);
-        }
-        const findings = lintDocument(parsed.meta as unknown as TemplateInfo);
+        const findings = lint.docFindings;
         const hasError =
-          yamlFindings.some((finding) => finding.level === "error") ||
+          lint.yamlFindings.some((finding) => finding.level === "error") ||
           findings.some((finding) => finding.level === "error");
         return textResult(
           `lint ${params.path}:\n${yamlText.length > 0 ? `${yamlText}\n` : ""}${findingsText(findings)}`,
@@ -357,20 +357,25 @@ export default function (pi: ExtensionAPI): void {
           );
         }
 
-        // Local mode: benign counter-check first.
-        const benign = await startMockTarget(benignProfile());
-        try {
-          const verdict = await verifyNoFalsePositive(absolute, benign.url, { scanPort });
-          if (verdict.weakMatcher) {
-            return textResult(
-              `WEAK MATCHER: template hits the benign target (${verdict.hits
-                .map((hit) => hit.templateId)
-                .join(", ")}). Tighten the matchers before shipping.`,
-              true,
-            );
+        // Local mode: benign counter-check first — meaningful for the real
+        // engine only. The mock scan answers every URL with its seeded
+        // findings, so the counter-check would always false-positive there;
+        // determinism is asserted against expectedHits instead.
+        if (engine !== "mock") {
+          const benign = await startMockTarget(benignProfile());
+          try {
+            const verdict = await verifyNoFalsePositive(absolute, benign.url, { scanPort });
+            if (verdict.weakMatcher) {
+              return textResult(
+                `WEAK MATCHER: template hits the benign target (${verdict.hits
+                  .map((hit) => hit.templateId)
+                  .join(", ")}). Tighten the matchers before shipping.`,
+                true,
+              );
+            }
+          } finally {
+            await benign.close();
           }
-        } finally {
-          await benign.close();
         }
 
         const routes: MockRoute[] = (params.routes ?? []).map(mockRoute);
