@@ -230,6 +230,17 @@ driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式�
 
 **自动 lint 暴露**：两模式返回都含 lintFindings（yaml 语法/风格 + 结构/弱 matcher 全套），error 计入 lintErrors；Pi 工具层据此 isError。
 
+## 6.9 scaffold-contract.ts — 品牌（ScaffoldId / EngineMode / RemoteTarget）
+
+| 符号                                                        | 契约                 | 说明                                             |
+| ----------------------------------------------------------- | -------------------- | ------------------------------------------------ |
+| `ScaffoldIdSchema` / `ScaffoldId` / `scaffoldId(raw)`       | zod + brand + 构造器 | kebab-case 品牌 id，构造器在边界打契约           |
+| `VulnTypeSchema` / `VulnType`                               | zod 枚举             | detect/rce/sqli/lfi/panel                        |
+| `SeveritySchema` / `ScaffoldSeverity`                       | zod 枚举             | info..critical                                   |
+| `ScaffoldInputSchema`                                       | zod object           | vf_nuclei_new 工具 payload 契约（含 cveId 格式） |
+| `EngineModeSchema` / `EngineMode`                           | zod 枚举             | real / mock                                      |
+| `RemoteTargetSchema` / `RemoteTarget` / `remoteTarget(raw)` | zod + brand + 构造器 | http(s) 远程目标品牌                             |
+
 ## 7. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
 
 ### 5.1 `YamlLintFinding`

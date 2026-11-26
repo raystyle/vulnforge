@@ -56,6 +56,17 @@
 
 **安装执行**：`runInstallAction` 经平台 shell（win: `cmd /d /s /c`；posix: `bash -lc`）串联执行 fix 命令，10 分钟超时，返回 InstallOutcome（exitCode + output）；Pi 工具层执行前 `ctx.ui.confirm` 确认（系统修改操作），装后复检。
 
+## 4.9 env-contract.ts — 品牌契约 + 引擎探测状态机
+
+| 符号                                                     | 契约                          | 说明                                            |
+| -------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
+| `MirrorKindSchema` / `MirrorKind`                        | zod 枚举                      | 七个镜像维度白名单                              |
+| `EnvToolNameSchema` / `EnvToolName` / `envToolName(raw)` | zod 枚举 + 构造器             | 环境检查项名白名单（vf_env_install 只接受这些） |
+| `EnvCheckItemSchema` / `EnvCheckItem`                    | zod object                    | 检查行契约（含受管标注）                        |
+| `EnvAcceptanceSchema` / `EnvAcceptance`                  | zod object + `EnvPassed` 品牌 | 验收结论契约                                    |
+
+**EngineProbeMachine**（XState，事件驱动）：probing →（PROBE_RESULT available/unavailable）→ 终态，REPROBE 从任一终态回到 probing。`probeEngine(availability)` 把 checkNuclei 结果映射为机器事件并返回 EngineProbeState。`assertEngineProbeEventHandled`：编译期穷尽守卫。
+
 ## 5. 与 Pi 工具的对应
 
 - `vf_env_check` → checkEnvironment + environmentText（分组渲染：system toolchain / managed）
