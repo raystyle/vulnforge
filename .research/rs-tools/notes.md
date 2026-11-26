@@ -54,6 +54,18 @@
 - **与 pentest_rs 的衔接**（pctl 已集成）：`pctl vulhub regress|up|down|ps|coverage`（333 实例底账 registry.json）+ regression 默认控制面 29 断言
 - **对 VulnForge 的规划含义**：rs 工具族（rs_execute 跑 PoC/exploit 脚本）的真实验证环 = pve-harness 起 vulhub 靶场 → wait 就绪 → rs_execute 打真实靶 → AgentResult 断言命中 → down 清场。这是 vf_nuclei_run mock 靶机的**上位验证**（mock 验证逻辑、pve 验证真实行为）；授权边界同项目红线（VM/容器内跑目标）
 
+## 核心定位（用户裁定，2026-11-26）
+
+**rs 插件的核心 = 维护初始物化库 + exploit rs**，目标是 **exploit 利用锻造**——与已完成的 PoC 扫描锻造对齐成完整闭环：
+
+| 阶段 | 锻造对象 | 已有/规划 | 验证手段 |
+| ---- | -------- | --------- | -------- |
+| PoC 扫描锻造（已完成，ADR-003） | nuclei 检测模板 | vf_nuclei_* 9 工具 | mock 靶机（无害反证+编程路由） |
+| **exploit 利用锻造（本 feature）** | exploit rs 脚本 | rs 工具族 | mock（逻辑）→ **pve 靶场（真实行为）** |
+
+- **初始物化库**：seed catalog 随插件分发（物化 = 下载/解压即用，非首次运行构建），对齐 pi-rs-plugins 392 件三源模式；exploit rs 脚本以 vulhub 可复现靶场为验证底座（pentest_rs 已实证 nuclei2rs 转译 + vulhub 回归断言路径）
+- exploit rs 与 PoC 模板共用开发范式（骨架生成 → 契约校验 → 执行验证 → 入库检索），但执行域从 YAML 检测换为 Rust 单文件利用脚本（AgentResult 信封承载利用结果与 next_suggestion 攻击链指针）
+
 ## 规划草图（rs 工具族 + pve 靶场，待 ADR 确认）
 
 1. **第一批（rs 四件套）**：rs_search（SQLite FTS5，catalog 三源合并）/ rs_execute（超时透传 + 后台执行 + AgentResult 信封）/ rs_new（骨架生成：`//!` 头 + cargo 块 + AgentResult 框架）/ rs_edit（契约化校验，同 vf_nuclei_edit patch 模式）
