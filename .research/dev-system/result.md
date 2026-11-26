@@ -8,6 +8,12 @@
 - 修复方向：改派生物，不改检查（误报经用户确认后调整规则正本）。
 - 命令：`node tools/system-lint.mjs` → `system-lint: all 14 checks pass`，退出码 0。
 
+## 配置自动发现修复（Round 7）
+
+- 实测表明：工具从语料 clone 内调用时 findUp 被止于 .git 守卫阻断，永远找不到工作区配置——修复为就近标记 findUp（嵌套 clone 穿透）
+- 缺配置报诊断错误：搜索起点 + 层数 + 内联最小配置示例（安装后的插件无仓库 docs，指引必须自包含）
+- 三平台全绿（Windows 100+9 / ubuntu 97+12 / mac 97+12，共 109）
+
 ## 三平台验证（Round 6）
 
 | 平台         | system-lint | vitest                       | 全门      |
