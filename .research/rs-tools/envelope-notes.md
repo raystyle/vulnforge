@@ -39,6 +39,16 @@
 2. 步骤闭包做 IO、判定保持纯函数（module.rs 分工纪律）——快照可测可回放
 3. "以为利用成功"比"利用失败"更危险（scanner.rs 的立论）——Verify 不可静默省略正是框架存在的理由
 
+### 补充先例（gh-mcp 检索，2026-11-27）
+
+| 先例 | 机制 | 对我们的裁定 |
+| ---- | ---- | ---- |
+| pallab-js/r-msf（Rust 渗透框架） | Module trait 生命周期 `register → check → run → output`：check 验证必填选项、run 异步执行、output 三态（success/failure/data）；模块注册表 + 按名发现 | 生命周期四段与我们 Machine 的步骤序列同构——**check 阶段独立**值得吸收（选项校验先于任何 IO）；ModuleOutput 三态 ≈ Transition 三形交叉验证 |
+| r-msf TLS 策略 | `--dangerous-accept-invalid-certs` 仅限 lab 自签目标——与我们 `--insecure` 选配同语义（业界再证） | 已采纳的方向无需改 |
+| hieuit095/hieu-pentest | pipeline runner 有 check_required_store 前置校验模式 | 同上：前置校验独立成步 |
+
+**综合裁定不变**：运行时 Machine 循环 + Verify 框架层强制 + 显式 skip 留痕；**新增吸收**——Machine 步骤序列第一项固定为 Check（选项/参数完备性校验，纯函数零 IO），与 r-msf check 生命周期对齐；Probe 承接指纹与前提探测。
+
 ## exploit 状态机模板（用户裁定，2026-11-27：**rs 脚本写 exploit 必须以状态机化模板实现——强制结构，非可选**）
 
 vf_rust_lib 提供状态机**模板实现**，rs 脚本写 exploit **一律基于此模板**（等价 TS 侧"状态机默认必用，无豁免"纪律的 Rust 侧对应物）：
