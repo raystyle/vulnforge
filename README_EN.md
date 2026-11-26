@@ -6,7 +6,7 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 
 ## Features
 
-- **Template pipeline**: scaffold (`vf_template_new`) → lint (structure/metadata/weak-matcher checks, `vf_template_lint`) → local mock-target validation with benign counter-check (`vf_template_run`) → SQLite metadata sync, full-text search, dedup (`vf_template_sync` / `vf_template_search`)
+- **Template pipeline**: scaffold (`vf_nuclei_new`) → lint (structure/metadata/weak-matcher checks, `vf_nuclei_lint`) → local mock-target validation with benign counter-check (`vf_nuclei_run`) → SQLite metadata sync, full-text search, dedup (`vf_nuclei_sync` / `vf_nuclei_search`)
 - **Environment doctor and install**: `vf_env_check` covers three platforms (Windows/Linux/macOS) plus China mirror configuration; `vf_env_install` installs missing pieces via a per-platform command matrix (confirmed before running, re-checked after)
 - **Branded contracts**: all domain values are typed through zod schemas (`.brand<>()`), enforced by `brand-lint` in the CI gate
 - **Testing**: end-to-end runs against the real nuclei binary with a programmable mock target; a mock-nuclei CLI deterministically tests caller code

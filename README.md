@@ -6,7 +6,7 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 
 ## 功能
 
-- **模板一条龙**：骨架生成（`vf_template_new`）→ lint（结构/元数据/弱 matcher 检查，`vf_template_lint`）→ 本地 mock 靶机验证 + 无害反证（`vf_template_run`）→ SQLite 元数据同步/全文检索/查重（`vf_template_sync` / `vf_template_search`）
+- **模板一条龙**：骨架生成（`vf_nuclei_new`）→ lint（结构/元数据/弱 matcher 检查，`vf_nuclei_lint`）→ 本地 mock 靶机验证 + 无害反证（`vf_nuclei_run`）→ SQLite 元数据同步/全文检索/查重（`vf_nuclei_sync` / `vf_nuclei_search`）
 - **环境体检与安装**：`vf_env_check` 三平台（Windows/Linux/macOS）检测工具链与中国镜像源配置；`vf_env_install` 按平台命令矩阵安装缺失项（执行前确认，装后复检）
 - **品牌契约**：全部领域值经 zod 契约化（`.brand<>()`），`brand-lint` 强制检查入 CI 门禁
 - **测试**：真实 nuclei 二进制 + 可编程 mock 靶机端到端验证；mock-nuclei CLI 确定性测试调用方代码
