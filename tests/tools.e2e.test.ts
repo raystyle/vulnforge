@@ -1,17 +1,22 @@
 /**
- * E2E: every tool driven against the REAL workspace corpus
- * (D:/repos/vulnforge-workspace with nuclei-templates + real templates.db).
- * Real nuclei binary where available; mock ScanPort where not.
- * Read-only for the workspace except vf_nuclei_new (writes then removes its
- * own file) — sync runs against a scratch db copy to keep the sealed db intact.
+ * E2E: every tool driven against the REAL workspace corpus (templates.db +
+ * nuclei-templates under a workspace root). Real nuclei binary where
+ * available; mock ScanPort where not.
+ *
+ * Workspace resolution (cross-platform, no hardcoded machine paths):
+ *   VULNFORGE_E2E_WORKSPACE env var → default ~/repos/vulnforge-workspace
+ *   → skip the whole suite (with an explicit console.warn) when the
+ *   workspace (with .vulnforge.json) is absent — absence is environmental,
+ *   never a failure, same discipline as the nuclei runtime skips.
  */
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, statSync, unlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, existsSync, mkdtempSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import loadExtension, { type CapturedTool } from "./helpers/capture.ts";
 
-const WORKSPACE = "D:/repos/vulnforge-workspace";
+const WORKSPACE = process.env["VULNFORGE_E2E_WORKSPACE"] ?? join(homedir(), "repos", "vulnforge-workspace");
+const WORKSPACE_READY = existsSync(join(WORKSPACE, ".vulnforge.json"));
 const SAMPLE_REL = "nuclei-templates/http/cves/2026/CVE-2026-0545.yaml";
 
 let ctx: { cwd: string; hasUI: boolean };
@@ -29,7 +34,12 @@ async function call(name: string, params: unknown): Promise<{ text: string; isEr
 }
 
 beforeAll(async () => {
-  mkdirSync(WORKSPACE, { recursive: true });
+  if (!WORKSPACE_READY) {
+    console.warn(
+      `SKIP e2e suite: no workspace at ${WORKSPACE} (set VULNFORGE_E2E_WORKSPACE to a workspace with .vulnforge.json)`,
+    );
+    return;
+  }
   const { openTemplatesRepo } = await import("../src/templates/config.ts");
   const repo = openTemplatesRepo(WORKSPACE);
   // Copy the sealed db into a scratch location so sync/seal tests don't touch it.
@@ -44,7 +54,9 @@ afterAll(() => {
   for (const dir of scratchDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-describe("e2e over the real workspace corpus", () => {
+const describeIf = WORKSPACE_READY ? describe : describe.skip;
+
+describeIf("e2e over the real workspace corpus", () => {
   it("vf_env_check: reports the real machine, workspace found, nuclei availability stated", async () => {
     const outcome = await call("vf_env_check", {});
     expect(outcome.text).toContain("templates repo");

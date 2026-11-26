@@ -6,13 +6,15 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 
 ## Features
 
-**nuclei template pipeline** (per tool):
+**nuclei template pipeline** (per tool; full reference in docs/tools.md):
 
-- **Scaffold** — `vf_nuclei_new`: generate a template skeleton from five vulnerability patterns (detect/rce/sqli/lfi/panel) into the templates repo; id derived from the name
-- **Lint** — `vf_nuclei_lint`: required fields, metadata discipline (severity enum, author format), weak-matcher blocklist and multi-layer verification advice
-- **Local target validation** — `vf_nuclei_run`: run the real nuclei against a programmable mock HTTP target; benign counter-check first (any hit on a generic harmless page = weak matcher, rejected outright)
-- **Metadata sync** — `vf_nuclei_sync`: incremental index of template files (single source of truth) into SQLite, with a seal record (version + hash) for repo bookkeeping
-- **Search and dedup** — `vf_nuclei_search`: FTS5 full-text search (bm25 weights: id > tags > cve > product > name > description) plus duplicate-key detection
+- **Scaffold** — `vf_nuclei_new`: generate a template skeleton from five vulnerability patterns (detect/rce/sqli/lfi/panel); id derived from the name
+- **Lint** — `vf_nuclei_lint`: built-in TS yaml lint (syntax/style) + zod contract parsing + structure/metadata/weak-matcher checks
+- **Contract edit** — `vf_nuclei_edit`: structured patches (info/matcher/path) or whole-document replacement, auto-linted after edit; invalid edits are rejected before write
+- **Local target validation** — `vf_nuclei_run`: run the real nuclei against a programmable mock HTTP target; benign counter-check first; remote authorized targets supported (confirm-gated)
+- **Metadata sync** — `vf_nuclei_sync`: event-driven state machine batch index (config-driven include/exclude dirs/files/patterns), checkpoint resume, seal record
+- **Search and dedup** — `vf_nuclei_search`: FTS5 full-text search (bm25 weights) plus duplicate-key detection
+- **Analysis** — `vf_nuclei_stats`: severity/protocol/tags/cve/author seven-dimension group-by + CVE year histogram + duplicate-key report
 
 **Environment doctor and install**:
 

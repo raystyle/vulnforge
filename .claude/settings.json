@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-dangerous.mjs\"",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/.claude/hooks/with-node.sh\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-dangerous.mjs\"",
             "timeout": 15
           }
         ]
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-evidence.mjs\"",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/.claude/hooks/with-node.sh\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-evidence.mjs\"",
             "timeout": 30
           }
         ]
