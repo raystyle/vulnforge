@@ -25,6 +25,20 @@
 - 骨架 ` ```cargo ` 依赖块默认带 vf_rust_lib + serde_json + rustls
 - 坑（先例教训记录在案）：rustls 0.23 无静态 RSA 密钥交换，老栈需 legacy 通道；heavy 依赖进 lib 需 ADR
 
+## exploit 状态机模板先例研究（2026-11-27）
+
+| 先例 | 机制 | 对我们的裁定 |
+| ---- | ---- | ---- |
+| pentest_rs scanner.rs（自研先例） | **PhantomData 类型状态机**：Configured→Probed→Verified 三态编码进类型；只有 Scanner\<Configured\> 有 probe_with、只有 \<Verified\> 能产报告——**跳步是编译错误**不是运行时警告；IO 与并发归脚本层 | 理念正中靶心（防"以为利用成功"），但 pi-rs2 吸收分析判定它对 agent 现写单文件**过重拖编译** |
+| pi-rs2 pentest-rs-absorption.md | 明确拒绝引入 PhantomData 状态机——"取理念不取代码"，把"先证存在再验证"次序下沉到 selftest 断言 | 直接教训：类型级状态机对薄脚本不经济 |
+| module.rs（Black Hat Rust Ch4） | 检测模块 trait：IO 归脚本层（抓快照）、判定归模块（inspect 纯函数）——快照可缓存重放、模块可规范驱动测试 | 采纳分工纪律：Machine 框架不 IO，步骤闭包做 IO |
+| 业界 typestate builder（gh-mcp 检索：泛型 builder 阶段态，缺字段=编译错） | 编译期已知的固定序列用类型编码 | 验证 typestate 是成熟模式，但 exploit 步骤序列按漏洞而异（运行时声明），不宜全类型化 |
+
+**先例结论（实测表明）**：
+1. **两层设计**：Machine 驱动循环（运行时，声明式步骤序列 + Transition 三形 + 轨迹记录）负责 agent 现写脚本的可观测与回放；**类型级防跳步不进第一批**（先例实证对单文件脚本过重）——改为 **Verify 步骤强制在框架内**：框架要求最后一步必须是 Verify（或显式 `Done::skip_verify(reason)` 留痕），跳过验证变成显式留痕而非编译错误
+2. 步骤闭包做 IO、判定保持纯函数（module.rs 分工纪律）——快照可测可回放
+3. "以为利用成功"比"利用失败"更危险（scanner.rs 的立论）——Verify 不可静默省略正是框架存在的理由
+
 ## exploit 状态机模板（用户裁定，2026-11-27：**rs 脚本写 exploit 必须以状态机化模板实现——强制结构，非可选**）
 
 vf_rust_lib 提供状态机**模板实现**，rs 脚本写 exploit **一律基于此模板**（等价 TS 侧"状态机默认必用，无豁免"纪律的 Rust 侧对应物）：
