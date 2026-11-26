@@ -33,3 +33,11 @@
 | `RsDb.findByVulnerability(vulnId)`             | 方法      | 跨域锚：按漏洞标识精确 + 模糊匹配                     |
 | `RsDb.listNames()`                             | 方法      | 全部脚本名                                            |
 | `RsDb.seal()` / `verifySeal` / `loadSeal`      | 方法      | **真落盘** rs-lock.json（对照 tpl 的 vapor 模式修正） |
+
+## 脚本解析（script-parse.ts）
+
+| 符号                    | 形态      | 说明                                                                                                |
+| ----------------------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `ParsedRsScript`        | interface | meta（name/description/descriptionEn/version/args/keywords/codes）+ cargoDeps + lintIssues + sha256 |
+| `parseRsScript(source)` | 函数      | `//!` 头连续 run（容许裸 `//!` 行）+ ```cargo 依赖块解析 + advisory lint（metadata/args/envelope）  |
+| `sourceRank(source)`    | 函数      | 三源合并排序：project(0) > global(1) > bundled(2)                                                   |
