@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -11,6 +11,14 @@ import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } f
 import type { LintFinding } from "./templates/lint.ts";
 import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
+import { applyRsEdit, RsEditError, validateRsPatch } from "./templates/rs/edit.ts";
+import {
+  type DeliverFormName,
+  type RsExploitType,
+  rsSkeletonFor,
+  rsTargetDirectory,
+  scriptNameFromVulnId,
+} from "./templates/rs/scaffold-facade.ts";
 import { openRsDb, renderRsSearch, rsExploitFor, rsSearch } from "./templates/rs/search.ts";
 import {
   checkNuclei,
@@ -668,6 +676,122 @@ export default function (pi: ExtensionAPI): void {
       } finally {
         rsDb?.close();
         tools.db.close();
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_new",
+    label: "VulnForge exploit rs scaffold",
+    description:
+      "Generate an exploit rs script skeleton into the workspace rs directory: shebang + //! metadata header + cargo block + the mandatory state-machine template (Check/Probe/Craft/Deliver/Verify with the delivery form), AgentResult-printing main. The script name IS the vulnerability identifier.",
+    parameters: Type.Object({
+      vulnType: StringEnum(["rce", "sqli", "auth-bypass", "info-disclosure"] as const, {
+        description: "Exploit kind (the skeleton's delivery/verify guidance shapes to it)",
+      }),
+      vulnId: Type.String({
+        description: "Vulnerability identifier — becomes the script name (CVE-2026-1234 or a kebab alias)",
+      }),
+      description: Type.String({ description: "One-line description for the //! header" }),
+      deliverForm: Type.Optional(
+        StringEnum(["submit", "exec_command", "write_file", "rev_shell"] as const, {
+          description: "Delivery form for Machine::with_deliver (default submit)",
+        }),
+      ),
+    }),
+    execute: withToolMachine("exploit_rs_new", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      try {
+        const skeleton = rsSkeletonFor({
+          vulnType: params.vulnType as RsExploitType,
+          vulnId: params.vulnId,
+          description: params.description,
+          ...(params.deliverForm !== undefined ? { deliverForm: params.deliverForm as DeliverFormName } : {}),
+        });
+        const dir = join(tools.repo.rsRoot, rsTargetDirectory(params.vulnType as RsExploitType));
+        mkdirSync(dir, { recursive: true });
+        const fileName = `${scriptNameFromVulnId(params.vulnId)}.rs`;
+        const filePath = join(dir, fileName);
+        if (existsSync(filePath)) {
+          return errResult(
+            "PARAM_CONFLICT",
+            `script already exists: ${fileName} (one exploit per vulnerability)`,
+            "edit the existing script instead (read it first), or choose a different identifier",
+          );
+        }
+        writeFileSync(filePath, skeleton);
+        return textResult(`scaffolded ${filePath}\n\n${skeleton}`);
+      } catch (error) {
+        return envelope(error);
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_edit",
+    label: "VulnForge exploit rs edit",
+    description:
+      "Edit an exploit rs script through the contract chain: a metadata patch (//! header lines) or whole-body content. The edit applies only when the result still passes the header contract (the //! name = vulnerability identifier must survive) — invalid edits are rejected and nothing is written.",
+    parameters: Type.Object({
+      path: Type.String({ description: "Script path relative to the workspace rs directory" }),
+      patch: Type.Optional(
+        Type.Union(
+          [
+            Type.Object({
+              kind: Type.Literal("metadata"),
+              patch: Type.Object({
+                description: Type.Optional(Type.String()),
+                description_en: Type.Optional(Type.String()),
+                version: Type.Optional(Type.String()),
+                args: Type.Optional(Type.String()),
+                keywords: Type.Optional(Type.String()),
+                codes: Type.Optional(Type.String()),
+              }),
+            }),
+            Type.Object({
+              kind: Type.Literal("body"),
+              content: Type.String({ description: "Whole-file replacement (must keep the //! name header)" }),
+            }),
+          ],
+          { description: "metadata line patch OR whole-body replacement" },
+        ),
+      ),
+    }),
+    execute: withToolMachine("exploit_rs_edit", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      try {
+        if (params.patch === undefined) {
+          return errResult(
+            "PARAM_CONFLICT",
+            "provide a patch (metadata or body)",
+            'metadata: {kind:"metadata", patch:{description:"..."}}; body: {kind:"body", content:"..."}',
+          );
+        }
+        const absolute = resolveInsideRepo(tools.repo, join(tools.repo.config.rs.scriptsDir, params.path));
+        try {
+          const outcome = applyRsEdit(absolute, validateRsPatch(params.patch));
+          return textResult(
+            [`applied: ${outcome.applied.join(", ")}`, ...outcome.lintIssues].join("\n"),
+            outcome.lintIssues.length > 0,
+          );
+        } catch (error) {
+          if (error instanceof RsEditError) {
+            return errResult("EDIT_REJECTED", error.message, "fix the patch or use body mode with a full valid script");
+          }
+          throw error;
+        }
+      } catch (error) {
+        return envelope(error);
       }
     }),
   });

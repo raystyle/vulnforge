@@ -51,6 +51,8 @@ describe("extension factory", () => {
       "poc_nuclei_new",
       "poc_nuclei_stats",
       "exploit_rs_search",
+      "exploit_rs_new",
+      "exploit_rs_edit",
     ]);
     expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug"]);
   });
