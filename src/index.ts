@@ -11,6 +11,7 @@ import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } f
 import type { LintFinding } from "./templates/lint.ts";
 import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
+import { openRsDb, renderRsSearch, rsExploitFor, rsSearch } from "./templates/rs/search.ts";
 import {
   checkNuclei,
   createMockScanPort,
@@ -611,6 +612,55 @@ export default function (pi: ExtensionAPI): void {
       } catch (error) {
         return envelope(error);
       } finally {
+        tools.db.close();
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "vf_rs_search",
+    label: "VulnForge exploit-rs search",
+    description:
+      "Search the exploit rs catalog: FTS over script metadata (bm25: name 10/keywords 8/description 3). With vulnId: resolve the exploit rs for that vulnerability (cross-domain — a nuclei PoC hit maps straight to its exploit). Without a prior rs sync the catalog may be stale.",
+    parameters: Type.Object({
+      query: Type.Optional(Type.String({ description: "FTS query over name/keywords/description" })),
+      vulnId: Type.Optional(
+        Type.String({
+          description:
+            "vulnerability identifier (e.g. CVE-2026-1234 or a template id) — cross-domain anchor: the exploit rs for that vulnerability",
+        }),
+      ),
+      dangerous: Type.Optional(Type.Boolean({ description: "filter: only dangerous (true) or safe (false) scripts" })),
+    }),
+    execute: withToolMachine("vf_rs_search", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      let rsDb: import("./templates/rs/db.ts").RsDb | undefined;
+      try {
+        rsDb = openRsDb(tools.repo.root);
+        if (params.vulnId !== undefined) {
+          const exploitFor = rsExploitFor(rsDb, params.vulnId);
+          return textResult(renderRsSearch({ hits: [], exploitFor, engine: "fts" }));
+        }
+        if (params.query === undefined) {
+          return errResult(
+            "PARAM_CONFLICT",
+            "provide query (FTS search) or vulnId (cross-domain exploit lookup), neither given",
+            "query searches script metadata; vulnId resolves the exploit for a vulnerability id",
+          );
+        }
+        const outcome = rsSearch(rsDb, params.query, {
+          ...(params.dangerous !== undefined ? { dangerous: params.dangerous } : {}),
+        });
+        return textResult(renderRsSearch(outcome));
+      } catch (error) {
+        return envelope(error);
+      } finally {
+        rsDb?.close();
         tools.db.close();
       }
     }),

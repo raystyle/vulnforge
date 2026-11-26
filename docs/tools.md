@@ -41,6 +41,7 @@ hint: <下一步怎么改>
 | `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —            |
 | `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —            |
 | `vf_nuclei_stats`  | 元数据分析：维度分组/年份直方图/查重                   | 否                    | —            |
+| `vf_rs_search`     | exploit rs 目录检索：FTS + 漏洞标识跨域定位 exploit    | 否                    | —            |
 
 ## 命令（registerCommand）
 
@@ -48,6 +49,13 @@ hint: <下一步怎么改>
 | ----------- | ------------------------------------------ |
 | `/vf`       | 状态总览：模板仓位置、索引统计、安全模式数 |
 | `/vf-debug` | 内部状态：危险命令模式表与匹配自检         |
+
+### vf_rs_search
+
+- **参数**：`query?`（FTS 语法，bm25 name 10/keywords 8/description 3）；`vulnId?`（漏洞标识——跨域锚：nuclei PoC 命中直连该漏洞的 exploit rs）；`dangerous?`（过滤危险标记脚本）——query 与 vulnId 二选一
+- **行为**：检索 rs.db 物化索引（一漏洞一 exploit rs）；vulnId 路径精确 + 模糊匹配漏洞标识
+- **返回**：命中列表（name/version/source/args/摘要）；exploitFor 列表（跨域）
+- **何时用**：写 exploit 前查同面先例、PoC 命中后直接定位可用 exploit
 
 ## 配置自动发现
 

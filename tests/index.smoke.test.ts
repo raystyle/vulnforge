@@ -51,6 +51,7 @@ describe("extension factory", () => {
       "vf_nuclei_search",
       "vf_nuclei_new",
       "vf_nuclei_stats",
+      "vf_rs_search",
     ]);
     expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug"]);
   });
