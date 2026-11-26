@@ -11,7 +11,7 @@ modified: 2026-11-26T12:43:40.747Z
 
 # VulnForge 工作状态（2026-11-26 深夜）
 
-**下一 feature（ADR-004，研究收口待实现）**：exploit 利用锻造——rs 五件套（search/execute/new/edit/export）+ 初始物化库 + pve 靶场验证环（PoC 与 exploit 两线通用底座）；先例与设计在 `.research/rs-tools/`
+**下一 feature（ADR-004 提案中，已多轮用户裁定）**：exploit 利用锻造。关键裁定：物化库=一漏洞一 exploit rs；插件只管基础库+工具、内容资产全在 workspace 仓；vf_env_check+install 合并为 vf_env_init（环境+库幂等三合一）；配置分层（pi 数据目录全局 + workspace .vulnforge.json 就近，目前测试兼容 workspace 根加载）；rs_search SQLite FTS5 承载 rs 元数据并与模板按漏洞标识互联；rs_export zigbuild 五平台（musl/windows）；pve 靶场环为后期规划、两线通用；全部沿用品牌契约+状态机纪律；先例在 `.research/rs-tools/`
 
 **首功能（nuclei 模板一条龙）已交付**（ADR-003）：模板仓 `vulnforge-workspace`（上游 nuclei-templates + 封版 templates.db 14475 行），9 工具 + 2 命令。
 
