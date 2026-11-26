@@ -71,3 +71,32 @@ Java 内存马生成器生态标杆（类 Jenkins 般全面）：
 - MemShellParty 的"无侵入性"依赖测试矩阵实证（integration-test docker 全矩阵）——我们 pve 靶场环正好承接（第二批计划）
 - 反序列化链（CommonsCollections 等）本身就是 Packer 的一种——通道即攻击面
 - WAF 变形的对抗性：变形原语需要持续更新（cheatsheet 2017 的部分技巧已失效，如宽字节）——原语集做成数据不是代码
+
+## 5. 无特征通道研究（用户裁定：webshell 无特征字串、通信无 WAF 拦截特征——MemShellParty Godzilla 实读）
+
+### 5.1 Godzilla 协议 dissect（shelltool-godzilla 源码）
+
+四要素——每项都是无明文特征设计：
+
+1. **header 门**：请求头 name/value 双定制（headerName/headerValue 配置化）——WAF 按 URI/参数特征拦截失效，门开在任意路径
+2. **参数取值**：POST 参数名 = pass（定制），内容 = base64(AES(payload))——密文即报文体，无 shell 语法字串
+3. **密钥派生链**（生成期固化）：md5Key = md5(key)[0:16]；md5 = md5(pass+md5Key) 大写；AES key = md5Key——三次派生，密钥与明文永不传输
+4. **响应对称**：响应 = md5[0:16] + base64(AES(result)) + md5[16]——响应体也是密文三明治，无明文回显特征
+
+### 5.2 隐蔽机制（吸收点）
+
+| 机制 | 效果 | 吸收方式 |
+| ---- | ---- | ---- |
+| 配置化 header 门 | 通信入口不在 URL 特征里 | vf_rust_lib webshell 模块：植入/驱动均带随机 header 门 |
+| AES 密文通信 | 报文/响应无明文命令或回显 | 驱动走 AES(base64()) 双向 |
+| md5 派生链 | 密钥不出现在通信/文件中 | key/pass 只在生成期，只存派生结果 |
+| ClassLoader defineClass | 字节码不落盘 | Java 生态能力；Rust 侧 ristretto 生成 .class |
+| 混淆 + shrink | class 内无常量特征串 | ristretto 生成后做名称/常量混淆 |
+| 无侵入验证 | 探测不产生可疑流量 | Verify 步骤用 Response 回显三态 |
+
+### 5.3 落入 vf_rust_lib webshell 模块的裁定
+
+- **模板面**：one-liner（有特征）降为 fallback；标准形态 = 加密通道模板（header 门 + AES 通信 + md5 派生）
+- **驱动面**：`webshell::drive(url, cmd)` = 构造 header 门 + AES 加密 cmd + 解密响应——WAF 看到任意 POST + 密文
+- **验证面**：植入后 Response 回显三态确认存活
+- **生成面**：ristretto 生成 .class 时常量混淆 + gzip+base64 单常量嵌入
