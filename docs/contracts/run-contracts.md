@@ -84,12 +84,12 @@ Mock 语义（契约）：空 findings = 0 hit（benign 反证绿）；注入 fi
 
 ### 2.1.1 mock-client 控制通道契约（品牌化）
 
-| 符号 | 契约 | 说明 |
-| ---- | ---- | ---- |
+| 符号                                  | 契约                            | 说明                                                                                       |
+| ------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | `ControlEventSchema` / `ControlEvent` | zod discriminatedUnion("event") | child→parent：ready(url+`MockPort` brand)/closed/error(message)；控制线消息经 parse 打契约 |
-| `ControlOpSchema` / `ControlOp` | zod discriminatedUnion("op") | parent→child：start(routes 经 `MockRouteSchema` 二次校验)/close；写 stdin 前解析 |
-| `MockTargetPhase` | 字面量联合 | spawning/ready/closing/closed/failed——生命周期状态穷尽 |
-| `SpawnedMockTarget` | interface | url + branded port + `phase` + close() |
+| `ControlOpSchema` / `ControlOp`       | zod discriminatedUnion("op")    | parent→child：start(routes 经 `MockRouteSchema` 二次校验)/close；写 stdin 前解析           |
+| `MockTargetPhase`                     | 字面量联合                      | spawning/ready/closing/closed/failed——生命周期状态穷尽                                     |
+| `SpawnedMockTarget`                   | interface                       | url + branded port + `phase` + close()                                                     |
 
 `mockPort` 为品牌数字（正整数 brand `"MockPort"`）；坏端口、坏方法、坏路由在跨进程边界即拒绝（实测验证）。
 
@@ -190,7 +190,17 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 | `assertSyncEventHandled(event)`                 | 函数           | **编译期穷尽守卫**：switch 全 case + never 兜底                                                    |
 | `SYNC_EVENT_TYPES`                              | ReadonlySet    | 已处理事件类型集（运行时镜像）                                                                     |
 
-### 5.4 文件收集（config 驱动）
+### 5.4 mock 生命周期状态机（事件驱动，无豁免）
+
+| 符号                                 | 形态   | 说明                                                                                                                          |
+| ------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `MockLifecycleMachine`               | XState | spawning→(SPAWN)→ready→(CLOSE_REQUESTED)→closing→(CLOSED)→closed；spawning→(CHILD_ERROR)→failed；全事件驱动，转换只由事件触发 |
+| `trackMockLifecycle(url, port)`      | 函数   | 驱动器：phase()（穷尽联合）/spawn()/controlEvent(evt)——控制通道事件映射为生命周期事件                                         |
+| `assertLifecycleEventHandled(event)` | 函数   | 编译期穷尽守卫（switch 全 case + never 兜底），新生命周期事件未处理 = tsc 失败                                                |
+
+规则：**所有工具（含单步）默认事件驱动状态机，无豁免**（pi-extension.md）。单步工具以最小机器表达，保证生命周期可观测、可断点、可恢复。
+
+### 5.5 文件收集（config 驱动）
 
 | 符号                              | 形态      | 说明                                                                                                                         |
 | --------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
