@@ -44,6 +44,13 @@
 - 实测表明：修正模式与本会话沉淀的规则一一对应——先例优先（→ /precedent skill）、SKILL 自包含去噪（→ skill-authoring.md）、ADR 独立目录（→ adr-docs.md）、运行时纪律（→ pi-extension.md）、术语铁律（→ docs-style.md）、轨迹边界（→ .claude/README.md 判据）——闭环验证成立
 - 用法：`npm run intent-trace -- .claude/sessions/<id>.jsonl --limit N --file <substr>`
 
+## 自省增量（13:37 后，审查与修复阶段）
+
+- 规模：561-521=40 个新文件事件、29 次审查修复后修改（config.ts 7 连居首=findUp 信任边界 5 轮推演）、4 条用户指令、0 中断
+- 修正模式：审查闭环形态（review→全修→单代理化→.review/ 归档）无返工——两代理 9 项发现一次全修通过三平台
+- 实测表明：卡壳（同文件同意图 ≥3 连发）在本阶段只有 1 段（config.ts 信任边界推演），根因不是类型级联而是**安全语义设计**（planted config 与合法 workspace 文件系统同构）——属必要推演，非低效
+- intent-trace.ts 自身 4 连改：正则控制字面量被 biome unsafe 修复反复破坏——教训候选：**工具脚本避免字面控制字符**（用 RegExp 构造），已在代码注释固化
+
 ## 全量对话自省（2026-11-26 会话全量数据）
 
 - 规模：121 条用户指令 / 21 次中断 / 117 文件 521 次修改 / 61 个编辑关联 prompt
