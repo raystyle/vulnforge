@@ -49,7 +49,7 @@ pub enum Step {
 /// Every form is a composition over them:
 ///   Submit      — neither (payload is data; the bug itself processes it)
 ///   ExecCommand — execute ×1, take the output (the classic RCE face)
-///   WriteShell  — write a script file, then execute THROUGH the planted
+///   WriteFile  — write a script file, then execute THROUGH the planted
 ///                 file (webshell lifecycle)
 ///   RevShell    — execute a dial-back one-liner (bash/nc/mkfifo/powershell
 ///                 from the cheat sheet) + our listener catches the session
@@ -72,7 +72,7 @@ pub enum DeliverForm {
     /// Webshell lifecycle: write a script file to the target (PHP/JSP/ASP
     /// via upload, log poisoning, exif data…), then drive commands through
     /// the planted file (cmd.php?cmd=id).
-    WriteShell,
+    WriteFile,
     /// Reverse shell: the target executes a dial-back one-liner
     /// (bash -i >& /dev/tcp/…, nc -e sh, mkfifo pipe, powershell…) and
     /// opens an interactive session to our listener.
@@ -84,7 +84,7 @@ impl DeliverForm {
         match self {
             DeliverForm::Submit => "submit",
             DeliverForm::ExecCommand => "exec_command",
-            DeliverForm::WriteShell => "write_shell",
+            DeliverForm::WriteFile => "write_file",
             DeliverForm::RevShell => "rev_shell",
         }
     }
@@ -294,7 +294,7 @@ mod delivery_forms_tests {
     fn deliver_form_names_are_stable() {
         assert_eq!(DeliverForm::Submit.name(), "submit");
         assert_eq!(DeliverForm::ExecCommand.name(), "exec_command");
-        assert_eq!(DeliverForm::WriteShell.name(), "write_shell");
+        assert_eq!(DeliverForm::WriteFile.name(), "write_shell");
         assert_eq!(DeliverForm::RevShell.name(), "rev_shell");
     }
 
