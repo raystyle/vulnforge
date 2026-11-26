@@ -26,6 +26,12 @@ export interface VulnforgeTemplatesConfig {
     includePatterns: string[];
     excludePatterns: string[];
   };
+  rs: {
+    /** Workspace subdirectory holding exploit rs scripts (one per vulnerability). */
+    scriptsDir: string;
+    /** cargo zigbuild export targets; empty = derive from installed rustup targets. */
+    exportTargets: string[];
+  };
 }
 
 /** Defaults mirror the upstream corpus layout: engine configs and payloads
@@ -49,6 +55,10 @@ const DEFAULT_CONFIG: VulnforgeTemplatesConfig = {
     excludeFiles: [],
     includePatterns: [],
     excludePatterns: [],
+  },
+  rs: {
+    scriptsDir: "rust-scripts",
+    exportTargets: [],
   },
 };
 
@@ -103,6 +113,28 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
       void new RegExp(source, "i");
     } catch (error) {
       throw new Error(`invalid .vulnforge.json: bad sync pattern /${source}/: ${(error as Error).message}`);
+    }
+  }
+  const rs = (parsed as { rs?: unknown }).rs;
+  if (typeof rs === "object" && rs !== null) {
+    const scriptsDir = (rs as { scriptsDir?: unknown }).scriptsDir;
+    if (scriptsDir !== undefined) {
+      if (typeof scriptsDir !== "string" || scriptsDir.length === 0) {
+        throw new Error("invalid .vulnforge.json: rs.scriptsDir must be a non-empty string");
+      }
+      config.rs.scriptsDir = scriptsDir;
+    }
+    const exportTargets = z
+      .array(z.string())
+      .optional()
+      .parse((rs as { exportTargets?: unknown }).exportTargets);
+    if (exportTargets !== undefined) {
+      for (const target of exportTargets) {
+        if (!/^[a-z0-9_-]+-[a-z0-9_-]+-[a-z0-9_-]+$/.test(target)) {
+          throw new Error(`invalid .vulnforge.json: bad rs export target "${target}" (expected a rust triple)`);
+        }
+      }
+      config.rs.exportTargets = exportTargets;
     }
   }
   return config;
@@ -168,6 +200,8 @@ export interface TemplatesRepo {
   config: VulnforgeTemplatesConfig;
   dbPath: string;
   sealPath: string;
+  /** Workspace dir holding exploit rs scripts (config rs.scriptsDir under root). */
+  rsRoot: string;
 }
 
 export function openTemplatesRepo(start: string): TemplatesRepo {
@@ -178,5 +212,6 @@ export function openTemplatesRepo(start: string): TemplatesRepo {
     config,
     dbPath: join(root, config.db.filename),
     sealPath: join(root, config.db.sealFile),
+    rsRoot: join(root, config.rs.scriptsDir),
   };
 }

@@ -36,6 +36,28 @@ describe("parseConfig", () => {
   });
 });
 
+describe("parseConfig rs section", () => {
+  it("defaults rs.scriptsDir to rust-scripts with empty exportTargets", () => {
+    const config = parseConfig("{}");
+    expect(config.rs.scriptsDir).toBe("rust-scripts");
+    expect(config.rs.exportTargets).toEqual([]);
+  });
+
+  it("accepts explicit rs section values", () => {
+    const config = parseConfig(
+      JSON.stringify({
+        rs: { scriptsDir: "exploits", exportTargets: ["x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"] },
+      }),
+    );
+    expect(config.rs.scriptsDir).toBe("exploits");
+    expect(config.rs.exportTargets).toHaveLength(2);
+  });
+
+  it("rejects a non-string scriptsDir", () => {
+    expect(() => parseConfig(JSON.stringify({ rs: { scriptsDir: 5 } }))).toThrow(/invalid .vulnforge.json/);
+  });
+});
+
 describe("findTemplatesRoot", () => {
   it("finds the marker from a nested directory", () => {
     const repo = makeRepo();

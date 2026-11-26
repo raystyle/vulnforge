@@ -30,6 +30,15 @@
 | `tools.yamllintPath` | string   | `""`                    | 同上                                                                 |
 | `env.managedRoots`   | string[] | `[]`                    | 托管工具根（如 ohmyenv）——其下工具在环境检测中单独分组，不算系统缺失 |
 
+## rs 段契约（exploit rs）
+
+| 字段               | 类型     | 默认                               | 说明                                                              |
+| ------------------ | -------- | ---------------------------------- | ----------------------------------------------------------------- |
+| `rs.scriptsDir`    | string   | `"rust-scripts"`                   | workspace 下 exploit rs 脚本目录（一漏洞一脚本，脚本名=漏洞标识） |
+| `rs.exportTargets` | string[] | `[]`（由已装 rustup targets 推导） | cargo zigbuild 导出目标（rust triple 形）                         |
+
+`rs.scriptsDir` 必须非空字符串；exportTargets 逐项按 triple 正则在 parse 边界校验。`TemplatesRepo.rsRoot` 派生为 root 下 rs.scriptsDir 绝对路径。
+
 ## sync 过滤契约（8 键）
 
 | 字段              | 类型     | 默认                                                                       | 说明                                                 |
