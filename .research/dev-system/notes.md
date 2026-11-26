@@ -38,6 +38,12 @@
 - 坑：术语检查必须豁免"引用违例形式"的规则文档自身（docs-style.md 禁用列）与物理计算机语境（跨计算机/新计算机）——正则 + 例外表实现
 - 实测表明：术语 lint 首跑即抓出 9 个中文文档 20 处近义词指代存量违例，修正后防回退
 
+## 会话反哺闭环实证（2026-11-26 本会话数据）
+
+- intent-trace 对本会话分析：117 文件 / 521 次修改 / 61 个独立用户 prompt，其中 19 个是修正/精炼型——修正模式密度 31%
+- 实测表明：修正模式与本会话沉淀的规则一一对应——先例优先（→ /precedent skill）、SKILL 自包含去噪（→ skill-authoring.md）、ADR 独立目录（→ adr-docs.md）、运行时纪律（→ pi-extension.md）、术语铁律（→ docs-style.md）、轨迹边界（→ .claude/README.md 判据）——闭环验证成立
+- 用法：`npm run intent-trace -- .claude/sessions/<id>.jsonl --limit N --file <substr>`
+
 ## 单步工具最小状态机
 
 - `ToolExecutionMachine`（idle → START → executing → SUCCEED|FAIL → done|failed）+ `withToolMachine` 签名保持包装器：全部 9 个工具 execute 过状态机

@@ -18,6 +18,15 @@
 | **`settings.json`** | 权限 allowlist + hooks 配置                                     | 人     | pi/npm/vitest/git 常规操作 allowlist                     |
 | **hooks/**          | **确定性强制**：必须拦的动作，CLAUDE.md 只是约定、hook 才是闸门 | 人     | guard-dangerous.mjs / verify-evidence.mjs / with-node.sh |
 
+## 会话反哺闭环
+
+会话数据是体系进化的原料：
+
+1. **归档**：SessionEnd hook 增量镜像 transcript 到 `.claude/sessions/`（全局 30 天清理后项目仍留底）
+2. **分析**：`npm run intent-trace -- <transcript.jsonl>` trace 每个文件的修改意图轨迹（用户 prompt + thinking + 时间线）
+3. **提炼**：从分析中识别修正模式（用户纠正/反复返工/纪律违规）
+4. **晋级**：按 Miss→Rule 流程沉淀——出现 ≥2 次的模式进 rules/skill/hook；单次重大决定进 ADR；先例与证据进 .research
+
 ## tools/ 边界
 
 `tools/` = 辅助项目开发、完善 Claude 开发体系的工具（lint / 校验 / 基准 / 会话归档 / 意图轨迹分析）；`src/` = 插件主体（Pi 扩展产品代码）。开发体系工具的实现与测试都归 tools/（含 *.test.ts，vitest include 已覆盖）。
