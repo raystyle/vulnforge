@@ -176,19 +176,21 @@ scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
 
 ### 5.3 契约符号
 
-| 符号                                            | 形态           | 说明                                                                                               |
-| ----------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
-| `syncMachine`                                   | XState machine | `setup({types:{context,events,input}})` 严格类型化                                                 |
-| `SyncMachineContext`                            | interface      | jobId/root/db/files/cursor/results/sealedSha16?                                                    |
-| `SyncMachineInput`                              | interface      | createActor 输入（context 初始化源）                                                               |
-| `SyncJobSnapshot`                               | interface      | phase/cursor/total/indexed/failed/sealedSha16?——落 `sync_jobs` 表（job_id 主键，snapshot_json 列） |
-| `BatchItemOutcome`                              | interface      | path/status("indexed"\|"failed")/error?/lintErrors                                                 |
-| `BatchRunResult`                                | interface      | SyncResult + lintFindings[]{path,errors,warnings}                                                  |
-| `runBatchSync(db, root, {jobId?, resumeFrom?})` | 函数           | driver：逐文件 parse→lint→upsert，每文件发 FILE_DONE；末尾 BATCH_COMPLETE 触发 seal                |
-| `loadJobSnapshot(db, jobId)`                    | 函数           | 读断点快照                                                                                         |
-| `lintTemplateFile(source, fileName)`            | 函数           | yaml lint + doc lint 合一，返回 {yamlFindings, docFindings, error?}                                |
-| `assertSyncEventHandled(event)`                 | 函数           | **编译期穷尽守卫**：switch 全 case + never 兜底                                                    |
-| `SYNC_EVENT_TYPES`                              | ReadonlySet    | 已处理事件类型集（运行时镜像）                                                                     |
+| 符号                                            | 形态           | 说明                                                                                                       |
+| ----------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `syncMachine`                                   | XState machine | `setup({types:{context,events,input}})` 严格类型化                                                         |
+| `SyncMachineContext`                            | interface      | jobId/root/db/files/cursor/results/sealedSha16?                                                            |
+| `SyncMachineInput`                              | interface      | createActor 输入（context 初始化源）                                                                       |
+| `SyncJobSnapshot`                               | interface      | phase/cursor/total/indexed/failed/sealedSha16?——落 `sync_jobs` 表（job_id 主键，snapshot_json 列）         |
+| `BatchItemOutcome`                              | interface      | path/status("indexed"\|"failed")/error?/lintErrors                                                         |
+| `BatchRunResult`                                | interface      | SyncResult + lintFindings[]{path,errors,warnings}                                                          |
+| `runBatchSync(db, root, {jobId?, resumeFrom?})` | 函数           | driver：逐文件 parse→lint→upsert，每文件发 FILE_DONE；末尾 BATCH_COMPLETE 触发 seal                        |
+| `loadJobSnapshot(db, jobId)`                    | 函数           | 读断点快照                                                                                                 |
+| `lintTemplateFile(source, fileName)`            | 函数           | yaml lint + doc lint 合一，返回 {yamlFindings, docFindings, error?}                                        |
+| `assertSyncEventHandled(event)`                 | 函数           | **编译期穷尽守卫**：switch 全 case + never 兜底                                                            |
+| `collectFiles(root, filter?, extensions?)`      | 函数           | 配置驱动文件收集；extensions 可配（默认 `.yaml`/`.yml`，rs 域用 `.rs`）；`collectYamlFiles` 为向后兼容别名 |
+| `DEFAULT_SYNC_FILTER`                           | const          | 默认同步过滤（空 corpusDir + 上游默认排除目录）                                                            |
+| `SYNC_EVENT_TYPES`                              | ReadonlySet    | 已处理事件类型集（运行时镜像）                                                                             |
 
 ### 5.4 mock 生命周期状态机（事件驱动，无豁免）
 

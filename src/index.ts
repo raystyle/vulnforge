@@ -1,16 +1,15 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
-import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
+import type { TemplatesRepo } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { probeEngine } from "./templates/engine-probe.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
-import { type VfErrorCode, vfError, wrapAsVfError } from "./templates/errors.ts";
 import type { LintFinding } from "./templates/lint.ts";
-import { type MetaColumn, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
+import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
 import {
   checkNuclei,
@@ -32,14 +31,14 @@ import {
 import { renderStats } from "./templates/stats-report.ts";
 import { runBatchSync } from "./templates/sync-machine.ts";
 import { withToolMachine } from "./templates/tool-machine.ts";
-
-function textResult(text: string, isError = false) {
-  return {
-    content: [{ type: "text" as const, text }],
-    details: { summary: text.slice(0, 200) },
-    ...(isError ? { isError: true } : {}),
-  };
-}
+import {
+  envelope,
+  errResult,
+  openRepoTools,
+  type RepoTools,
+  resolveInsideRepo,
+  textResult,
+} from "./templates/tool-registry.ts";
 
 /**
  * Engine resolution for vf_nuclei_run: explicit mock wins; otherwise probe
@@ -82,84 +81,6 @@ async function resolveScanPortForRun(
 function findingsText(findings: LintFinding[]): string {
   if (findings.length === 0) return "no findings";
   return findings.map((finding) => `[${finding.level}] ${finding.rule}: ${finding.message}`).join("\n");
-}
-
-/** Wrap a boundary error in the agent-correction envelope with a stable code. */
-function envelope(error: unknown) {
-  const wrapped = wrapAsVfError(error, (message) => {
-    if (message.includes("no .vulnforge.json")) {
-      return {
-        code: "CONFIG_NOT_FOUND" as const,
-        hint: "create .vulnforge.json in the workspace root or run the tool from inside it",
-      };
-    }
-    if (message.includes("invalid .vulnforge.json")) {
-      return { code: "CONFIG_INVALID" as const, hint: "fix the JSON (run vf_env_check for the templates-repo item)" };
-    }
-    if (message.includes("nuclei engine unavailable")) {
-      return {
-        code: "ENGINE_UNAVAILABLE" as const,
-        hint: 'install nuclei (go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest) or pass engine="mock" with expectedHits',
-      };
-    }
-    if (message.includes("path escapes")) {
-      return {
-        code: "PATH_ESCAPE" as const,
-        hint: 'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
-      };
-    }
-    if (/ENOENT|no such file or directory/i.test(message)) {
-      return {
-        code: "PATH_NOT_FOUND" as const,
-        hint: "check the path spelling relative to the templates repo root, or run vf_nuclei_sync to index it",
-      };
-    }
-    if (
-      message.startsWith("edit rejected") ||
-      message.includes("out of range") ||
-      message.includes("no http request block")
-    ) {
-      return {
-        code: "EDIT_REJECTED" as const,
-        hint: "adjust the patch indexes or use content mode with a full valid template",
-      };
-    }
-    return {
-      code: "INTERNAL" as const,
-      hint: "inspect the detail; if it is a bug, report it with the exact tool call",
-    };
-  });
-  return textResult(wrapped.message, true);
-}
-
-function errResult(code: VfErrorCode, detail: string, hint: string) {
-  return textResult(vfError(code, detail, hint).message, true);
-}
-
-/** Resolve a user-supplied path inside the templates repo, refusing escapes. */
-function resolveInsideRepo(repo: TemplatesRepo, userPath: string): string {
-  const absolute = resolve(repo.root, userPath);
-  const normalizedRoot = repo.root.replaceAll("\\", "/");
-  const normalizedAbsolute = absolute.replaceAll("\\", "/");
-  if (normalizedAbsolute !== normalizedRoot && !normalizedAbsolute.startsWith(`${normalizedRoot}/`)) {
-    throw vfError(
-      "PATH_ESCAPE",
-      `path "${userPath}" escapes the templates repo root ${normalizedRoot} (resolved to ${normalizedAbsolute})`,
-      'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
-    );
-  }
-  return absolute;
-}
-
-interface RepoTools {
-  repo: TemplatesRepo;
-  db: TemplateDb;
-}
-
-function openRepoTools(cwd: string): RepoTools {
-  const repo = openTemplatesRepo(cwd);
-  const db = new TemplateDb(repo.dbPath);
-  return { repo, db };
 }
 
 export default function (pi: ExtensionAPI): void {

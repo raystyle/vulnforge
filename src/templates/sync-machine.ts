@@ -88,7 +88,7 @@ export function syncFilterFromConfig(config: {
   };
 }
 
-const DEFAULT_FILTER: SyncFilter = {
+export const DEFAULT_SYNC_FILTER: SyncFilter = {
   corpusDir: "",
   includeDirs: [],
   excludeDirs: SYNC_EXCLUDED_DIRS,
@@ -99,8 +99,13 @@ const DEFAULT_FILTER: SyncFilter = {
 };
 
 /** Config-driven file collection: corpusDir → include/exclude dirs, files, and
- * regex patterns (relative path, case-insensitive). */
-export function collectYamlFiles(root: string, filter: SyncFilter = DEFAULT_FILTER): string[] {
+ * regex patterns (relative path, case-insensitive). Extensions configurable
+ * (default .yaml/.yml for templates; .rs for exploit scripts). */
+export function collectFiles(
+  root: string,
+  filter: SyncFilter = DEFAULT_SYNC_FILTER,
+  extensions: string[] = [".yaml", ".yml"],
+): string[] {
   const corpusRoot = filter.corpusDir.length > 0 ? join(root, filter.corpusDir) : root;
   const files: string[] = [];
   const walk = (dir: string): void => {
@@ -126,7 +131,7 @@ export function collectYamlFiles(root: string, filter: SyncFilter = DEFAULT_FILT
       const fileName = entry.name;
       if (filter.includeFiles.length > 0) {
         if (!filter.includeFiles.includes(fileName)) continue;
-      } else if (!fileName.endsWith(".yaml") && !fileName.endsWith(".yml")) {
+      } else if (!extensions.some((ext) => fileName.endsWith(ext))) {
         continue;
       }
       if (filter.excludeFiles.includes(fileName)) continue;
@@ -138,6 +143,9 @@ export function collectYamlFiles(root: string, filter: SyncFilter = DEFAULT_FILT
   walk(corpusRoot);
   return files.sort();
 }
+
+/** Backward-compatible name for template collection. */
+export const collectYamlFiles = collectFiles;
 
 /** Fully lint one template file: yaml syntax/style + structure + weak matchers. */
 export function lintTemplateFile(
