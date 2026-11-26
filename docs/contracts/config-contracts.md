@@ -1,6 +1,6 @@
 # 配置契约（.vulnforge.json）
 
-契约定义：`src/templates/config.ts`。模板仓标记文件，findTemplatesRoot 向上查找（止于 .git 或文件系统根）。
+契约定义：`src/templates/config.ts`。模板仓标记文件，findTemplatesRoot 向上查找（就近优先，可穿透嵌套 git clone；到文件系统根未找到则抛含修复指引的诊断错误）。
 
 ## 结构
 
@@ -46,14 +46,14 @@
 
 ## 契约类型
 
-| 符号                                          | 形态      | 说明                                                                                                                         |
-| --------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `VulnforgeTemplatesConfig`                    | interface | 上表结构的 TS 契约：`{ db: {filename, sealFile}, tools: {nucleiPath, yamllintPath}, env?: { managedRoots } }`                |
-| `parseConfig(text): VulnforgeTemplatesConfig` | 函数      | JSON 文本 → 契约（见解析纪律）；失败抛错                                                                                     |
-| `findTemplatesRoot(start): string`            | 函数      | 从 start 向上找 `.vulnforge.json`；止于 .git 或文件系统根，未找到抛错                                                        |
-| `loadConfig(root): VulnforgeTemplatesConfig`  | 函数      | 读根下标记文件并 parseConfig                                                                                                 |
-| `openTemplatesRepo(start): TemplatesRepo`     | 函数      | 定位 + 装配：root/config/dbPath/sealPath 一次取齐                                                                            |
-| `TemplatesRepo`                               | interface | `{ root: string; config: VulnforgeTemplatesConfig; dbPath: string; sealPath: string }`——dbPath/sealPath 为模板仓根下绝对路径 |
+| 符号                                          | 形态      | 说明                                                                                                                                           |
+| --------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VulnforgeTemplatesConfig`                    | interface | 上表结构的 TS 契约：`{ db: {filename, sealFile}, tools: {nucleiPath, yamllintPath}, env?: { managedRoots } }`                                  |
+| `parseConfig(text): VulnforgeTemplatesConfig` | 函数      | JSON 文本 → 契约（见解析纪律）；失败抛错                                                                                                       |
+| `findTemplatesRoot(start): string`            | 函数      | 从 start 向上找最近的 `.vulnforge.json`；不受嵌套 `.git` 阻断（语料 clone 自带 .git 也能找到工作区配置）；未找到抛诊断错误（含起点与修复指引） |
+| `loadConfig(root): VulnforgeTemplatesConfig`  | 函数      | 读根下标记文件并 parseConfig                                                                                                                   |
+| `openTemplatesRepo(start): TemplatesRepo`     | 函数      | 定位 + 装配：root/config/dbPath/sealPath 一次取齐                                                                                              |
+| `TemplatesRepo`                               | interface | `{ root: string; config: VulnforgeTemplatesConfig; dbPath: string; sealPath: string }`——dbPath/sealPath 为模板仓根下绝对路径                   |
 
 ## 解析纪律
 

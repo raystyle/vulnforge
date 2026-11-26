@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, parse } from "node:path";
+import { dirname, join } from "node:path";
 import { z } from "zod";
 
 export interface VulnforgeTemplatesConfig {
@@ -108,20 +108,29 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
   return config;
 }
 
-/** Walk up from `start` until a directory containing `.git`, looking for `.vulnforge.json`. */
+/**
+ * Walk up from `start` looking for `.vulnforge.json` — nearest wins. Deliberately
+ * NOT bounded by `.git`: a nested corpus clone (e.g. upstream nuclei-templates
+ * with its own .git) must still find the enclosing workspace config.
+ */
 export function findTemplatesRoot(start: string): string {
-  const { root } = parse(start);
+  const visited: string[] = [];
   let dir = start;
   for (;;) {
     if (existsSync(join(dir, ".vulnforge.json"))) {
       return dir;
     }
+    visited.push(dir);
     const parent = dirname(dir);
-    if (parent === dir || dir === root) {
-      throw new Error(`no .vulnforge.json found from ${start} upward (stopped at filesystem root)`);
-    }
-    if (existsSync(join(parent, ".git"))) {
-      throw new Error(`no .vulnforge.json found from ${start} upward (reached enclosing git root)`);
+    if (parent === dir) {
+      throw new Error(
+        [
+          `no .vulnforge.json found from ${start} upward (searched ${visited.length} directory level(s)).`,
+          "Create .vulnforge.json in your templates repo root, e.g.:",
+          '{ "db": { "filename": "templates.db", "sealFile": "templates-lock.json" } }',
+          "or run the tool from a directory inside the workspace that already has one.",
+        ].join("\n"),
+      );
     }
     dir = parent;
   }

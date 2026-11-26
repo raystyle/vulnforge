@@ -42,19 +42,32 @@ describe("findTemplatesRoot", () => {
     expect(findTemplatesRoot(join(repo, "http", "cves"))).toBe(repo);
   });
 
-  it("throws when no marker exists up to the filesystem root", () => {
-    const dir = mkdtempSync(join(tmpdir(), "vf-empty-"));
-    expect(() => findTemplatesRoot(join(dir, "sub"))).toThrow(/no \.vulnforge\.json/);
+  it("finds the workspace marker from inside a nested git clone (corpus with own .git)", () => {
+    const repo = makeRepo();
+    // upstream corpus layout: workspace/.vulnforge.json + workspace/nuclei-templates/.git
+    mkdirSync(join(repo, "nuclei-templates", ".git"), { recursive: true });
+    expect(findTemplatesRoot(join(repo, "nuclei-templates", "http", "cves"))).toBe(repo);
   });
 
-  it("throws when leaving a git repo without finding a marker", () => {
-    const repo = makeRepo();
-    mkdirSync(join(repo, ".git"), { recursive: true });
-    const outside = mkdtempSync(join(tmpdir(), "vf-outside-"));
-    mkdirSync(join(outside, ".git"), { recursive: true });
-    writeFileSync(join(outside, "project", ""), "");
-    // Start inside the outside repo (marker absent) — walk stops at its .git.
-    expect(() => findTemplatesRoot(join(outside, "project"))).toThrow(/no \.vulnforge\.json/);
+  it("throws a diagnostic error when no marker exists up to the filesystem root", () => {
+    const dir = mkdtempSync(join(tmpdir(), "vf-empty-"));
+    expect(() => findTemplatesRoot(join(dir, "sub"))).toThrow(/no \.vulnforge\.json/);
+    // the error must expose the search start and an inline minimal config (no
+    // repo-docs pointer — installed extensions have no docs/ directory)
+    try {
+      findTemplatesRoot(join(dir, "sub"));
+    } catch (error) {
+      expect((error as Error).message).toContain(dir);
+      expect((error as Error).message).toContain("Create .vulnforge.json");
+      expect((error as Error).message).toContain("templates.db");
+    }
+  });
+
+  it("prefers the nearest marker when several exist up the chain", () => {
+    const outer = makeRepo();
+    const inner = mkdtempSync(join(outer, "inner-"));
+    writeFileSync(join(inner, ".vulnforge.json"), "{}");
+    expect(findTemplatesRoot(join(inner, "sub"))).toBe(inner);
   });
 });
 
