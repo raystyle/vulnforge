@@ -11,6 +11,8 @@ modified: 2026-11-26T12:43:40.747Z
 
 # VulnForge 工作状态（2026-11-26 深夜）
 
+**下一 feature（ADR-004，研究收口待实现）**：exploit 利用锻造——rs 五件套（search/execute/new/edit/export）+ 初始物化库 + pve 靶场验证环（PoC 与 exploit 两线通用底座）；先例与设计在 `.research/rs-tools/`
+
 **首功能（nuclei 模板一条龙）已交付**（ADR-003）：模板仓 `vulnforge-workspace`（上游 nuclei-templates + 封版 templates.db 14475 行），9 工具 + 2 命令。
 
 **开发体系闭环轨迹**（ADR-002，详见 `.research/dev-system/`）：
@@ -25,6 +27,6 @@ modified: 2026-11-26T12:43:40.747Z
 
 - 改检查门/工具面/资产结构 → system-lint 强制同步派生文档；红时修派生物，不删检查
 - 历史轨迹边界（用户决定）：ADR、PR（commit）、memory、plan 四处可留轨迹；rules/skills/README/CLAUDE.md/research 结果文档自包含
-- 遗留：implement/ship skills、CI、nuclei feature 的 reviewer（代码+安全一体）独立审查、单步工具逐台精化
+- 遗留：implement/ship skills、CI、单步工具逐台精化；类型错误批量收集 rule 已入（4645490，验证指标：同类卡壳最长连发 ≤3）
 - 实战教训（勿回退）：execFile Windows 死锁→spawnCollect；WAL seal/verify 先 checkpoint；泛型包装器用恒等返回类型保 ctx 推断；`./` 前缀在可达性解析要剥
 - ADR 纪律见 [[feedback-adr-scope]]：起草→用户确认→写入

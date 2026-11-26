@@ -7,5 +7,5 @@
 
 ## 遗留项
 
-- ADR-004 起草（rs 四件套 + rs_export + pve 靶场环的范围与顺序），待用户确认
+- ~~ADR-004 起草~~ 已确认写入（d6aa38b，.ad_records/004-exploit-rs.md）——研究阶段正式收口
 - pve 段配置契约（PVE_HOST 等）与 `.vulnforge.json` 扩展设计
