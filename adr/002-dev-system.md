@@ -1,7 +1,7 @@
 # ADR-002 | Claude Code 开发体系
 
 - 日期：2026-11-26
-- 状态：实施中（主体已落地；git init 前置项未完成）
+- 状态：实施中（主体落地：Git 流程+六项门+三平台验证完成；hooks 闸门待建）
 
 ## 需求
 
@@ -61,8 +61,10 @@
 
 ## 是否满足需求
 
-**主体满足，Git 流程与 hooks 子需求未完成**（git init 待用户指令；implement/ship skills 与 hooks 依赖 git init）。
+**主体满足，hooks 闸门子需求未完成**（Stop hook 与 PreToolUse hook 待建；implement/ship skills 待建）。
 
-验证证据（2026-11-26）：`npm run check` 退出码 0——biome 30 文件无违规 / tsc 无错误 / vitest 5/5 / pi load passed；测试先红后绿实证两个死模式（`"format "` 尾随空格 trim 后永不匹配、`"wget -qO-"` 大写 toLowerCase 后永不匹配）被纯层测试当场抓获修复。
+**Git 流程已全部落地**（2026-11-26）：git init 完成、main 分支、Conventional Commits、云端仓 github.com/raystyle/vulnforge、`.gitattributes` LF 归一（三平台实测修复 CRLF 灾难）、三平台基线验证通过（Windows/Linux/macOS 六项门全绿）。
 
-待 git init 后补齐剩余项方可整体判定满足。
+**强制层已部分落地**（不依赖 hooks 的机械闸门）：brand-lint（品牌契约静态扫描）+ contracts-lint（契约文档完整性，73 符号）入六项检查门——"约定必须能报错告警"的部分实现；hooks（Stop 证据检查、PreToolUse 危险命令）仍待建。
+
+验证证据（2026-11-26）：`npm run check` 退出码 0——biome / tsc / brand-lint / contracts-lint / vitest 44 用例 / pi load；三平台（lan-ubuntu、lan-mac 工作台）同门全绿。
