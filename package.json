@@ -1,0 +1,55 @@
+{
+  "name": "vulnforge",
+  "version": "0.1.0",
+  "description": "VulnForge — Pi Agent extension suite for vulnerability research and PoC/Exploit forging",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "security",
+    "vulnerability",
+    "poc"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+    "src",
+    "LICENSE",
+    "CHANGELOG.md",
+    "README.md",
+    "README_EN.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "check": "biome check . && tsc --noEmit && node scripts/brand-lint.mjs && node scripts/contracts-lint.mjs && vitest run && node scripts/pi-load-check.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "brand-lint": "node scripts/brand-lint.mjs",
+    "contracts-lint": "node scripts/contracts-lint.mjs"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@earendil-works/pi-coding-agent": "1.5.0",
+    "@types/node": "22.19.19",
+    "drizzle-kit": "^0.31.11",
+    "typebox": "1.3.27",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  }
+}
