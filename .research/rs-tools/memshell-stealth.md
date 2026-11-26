@@ -56,6 +56,16 @@ Java 内存马生成器生态标杆（类 Jenkins 般全面）：
 - 安全红利：纯数据解析器不动态实例化类型——天然隔离 Gadget Chain 代码执行（BinaryFormatter 已被官方废弃标记）
 - 用途：.NET 反序列化漏洞利用链的 payload 构造与取证分析（exploit 域 dotnet 消费者——vf_init 已检测 dotnet SDK）
 
+## 3.6 Java 序列化 / 反序列化（用户补充选型，2026-11-27）
+
+- 魔数：`AC ED 00 05`（base64 常以 `rO0AB` 开头）；漏洞本质 = 不安全反序列化入口 + classpath 有 gadget chain
+- Rust 侧选型（解析/生成/检测三层，与 .NET 同构）：
+  - **解析**：`java-serialization` crate（全 TC_* 类型码 + handle 引用 + block data；内置 JDK 8u20 payload 适配；已测 ~35 条 ysoserial 链；serde 输出 JSON）或 `jaded`（FromJava trait 映射）——纯解析器不实例化对象，内存安全红利同 NRBF
+  - **生成**：`ysoserial-rs`（emo-crab/ysoserial-rs：cc1-7/cck*/spring1/2/hibernate/jdk7u21/jdk8u20/url_dns/groovy/clojure；CLI 可执行命令 + DNS 交互 + hex/base64/bin 输出，亦可作 crate 嵌入）
+  - **检测**：魔数扫描 + 深度解析 + 已知 gadget 特征匹配（InvokerTransformer/TemplatesImpl/PriorityQueue 等）
+- 流程定位：exploit 域的 java 反序列化链 = WriteFile/ExecCommand 形态的经典通道（Packer 对应 deserialize 面）
+- 注意：主流 gadget 发现仍在 Java 生态（GadgetInspector/SerdeSniffer）；Rust 做解析生成检测集成层
+
 ## 4. 坑
 
 - MemShellParty 的"无侵入性"依赖测试矩阵实证（integration-test docker 全矩阵）——我们 pve 靶场环正好承接（第二批计划）
