@@ -40,3 +40,4 @@
 | feature                       | 状态              | 证据链                                                          |
 | ----------------------------- | ----------------- | --------------------------------------------------------------- |
 | [nuclei-rules](nuclei-rules/) | 已交付（ADR-003） | ✅ notes + 2 份专题 + evidence + result + ship（plan 归计划域） |
+| [dev-system](dev-system/)     | 进行中（ADR-002） | notes（先例：manypkg/syncpack/knip）+ result 累计中             |

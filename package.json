@@ -27,7 +27,7 @@
     ]
   },
   "scripts": {
-    "check": "biome check . && tsc --noEmit && node tools/brand-lint.mjs && node tools/contracts-lint.mjs && vitest run && node tools/pi-load-check.mjs",
+    "check": "biome check . && tsc --noEmit && node tools/brand-lint.mjs && node tools/contracts-lint.mjs && node tools/system-lint.mjs && vitest run && node tools/pi-load-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "biome check .",

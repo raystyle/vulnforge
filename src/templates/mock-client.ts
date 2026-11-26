@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { z } from "zod";
 import { type MockRoute, MockRouteSchema } from "./mock.ts";
+import { trackMockLifecycle } from "./mock-lifecycle.ts";
 
 /** Lifecycle state of the spawned mock child (exhaustive literal union). */
 export type MockTargetPhase = "spawning" | "ready" | "closing" | "closed" | "failed";
@@ -61,6 +62,9 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
     }
     let settled = false;
     let closeResolve: (() => void) | undefined;
+    // Lifecycle is machine-driven: the phase exposed on the target is the
+    // MockLifecycleMachine state, not a hand-maintained string.
+    let lifecycle: ReturnType<typeof trackMockLifecycle> | undefined;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
@@ -81,10 +85,12 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
       if (event.event === "ready" && !settled) {
         settled = true;
         clearTimeout(timer);
+        lifecycle = trackMockLifecycle(event.url, event.port);
+        lifecycle.spawn();
         resolve({
           url: event.url,
           port: event.port,
-          phase: "ready",
+          phase: lifecycle.phase(),
           close: () =>
             new Promise<void>((resolveClose) => {
               closeResolve = resolveClose;
@@ -93,16 +99,19 @@ export function spawnMockServer(routes: MockRoute[]): Promise<SpawnedMockTarget>
         });
       } else if (event.event === "closed") {
         clearTimeout(timer);
+        lifecycle?.controlEvent({ event: "closed" });
         closeResolve?.();
         closeResolve = undefined;
       } else if (event.event === "error" && !settled) {
         settled = true;
         clearTimeout(timer);
+        lifecycle?.controlEvent({ event: "error", message: event.message ?? "unknown" });
         reject(new Error(`mock-server error: ${event.message ?? "unknown"}`));
       }
     });
     child.on("exit", () => {
       clearTimeout(timer);
+      lifecycle?.controlEvent({ event: "closed" });
       closeResolve?.();
       closeResolve = undefined;
       if (!settled) {

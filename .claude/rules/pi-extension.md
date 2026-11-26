@@ -43,8 +43,10 @@ paths:
 
 ```powershell
 npm run check
-# = biome check + tsc --noEmit + vitest run + pi 加载检查（spawn 真实 pi --no-extensions -e src/index.ts --help 断言注册面）
+# = biome check + tsc --noEmit + brand-lint + contracts-lint + system-lint + vitest run + pi 加载检查（spawn 真实 pi --no-extensions -e src/index.ts --help 断言注册面）
 ```
+
+**体系一致性（system-lint 全局核查）**：检查门清单 ↔ 四处文档（rules/verify skill/两份 README）、工具注册面 ↔ docs/tools.md ↔ 测试按名覆盖、ADR 文件 ↔ 索引、研究目录 ↔ 五件套、XState 机器从入口可达（含棘轮底线）、stop hook 监视目录 ↔ 检查脚本位置——任何一处脱节即 gate 失败。改门/改工具面/改资产结构必须同步所有派生文档，system-lint 会强制提醒。
 
 ## 测试分层
 

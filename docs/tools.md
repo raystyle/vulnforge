@@ -100,13 +100,6 @@
 - **行为**：openTemplatesRepo → db.stats（总数+按 severity 计数）+ 安全模式自检；模板仓缺失时显示 not found
 - **何时用**：会话开始的状态检查
 
-### vf_nuclei_stats
-
-- **参数**：`dimension`（severity/protocol/tags/cve/author/affected_product/duplicate_key）；`limit?`（Top-N，默认 15）
-- **行为**：对封版索引做只读分析——总量+severity 分布、按维度 group-by（白名单列，zod 契约 `GroupByRow`）、cve 维度输出年份直方图、重复键计数
-- **返回**：逐行 `count  key` 文本报告
-- **何时用**：规则库摸底、覆盖率分析、写新模板前看同类分布
-
 ### /vf-debug
 
 - **行为**：危险命令模式数量 + `rm -rf` 匹配自检

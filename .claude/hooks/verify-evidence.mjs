@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stop hook: when a turn ends with src/tests/scripts changes newer than the
+ * Stop hook: when a turn ends with src/tests/tools changes newer than the
  * last gate run, remind (observe mode — never block) that npm run check must
  * pass with fresh evidence before ship.
  *
@@ -10,7 +10,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..", "..");
-const CODE_DIRS = ["src", "tests", "scripts"].map((dir) => join(ROOT, dir));
+const CODE_DIRS = ["src", "tests", "tools"].map((dir) => join(ROOT, dir));
 const GATE_MARKERS = [join(ROOT, ".git", "HEAD")];
 
 function newestMtime(dir, best = 0) {
@@ -60,7 +60,7 @@ function main() {
       process.exit(0);
     }
     process.stdout.write(
-      `[vf stop-hook observe] src/tests/scripts changed after the last gate run. Run \`npm run check\` and record evidence before shipping. (observe mode — not blocking)`,
+      `[vf stop-hook observe] src/tests/tools changed after the last gate run. Run \`npm run check\` and record evidence before shipping. (observe mode — not blocking)`,
     );
     process.exit(0);
   });

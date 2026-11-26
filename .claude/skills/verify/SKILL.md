@@ -12,10 +12,10 @@ description: 验证流程：跑检查门 + 采集防假测试证据（退出码�
 2. **跑检查门**：
 
    ```powershell
-   npm run check   # tsc --noEmit + vitest run + pi 加载检查
+   npm run check   # biome + tsc --noEmit + brand-lint + contracts-lint + system-lint + vitest run + pi 加载检查
    ```
 
-   断言**退出码为 0**。部分环境缺 pi 二进制时，显式报告"哪项被跳过"，不得静默当作通过。
+   断言**退出码为 0**。部分环境缺 pi 二进制时，显式报告"哪项被跳过"，不得静默当作通过。system-lint 红时先看报的是哪处资产脱节（文档/索引/机器接线），修派生物而非删检查。
 3. **防假测试证据**：
    - 测试数非零断言：`vitest run` 输出必须含 `Tests  N passed` 且 N > 0；N=0 的"全绿"是失败
    - **新测试先红后绿**：本次新增的测试，先故意破坏被测逻辑确认它失败，再恢复确认通过。把"先红后绿"的过程记入 evidence

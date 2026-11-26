@@ -6,6 +6,7 @@ import { Type } from "typebox";
 import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
+import { probeEngine } from "./templates/engine-probe.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
 import type { LintFinding } from "./templates/lint.ts";
 import { type MetaColumn, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
@@ -54,9 +55,11 @@ async function resolveScanPortForRun(
   }
   const explicitPath = repo.config.tools.nucleiPath;
   const availability = await checkNuclei(explicitPath.length > 0 ? { nucleiPath: explicitPath } : {});
-  if (!availability.available) {
+  const probe = probeEngine(availability);
+  if (probe.phase !== "available") {
+    const reason = probe.availability?.reason ?? availability.reason;
     throw new Error(
-      `nuclei engine unavailable (engine="real" default): ${availability.reason}. Pass engine="mock" with expectedHits for the in-process scan port.`,
+      `nuclei engine unavailable (engine="real" default, probe=${probe.phase}): ${reason}. Pass engine="mock" with expectedHits for the in-process scan port.`,
     );
   }
   return {

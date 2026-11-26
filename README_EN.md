@@ -24,8 +24,10 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 **Engineering discipline**:
 
 - **Branded contracts**: every domain value typed through zod (`.brand<>()`), enforced statically by brand-lint in the check gate
+- **Event-driven state machines**: every tool execution path (including single-step request-response) is expressed as an XState machine — transitions fire on events only, with compile-time exhaustiveness guards (an unhandled new event fails tsc); machines must be wired into the tool surface, dead machines are lint violations
 - **Contract docs**: every exported contract symbol must be documented in docs/contracts/, verified mechanically by contracts-lint
-- **Six-part check gate**: biome → tsc → brand-lint → contracts-lint → vitest → pi load check
+- **Seven-part check gate**: biome → tsc → brand-lint → contracts-lint → system-lint → vitest → pi load check
+- **System-consistency lint**: system-lint verifies asset interlocks (gate lists ↔ docs, ADR ↔ index, research dirs ↔ five-piece structure, machine reachability, tool surface ↔ docs ↔ tests) — any drift fails the gate, so touching one asset forces global propagation
 - **Test layers**: pure / smoke / runtime (real nuclei + mock target end-to-end) / load; an in-process mock ScanPort deterministically tests caller code (zero external dependencies)
 
 ## Requirements

@@ -1,0 +1,26 @@
+# dev-system — 开发体系闭环研究笔记
+
+研究主题：如何让 CLAUDE.md / rules / skills / hooks / 开发文档 / lint / 测试 / 研究文档 / 参考资源环环相扣，形成"动一处进化全局"的约束闭环。
+
+## 先例（2026-11-26，gh-mcp 验证）
+
+| 先例                                                          | 规模   | 机制                                                                                                                                | 采纳点                                                                                          |
+| ------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [Thinkmill/manypkg](https://github.com/Thinkmill/manypkg)     | 1.0k★  | check 注册表：每条检查一个命名模块（`validate()` 返回类型化错误、`print()` 人类输出、可选 `fix()`），CLI 聚合跑全部，任一违规即失败 | system-lint 的结构：检查 = 小而命名的独立单元，新增关联 = 新增检查项                            |
+| [JamieMason/syncpack](https://github.com/JamieMason/syncpack) | 2.1k★  | 单关注面（依赖版本）跨全部 package.json：从众数推导事实源，其余文件必须对齐；lint 与 fix 两种模式                                   | 单一事实源方向性：**事实从源头推导，派生物对齐源**，绝不反向                                    |
+| [webpro-nl/knip](https://github.com/webpro-nl/knip)           | 12.7k★ | 从入口点（entry）可达性分析找未使用文件/导出/依赖                                                                                   | 机器模块必须从工具面（src/index.ts）可达——窄域可达性检查                                        |
+| product-on-purpose/pm-skills                                  | -      | 自研 git-grep 校验器（`check-count-consistency`、`validate-docs-frontmatter`）扫文档子树、自动跳过生成内容、进 CI                   | 自研定制校验器优于通用插件：我们的关联（门清单↔四文档、ADR↔索引、研究五件套）没有现成 lint 覆盖 |
+| mocha → `@eslint/markdown`                                    | -      | markdown 结构 lint（标题/链接）插件化                                                                                               | 文档结构检查（重复段落/标题唯一性）纳入机械检查                                                 |
+
+## 先例的坑
+
+- manypkg 检查不可配置优先级 → 我们：检查分级沿用 REVIEW.md 思想（blocking / ratchet-floor 两档），ratchet 只升不降
+- 通用插件（eslint-plugin-check-file、ls-lint）只管命名/结构，管不了**语义关联**（"README 工程纪律必须提状态机"）→ 语义关联必须自研正则/文本检查
+- pm-skills 的校验器最初没跳过生成子树 → 误报淹没真问题；我们：无生成内容，但排除区（.reference/、node_modules/）要显式
+
+## 结论（实测表明/先例显示）
+
+1. "动一处进化全局"的实现机制 = **单一事实源 + 派生物机械对齐检查**：改正本 → lint 红 → 强制全局传播。事实源清单：`package.json scripts.check` = 检查门正本；`src/index.ts` = 工具面正本；`.ad_records/NNN-*.md` 文件 = ADR 正本（索引是派生）；`.research/<feature>/` 目录 = feature 正本（README 表是派生）。
+2. 未完成的纪律（如状态机全工具覆盖）用 **ratchet 棘轮**：覆盖率底线常量，低于即 blocking，完成一项升一格——进化单向性。
+3. lint 管机械关联；语义级一致（叙述是否过时）由 REVIEW.md 独立审查 + hook 观察提示兜底。
+4. 检查器本身也要可测试：先跑出当前脱节清单（红），修复后（绿）——红绿即证据。
