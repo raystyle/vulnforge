@@ -49,6 +49,8 @@ const MAPPING = {
   "rs/edit.ts": "rs-contracts.md",
   "rs/search.ts": "rs-contracts.md",
   "rs/sync.ts": "rs-contracts.md",
+  "rs/execute-machine.ts": "rs-contracts.md",
+  "rs/executor.ts": "rs-contracts.md",
 };
 
 /** Exported symbol names, per export statement form. */

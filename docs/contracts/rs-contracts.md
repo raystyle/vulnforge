@@ -81,3 +81,15 @@
 | `RsSyncResult`                            | interface | synced/failed/lintFindings/seal                   |
 | `runRsSync(root, dbPath, lockPath, opts)` | 函数      | 批量入库（.rs 收集 + 头契约校验 + upsert + seal） |
 | `rsRelativePath(root, scriptsDir, abs)`   | 函数      | rs 域相对路径                                     |
+
+## 执行（execute-machine.ts / executor.ts）
+
+| 符号                                 | 形态      | 说明                                                                                                                                                   |
+| ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RsExecuteMachine`                   | XState    | exploit_rs_execute 域状态机：linting → spawning → parsing → done/failed；失败带 lintFindings/exitCode/reason 上下文                                    |
+| `RsExecuteContext`                   | interface | label/lintFindings/exitCode?/output?/reason?/result?                                                                                                   |
+| `RsExecuteEvent`                     | type      | LINT_OK/LINT_FAIL/SPAWN_DONE/PARSE_DONE/PARSE_FAIL                                                                                                     |
+| `assertRsExecuteEventHandled(event)` | 函数      | 编译期穷尽守卫（switch 全 case + never 兜底）                                                                                                          |
+| `RsRunOptions`                       | interface | scriptPath/args/timeoutSecs?/rustScriptPath?/env?                                                                                                      |
+| `RsRunOutcome`                       | interface | phase(done                                                                                                                                             | failed)/result?/context/wallMs |
+| `runRsScript(options)`               | 函数      | 执行器：//! 头 lint（advisory，无 name 硬拒）→ spawn rust-script（流收集+超时 kill 兜底+VF_TIMEOUT_SECS 透传）→ AgentResult 单行解析；全流程过域状态机 |
