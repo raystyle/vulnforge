@@ -3,10 +3,17 @@
  * skeleton generation lives with the crate semantics, the TS side mirrors
  * the forms so exploit_rs_new renders templates that match the Rust lib.
  */
+import { fileURLToPath } from "node:url";
 
 /** The four delivery forms (mirrors vf_rust_lib DeliverForm; wire names). */
 export const DELIVER_FORMS = ["submit", "exec_command", "write_file", "rev_shell"] as const;
 export type DeliverFormName = (typeof DELIVER_FORMS)[number];
+
+/** Absolute path of the vf-rust-lib crate shipped in this plugin — injected
+ * into generated cargo blocks (scripts stay machine-independent in the
+ * catalog; the path resolves at scaffold time on the dev machine, and the
+ * executor re-resolves per machine). */
+const VfRustLibPath = fileURLToPath(new URL("../../../vf-rust-lib", import.meta.url)).replaceAll("\\", "/");
 
 /** The four exploit kinds (mirrors the crate's RS_EXPLOIT_TYPES). */
 export const RS_EXPLOIT_TYPES = ["rce", "sqli", "auth-bypass", "info-disclosure"] as const;
@@ -58,11 +65,11 @@ export function rsSkeletonFor(input: {
     `//! keywords: ${input.vulnType}`,
     "//! codes: E_ARG_001=missing target url",
     "//!",
-    "//! \\x60\\x60\\x60cargo",
+    "//! ```cargo",
     "//! [dependencies]",
-    '//! vf_rust_lib = { path = "VF_RUST_LIB_PATH" } // injected at execution time',
+    `//! vf_rust_lib = { path = "${VfRustLibPath}" }`,
     '//! serde_json = "1"',
-    "//! \\x60\\x60\\x60",
+    "//! ```",
     "use vf_rust_lib::error::Atom;",
     "use vf_rust_lib::machine::{DeliverForm, Machine, Outcome, Step};",
     "use vf_rust_lib::report;",
