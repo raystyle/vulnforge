@@ -7,7 +7,7 @@
 - **本项目裁定（用户令）**：
   - 工具级 = vf-error 的 `hint:`（纠偏指引、工具用法、稳定文案）
   - 脚本级 = AgentResult 的 `next_suggestion`（下一步建议、域内攻击链指针、脚本自述）
-  - 两者不混用；脚本信封**只暴露原子错误 + 错误处理建议**——不做知识库、不做 CTA 注册表（简化为 `error{kind, code, message}` + `next_suggestion` 字符串）
+  - 两者不混用；脚本信封**只暴露原子错误 + 错误处理建议**。**原子错误信息完全内化（用户令）**：kind/code/message 与默认建议全部内化在 vf_rust_lib 的枚举与构造器里（report::failure 直接从 kind 出建议），无外部注册表、无知识库、无 docs 检索面——脚本作者只调构造器，信封零模板
 - error kind 七词表（先例封闭集）：timeout / auth_denied / parse / net_unreachable / protocol_mismatch / response_limit / soft_success——失败是数据不是异常（alive:false + note）
 
 ## 物化基础库（pi_rust_lib 0.6.3 实读，模块清单）
