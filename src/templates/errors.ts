@@ -1,7 +1,9 @@
 /**
  * Error envelope: every tool failure surfaces atomically for agent
  * self-correction — a stable machine-keyed code, the offending detail, and
- * an actionable hint. Prose-only errors are a violation (docs/tools.md).
+ * an actionable hint. The hint is tool-usage guidance (how to call the tool
+ * correctly) — attack-chain next-steps belong to the script-level AgentResult
+ * next_suggestion field, never here (docs/contracts/rs-contracts.md).
  */
 export const VF_ERROR_CODES = [
   "CONFIG_NOT_FOUND",

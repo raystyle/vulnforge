@@ -57,6 +57,7 @@ export const AgentResultSchema = z
     action: z.string().optional(),
     data: z.unknown().optional(),
     error: z.string().optional(),
+    /** Next-step suggestion: in-domain attack-chain pointer (what to do next). NEVER tool usage — that is vf-error hint territory. */
     next_suggestion: z.string().optional(),
   })
   .refine((value) => value.success || value.error !== undefined, {
