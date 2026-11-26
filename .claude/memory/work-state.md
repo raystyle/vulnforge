@@ -1,32 +1,27 @@
 ---
-
 name: work-state
-description: VulnForge 工作状态（2026-11-26 晚）：首功能（nuclei 模板一条龙）六模块+Pi 工具面完成，五项检查门全绿；待 git init 与三平台基线验证（均暂缓等用户指令）
+description: VulnForge 工作状态（2026-11-26 深夜）：首功能已交付+三平台 Round 5 验证中；开发体系闭环（system-lint 第六门）落地 d3a1a79
 metadata:
-node_type: memory
-type: project
-originSessionId: d8cd2140-8dfa-43c0-8e0b-a189c6c104d9
-modified: 2026-11-26T06:21:06.047Z
+  node_type: memory
+  type: project
+  originSessionId: d8cd2140-8dfa-43c0-8e0b-a189c6c104d9
+  modified: 2026-11-26T12:09:00.054Z
 ---
 
-# VulnForge 工作状态（2026-11-26）
+# VulnForge 工作状态（2026-11-26 深夜）
 
-**首功能主体已落地**（ADR-003，模板仓 `D:\repos\vulnforge-templates` 独立仓）：
+**首功能（nuclei 模板一条龙）已交付**（ADR-003）：模板仓 `vulnforge-workspace`（上游 nuclei-templates + 封版 templates.db 14475 行），9 工具 + 2 命令。三平台 Round 4b 全绿（ae9a378：跨平台 e2e 门控 + with-node.sh hook 修复）。
 
-- 六模块：config（.vulnforge.json 契约）/ lint（结构+弱 matcher）/ mock（可编程靶机+benign 反证）/ run（spawn 收集，修 execFile Windows 死锁）/ meta（zod 品牌契约+drizzle+FTS5+封版哈希）/ scaffold（五类骨架）/ env（三平台检测+中国镜像+安装+验收）
-- Pi 工具面（src/index.ts）：vf_env_check、vf_env_install、vf_template_{lint,run,sync,search,new} + /vf、/vf-debug
-- mock-nuclei CLI（scripts/mock-nuclei.py，uv 自包含）测调用方；靶机+真 nuclei 验证模板
-- **五项检查门全绿**：biome → tsc → **brand-lint**（新，品牌契约强制）→ vitest 38/38 → pi load
-- 体系 REVIEW 完成：全资产去 ADR 噪音（自包含）；docs/contracts/ 四份契约文档归档
+**开发体系闭环已落地**（d3a1a79，用户要求"动一处进化全局"）：
 
-**三平台**：Windows 主机 + lan-ubuntu/lan-mac 工作台（herdr peer-linux/peer-mac，cwd `~/repos/vulnforge`，已 ready 待任务）。三机 pi 均已安装（1.5.0/1.4.0/1.4.0-级别，pi 版本对齐检查已入 env 契约）。
-
-**Why:** 功能实现阶段推进中，等用户指令推进基础设施与验证。
+- `tools/system-lint.mjs` 第六检查门：11 项资产关联核查（gate 清单↔四文档、工具面↔tools.md↔测试、ADR↔索引、研究五件套、机器可达性棘轮=3、hook 监视表、skill/hook 形状、CLAUDE.md 状态面）——manypkg 式 check 注册表 + knip 式可达性（先例依据在 `.research/dev-system/notes.md`）
+- 真脱节修复：engine-probe 接入 resolveScanPortForRun；mock-lifecycle 驱动 SpawnedMockTarget.phase；verify skill 门清单更新；CLAUDE.md mojibake 状态节重写；docs/tools.md 重复段删除
+- Round 5 三平台验证进行中（d3a1a79）：mac 已全绿（system-lint 11/11），linux 报告待回
 
 **How to apply:**
 
-- **git init + 首次提交**：待用户指令执行（.gitignore 就绪：node_modules/.reference/dist/.claude/worktrees/.claude/settings.local.json；.research/、docs/、adr/ 进 git）
-- **三平台基线验证**（主仓→peer 工作台同步→三平台 npm run check 对拍）：用户说"以后再说"，勿主动启动
-- ADR-003 剩余：实现后的 /verify 证据落盘、reviewer/security-reviewer 独立审查、ADR-003 最终产物节更新
-- 实战教训（勿回退）：execFile 在 Windows 对 Go 二进制死锁（用 spawnCollect）；WAL 下 seal/verify 都先 wal_checkpoint；resolveInsideRepo 分隔符无关化；scaffold id 折叠连续分隔符
+- 改检查门/工具面/资产结构 → system-lint 会强制同步派生文档；红时修派生物，不删检查
+- Round 5 linux 报告到达后：result.md 补证据、报告用户三平台闭环完成
+- 遗留（ship.md）：单步工具最小机器逐台补齐（每补一台升 ratchet 底线）；reviewer/security-reviewer 独立审查 nuclei feature 未跑
+- 实战教训（勿回退）：execFile Windows 死锁→spawnCollect；WAL seal/verify 先 checkpoint；机器接线检查=从 src/index.ts + tools/*.mjs 入口可达性遍历（`./` 前缀要剥）
 - ADR 纪律见 [[feedback-adr-scope]]：起草→用户确认→写入
