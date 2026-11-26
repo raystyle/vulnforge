@@ -4,14 +4,14 @@
 
 ## 通道分类学（MemShellParty shelltool 实读，四语言通道形态）
 
-| 通道 | 语言 | 机制（源码确认） | Rust 侧实现位 |
-| ---- | ---- | ---------------- | ------------- |
-| **Godzilla** | Java/JSP | header 门 + pass 参数 base64(AES) + md5 派生链 + 响应三明治（§5 dissect） | ✅ webshell.rs 已原生（stream_cipher 依赖零，AES 形态 ADR 门） |
-| **Behinder 冰蝎** | Java/JSP | header 门 + **请求体整行** base64(AES-128/ECB) + session 存 pass + defineClass 动态类——**payload 是 class 字节码**（非命令文本） | 增 `behinder_channel`：ECB + body 传输 + class 载荷形态 |
-| **Command 内存马** | Java | param/header 双取参 → `Runtime.exec` → 回显输出（无加密——明文通道，配 header 门降特征） | 增 `command_channel`：对应 ExecCommand 形态的内存马版 |
-| **NeoReGeorg / Suo5** | Java | 隧道型：HTTP 隧道转发流量（Web 代理后渗透面），非命令通道 | 规划（proxy 域，exploit 之后） |
-| PHP 一句话 | PHP | `system($_GET/POST[cmd])` 明文（有特征，fallback） | ✅ runtime.rs WebshellKind |
-| ASP/ASPX | .NET | `Process.Start` 型 + ViewState 反序列化植入（machineKey 面） | WebshellKind::Aspx 模板 + runtime.ts DotnetPayload 路由 |
+| 通道                  | 语言     | 机制（源码确认）                                                                                                                 | Rust 侧实现位                                                  |
+| --------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Godzilla**          | Java/JSP | header 门 + pass 参数 base64(AES) + md5 派生链 + 响应三明治（§5 dissect）                                                        | ✅ webshell.rs 已原生（stream_cipher 依赖零，AES 形态 ADR 门） |
+| **Behinder 冰蝎**     | Java/JSP | header 门 + **请求体整行** base64(AES-128/ECB) + session 存 pass + defineClass 动态类——**payload 是 class 字节码**（非命令文本） | 增 `behinder_channel`：ECB + body 传输 + class 载荷形态        |
+| **Command 内存马**    | Java     | param/header 双取参 → `Runtime.exec` → 回显输出（无加密——明文通道，配 header 门降特征）                                          | 增 `command_channel`：对应 ExecCommand 形态的内存马版          |
+| **NeoReGeorg / Suo5** | Java     | 隧道型：HTTP 隧道转发流量（Web 代理后渗透面），非命令通道                                                                        | 规划（proxy 域，exploit 之后）                                 |
+| PHP 一句话            | PHP      | `system($_GET/POST[cmd])` 明文（有特征，fallback）                                                                               | ✅ runtime.rs WebshellKind                                     |
+| ASP/ASPX              | .NET     | `Process.Start` 型 + ViewState 反序列化植入（machineKey 面）                                                                     | WebshellKind::Aspx 模板 + runtime.ts DotnetPayload 路由        |
 
 ## ByPass 系（Tas9er/ByPassBehinder 849★ / ByPassBehinder4J 775★）——免杀生成先例
 
@@ -21,12 +21,12 @@
 
 ## 语言×通道矩阵（我们 webshell 专库的覆盖面）
 
-| 通道 | PHP | Java/JSP | .NET |
-| ---- | --- | -------- | ---- |
-| 明文 one-liner（fallback） | ✅ runtime.rs | ✅ 模板 | ✅ 模板 |
-| 加密通道（godzilla 形） | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES） | 部分（ViewState 面在 .NET runtime 工具） |
-| class 载荷（behinder 形） | n/a | ⬜ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成） |
-| 隧道（NeoReGeorg/Suo5） | n/a | 规划（proxy 域） | 规划 |
+| 通道                       | PHP                 | Java/JSP                                 | .NET                                     |
+| -------------------------- | ------------------- | ---------------------------------------- | ---------------------------------------- |
+| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                  | ✅ 模板                                  |
+| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）        | 部分（ViewState 面在 .NET runtime 工具） |
+| class 载荷（behinder 形）  | n/a                 | ⬜ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成）         |
+| 隧道（NeoReGeorg/Suo5）    | n/a                 | 规划（proxy 域）                         | 规划                                     |
 
 ## 设计结论
 
