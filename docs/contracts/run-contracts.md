@@ -117,7 +117,51 @@ lint 的输入视图（宽松结构）：`id?`、`info?{name,author,severity,des
 - `skeletonFor(input: ScaffoldInput): string`——完整 yaml 骨架（五类 matcher 结构各异，均含 proof 标记思想）
 - `targetDirectory(input: ScaffoldInput): string`——cve→`http/cves`；panel/detect→`http/exposures`；其余→`http/vulnerabilities`
 
-## 5. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
+## 5. sync-machine.ts — 批量同步状态机（XState，事件驱动）
+
+**纪律**：所有批量/多步工具逻辑默认且仅用事件驱动状态机——转换只由事件触发（SCAN_DONE/FILE_DONE/BATCH_COMPLETE/PAUSE/RESUME/ABORT），禁止 `always` 自循环、禁止命令式隐藏状态。事件穷尽在**编译期**强制：`assertSyncEventHandled` 的 switch 以 `never` 兜底，新增事件变体未处理即 tsc 失败。
+
+### 5.1 `SyncEvent`（判别联合，6 事件）
+
+| 事件             | 载荷                               | 语义                                          |
+| ---------------- | ---------------------------------- | --------------------------------------------- |
+| `SCAN_DONE`      | `files: string[]`                  | 文件收集完成，进入 indexing                   |
+| `FILE_DONE`      | `path + outcome: BatchItemOutcome` | 单文件处理完毕（indexed/failed + lintErrors） |
+| `BATCH_COMPLETE` | —                                  | 全部文件完成，进入 sealing                    |
+| `PAUSE`          | —                                  | 断点：cursor+结果快照落 sync_jobs 表          |
+| `RESUME`         | —                                  | 从快照 cursor 续跑（scanning 态接住）         |
+| `ABORT`          | `reason: string`                   | 终止，快照标 aborted                          |
+
+### 5.2 状态图
+
+```
+scanning ──SCAN_DONE→ indexing ──BATCH_COMPLETE→ sealing(final)
+              RESUME↻    FILE_DONE↻（自循环计数）
+                         PAUSE→ sealing（快照）
+                         ABORT→ aborted(final)
+```
+
+### 5.3 契约符号
+
+| 符号                                            | 形态           | 说明                                                                                               |
+| ----------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
+| `syncMachine`                                   | XState machine | `setup({types:{context,events,input}})` 严格类型化                                                 |
+| `SyncMachineContext`                            | interface      | jobId/root/db/files/cursor/results/sealedSha16?                                                    |
+| `SyncMachineInput`                              | interface      | createActor 输入（context 初始化源）                                                               |
+| `SyncJobSnapshot`                               | interface      | phase/cursor/total/indexed/failed/sealedSha16?——落 `sync_jobs` 表（job_id 主键，snapshot_json 列） |
+| `BatchItemOutcome`                              | interface      | path/status("indexed"\|"failed")/error?/lintErrors                                                 |
+| `BatchRunResult`                                | interface      | SyncResult + lintFindings[]{path,errors,warnings}                                                  |
+| `runBatchSync(db, root, {jobId?, resumeFrom?})` | 函数           | driver：逐文件 parse→lint→upsert，每文件发 FILE_DONE；末尾 BATCH_COMPLETE 触发 seal                |
+| `loadJobSnapshot(db, jobId)`                    | 函数           | 读断点快照                                                                                         |
+| `lintTemplateFile(source, fileName)`            | 函数           | yaml lint + doc lint 合一，返回 {yamlFindings, docFindings, error?}                                |
+| `assertSyncEventHandled(event)`                 | 函数           | **编译期穷尽守卫**：switch 全 case + never 兜底                                                    |
+| `SYNC_EVENT_TYPES`                              | ReadonlySet    | 已处理事件类型集（运行时镜像）                                                                     |
+
+### 5.4 断点续跑语义
+
+driver 的 `resumeFrom`（显式）或快照 phase=indexing 的 cursor（隐式）决定起始偏移；机器内 `files` 是**剩余切片**（total=切片长度，非全量）；PAUSE/BATCH_COMPLETE 都先进 sealing 落 seal+done 快照。
+
+## 6. yamllint.ts — 内置 TS YAML lint（替代 Python yamllint 依赖）
 
 ### 5.1 `YamlLintFinding`
 

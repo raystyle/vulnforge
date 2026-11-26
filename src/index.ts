@@ -7,13 +7,7 @@ import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
 import { type LintFinding, lintDocument, type TemplateInfo } from "./templates/lint.ts";
-import {
-  parseTemplateFile,
-  type SyncResult,
-  syncFromFiles,
-  TemplateDb,
-  type TplMetaContract,
-} from "./templates/meta.ts";
+import { parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, startMockTarget } from "./templates/mock.ts";
 import { verifyNoFalsePositive } from "./templates/run.ts";
 import {
@@ -24,6 +18,7 @@ import {
   VULN_TYPES,
   type VulnType,
 } from "./templates/scaffold.ts";
+import { runBatchSync } from "./templates/sync-machine.ts";
 import { lintYaml } from "./templates/yamllint.ts";
 
 function textResult(text: string, isError = false) {
@@ -219,9 +214,13 @@ export default function (pi: ExtensionAPI): void {
     name: "vf_nuclei_sync",
     label: "VulnForge template sync",
     description:
-      "Incrementally sync template files into the SQLite metadata index (files are the source of truth). Returns synced/failed/removed lists and the new seal record (version + hash for repo bookkeeping; the .db file itself stays out of git).",
-    parameters: Type.Object({}),
-    async execute(_id, _params, _signal, _onUpdate, ctx) {
+      "Batch-sync template files into the SQLite metadata index via the sync state machine (scan → index per file with lint → seal). Files are the source of truth; the job snapshot (cursor) enables resume after interruption. Returns synced/failed lists, lint aggregates, and the seal record.",
+    parameters: Type.Object({
+      resumeFrom: Type.Optional(
+        Type.Integer({ description: "Skip the first N files (resume a checkpoint from the job snapshot)" }),
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -229,13 +228,16 @@ export default function (pi: ExtensionAPI): void {
         return textResult((error as Error).message, true);
       }
       try {
-        const result: SyncResult = await syncFromFiles(tools.db, tools.repo.root);
+        const result = await runBatchSync(tools.db, tools.repo.root, {
+          ...(params.resumeFrom !== undefined ? { resumeFrom: params.resumeFrom } : {}),
+        });
         const seal = tools.db.seal();
+        const lintErrors = result.lintFindings.filter((finding) => finding.errors > 0).length;
         return textResult(
           [
             `synced: ${result.synced.length}`,
-            result.failed.length > 0 ? `failed: ${JSON.stringify(result.failed)}` : "failed: 0",
-            result.removed.length > 0 ? `removed: ${result.removed.join(", ")}` : "removed: 0",
+            result.failed.length > 0 ? `failed: ${JSON.stringify(result.failed.slice(0, 10))}` : "failed: 0",
+            `lint: ${lintErrors} file(s) with errors, ${result.lintFindings.length} checked`,
             `seal: version=${seal.version} sha256=${seal.dbSha256.slice(0, 16)}… count=${seal.templateCount}`,
           ].join("\n"),
           result.failed.length > 0,

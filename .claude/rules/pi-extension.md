@@ -14,8 +14,10 @@ paths:
 
 ## 编码规范
 
-- TypeScript：`strict` + `NodeNext` + `noEmit` + `verbatimModuleSyntax` + `allowImportingTsExtensions`，target ES2022（Pi Jiti 直接加载 TS）；附加 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`
-- **品牌契约默认必用**：领域值（ID/枚举语义/路径/版本）一律 zod schema + `.brand<>()` 契约化——校验前置边界（YAML safeParse / DB 行 decode / 配置 parse），内部免检；裸 `string` 传领域值、`as` 逃避检查、`String()` 强转契约字段都是违规（工具 execute 边界的 StringEnum 参数窄化除外，先例 pi-super）
+- TypeScript：`strict` + `NodeNext` + `noEmit` + `verbatimModuleSyntax` + `allowImportingTsExtensions`，target ES2022（Pi Jiti 直接加载 TS）；附加 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` + `noImplicitOverride` + `noFallthroughCasesInSwitch`
+- **品牌契约默认必用（所有工具，新旧一律）**：领域值（ID/枚举语义/路径/版本）一律 zod schema + `.brand<>()` 契约化——校验前置边界（YAML safeParse / DB 行 decode / 配置 parse），内部免检；裸 `string` 传领域值、`as` 逃避检查、`String()` 强转契约字段都是违规（工具 execute 边界的 StringEnum 参数窄化除外）
+- **事件驱动状态机默认必用（所有工具，新旧一律）**：批量/多步/生命周期逻辑一律 XState `setup()` 严格类型化（context/events/input）——转换只由事件触发，禁止 `always` 自循环与命令式隐藏状态；事件穷尽用编译期守卫（switch 全 case + never 兜底，模式见 `src/templates/sync-machine.ts` 的 `assertSyncEventHandled`），新事件未处理 = tsc 失败；简单单步函数不需要状态机
+- **编译期暴露警告和错误**：能放 tsc 的约束不放运行时（品牌、判别联合、穷尽检查）；能放机械 lint 的不放人工（brand-lint/contracts-lint）；约定必须能报错和告警
 - Biome 单工具管 format+lint：2 空格缩进、行宽 120、recommended 预设；战史规则挂 grit 插件固化（pi-extensions 模式）
 - 依赖纪律：KISS/YAGNI 只加当前需要的依赖；Pi 核心已有功能不重复造；升级依赖解决类型错误而非降级代码；禁 `npm audit fix --force`
 - 文件组织：单文件 >1000 行按职责拆分；`src/index.ts` 保持薄入口，实现放描述性命名的模块

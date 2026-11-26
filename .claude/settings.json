@@ -20,5 +20,30 @@
       "Read(//D/repos/vulnforge/**)",
       "Read(//D/repos/vulnforge/.reference/**)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-dangerous.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-evidence.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }
