@@ -42,6 +42,8 @@ const MAPPING = {
   "scaffold.ts": "run-contracts.md",
   "errors.ts": "run-contracts.md",
   "tool-machine.ts": "run-contracts.md",
+  "rs/contracts.ts": "rs-contracts.md",
+  "rs/db.ts": "rs-contracts.md",
 };
 
 /** Exported symbol names, per export statement form. */
