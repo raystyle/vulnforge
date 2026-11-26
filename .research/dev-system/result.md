@@ -41,4 +41,5 @@
 
 - 代码审查：1 blocking（rules 与功能代码混 commit，e4e23d0/713e8d2）；4 report（README_EN/CLAUDE.md 实际未被术语检查扫到=执法静默缩水；信封 4 个死码+2 处散文残留；hook URL.pathname 百分号编码路径不匹配；reachability 只处理一层 ../）
 - 安全审查：1 blocking（transcript 含密钥载体永久留仓，defeats 全局清理）；4 report（intent-trace 终端转义注入；findUp 信任边界扩大到根+ReDoS；session_id 未验形；gitignore 不匹配子目录）
-- 修复裁定待用户确认
+- 修复完成（4d6e409，用户裁定全修）：安全 4 项（退出开关/信任边界重设计/session_id 验形+gitignore 递归/转义剥离+fileURLToPath）+ 代码 4 项（执法范围真实化/信封 4 码补产生点+headless confirm 拒绝/散文清零/混装 commit 记为后续规则）；headless env_install 直接执行是安全审查带出的额外真漏洞，已修
+- Round 9 三平台：mac 全绿 122+12（mac 报告：连 biome info 都清零）；linux 报告待回；Windows 125+9 全绿
