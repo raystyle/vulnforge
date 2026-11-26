@@ -50,6 +50,12 @@ npm run check
 
 **受控双语规范**：术语表、句长、代码命名形见 `.claude/rules/docs-style.md`。一概念一术语，中英与代码标识符三态对齐；工具 `vf_<域>_<动作>`、状态机 `*Machine`、守卫 `assert<Event>EventHandled`。system-lint 的 docs-terminology / docs-sentence-length / code-naming 三项机械执法。
 
+## 修错纪律（类型错误批量收集）
+
+**先收全量再修**：tsc 报错时一次跑完整 `npx tsc --noEmit` 拿全量错误清单、按文件分组、每个文件一次改完再复跑——禁止逐个修再逐个复跑。同文件同意图连续编辑 ≥3 次（修一个错冒下一个）是低效信号（实测 38 段、最长 8 连发）。
+
+**工具脚本禁字面控制字符**：正则/字符串里的 ESC、BEL 等控制字符一律用 `RegExp` 构造 + `String.fromCharCode` 表达——字面控制字符会被格式化工具（biome unsafe fix）反复改坏（实战教训）。
+
 ## 测试分层
 
 | 层        | 内容                                                 |
