@@ -41,3 +41,34 @@
 | `ParsedRsScript`        | interface | meta（name/description/descriptionEn/version/args/keywords/codes）+ cargoDeps + lintIssues + sha256 |
 | `parseRsScript(source)` | 函数      | `//!` 头连续 run（容许裸 `//!` 行）+ ```cargo 依赖块解析 + advisory lint（metadata/args/envelope）  |
 | `sourceRank(source)`    | 函数      | 三源合并排序：project(0) > global(1) > bundled(2)                                                   |
+
+## 骨架与编辑（scaffold.ts / edit.ts）
+
+| 符号                           | 形态         | 说明                                                        |
+| ------------------------------ | ------------ | ----------------------------------------------------------- |
+| `RS_EXPLOIT_TYPES`             | const        | rce / sqli / auth-bypass / info-disclosure 四类利用骨架     |
+| `RsExploitType`                | type         | 上述枚举元素                                                |
+| `RsScaffoldInput`              | interface    | vulnType + vulnId + description                             |
+| `scriptNameFromVulnId(vulnId)` | 函数         | 漏洞标识 → 脚本名（CVE 形保大写，别名折小写）               |
+| `rsTargetDirectory(vulnType)`  | 函数         | 按利用类型分目录                                            |
+| `rsSkeletonFor(input)`         | 函数         | shebang + `//!` 头 + ```cargo 块 + AgentResult fn main 骨架 |
+| `RsPatchSchema`                | zod 判别联合 | metadata（//! 行 patch）/ body（全文替换）                  |
+| `RsPatch`                      | type         | 判别结果                                                    |
+| `RsEditError`                  | class        | 非法编辑拒绝（不落盘）                                      |
+| `validateRsPatch(raw)`         | 函数         | 边界构造器                                                  |
+| `RsEditOutcome`                | interface    | applied[] + lintIssues[]                                    |
+| `applyRsEdit(filePath, patch)` | 函数         | 契约链编辑：改后过 //! 头契约，丢 name 拒绝写               |
+
+## 检索与同步（search.ts / sync.ts）
+
+| 符号                                      | 形态      | 说明                                              |
+| ----------------------------------------- | --------- | ------------------------------------------------- |
+| `RsSearchHit` / `RsSearchOutcome`         | interface | 命中 + exploitFor + engine                        |
+| `rsSearch(db, query, filters?)`           | 函数      | FTS 检索封装                                      |
+| `rsExploitFor(db, vulnId)`                | 函数      | 跨域锚：漏洞标识 → exploit rs                     |
+| `openRsDb(root)`                          | 函数      | workspace 根下开 rs.db/rs-lock.json               |
+| `renderRsSearch(outcome, limit?)`         | 函数      | 工具结果文本渲染                                  |
+| `RsSyncOptions`                           | interface | scriptsDir + source?                              |
+| `RsSyncResult`                            | interface | synced/failed/lintFindings/seal                   |
+| `runRsSync(root, dbPath, lockPath, opts)` | 函数      | 批量入库（.rs 收集 + 头契约校验 + upsert + seal） |
+| `rsRelativePath(root, scriptsDir, abs)`   | 函数      | rs 域相对路径                                     |
