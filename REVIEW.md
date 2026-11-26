@@ -1,12 +1,13 @@
 # REVIEW.md — 审查规则正本
 
-> 本文件是 VulnForge 的审查规则正本。审查代理（reviewer / security-reviewer）**从 main 分支读取本文件**（`git show main:REVIEW.md`），分支上的变更不得修改自己的检查。新增规则经用户确认后合并到 main 才生效（Miss → Rule 晋级）。
+> 本文件是 VulnForge 的审查规则正本。审查代理（reviewer，代码+安全一体）**从 main 分支读取本文件**（`git show main:REVIEW.md`），分支上的变更不得修改自己的检查。新增规则经用户确认后合并到 main 才生效（Miss → Rule 晋级）。
 >
 > 分级：**Always blocking**（不修不能 ship）/ **Report even though**（建议修，不阻断）/ **Never report**（明确忽略，不浪费时间）
 
 ## Always blocking
 
-- 任何修改本文件（REVIEW.md）、`.claude/rules/`、`reviewer.md`、`security-reviewer.md` 的改动试图与功能改动混在同一个 commit/PR——审查规则变更必须独立成 commit，单独 review
+任何修改本文件（REVIEW.md）、`.claude/rules/`、`.claude/agents/reviewer.md` 的改动试图与功能改动混在同一个 commit/PR——审查规则变更必须独立成 commit，单独 review
+
 - 测试断言基于 grep 测试计数而非退出码（计数会漂移；vault42 教训）
 - 新测试没有先证明它能红（破坏被测物 → 看它失败 → 恢复 → 看它绿）。从未失败过的测试是声明，不是检查
 - `npm run check` 门禁链里新增命令却未断言其退出码（`cmd1 && cmd2; other` 会吞掉前面状态）

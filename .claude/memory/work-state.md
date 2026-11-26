@@ -25,6 +25,6 @@ modified: 2026-11-26T12:43:40.747Z
 
 - 改检查门/工具面/资产结构 → system-lint 强制同步派生文档；红时修派生物，不删检查
 - 历史轨迹边界（用户决定）：ADR、PR（commit）、memory、plan 四处可留轨迹；rules/skills/README/CLAUDE.md/research 结果文档自包含
-- 遗留：implement/ship skills、CI、nuclei feature 的 reviewer/security-reviewer 独立审查、单步工具逐台精化
+- 遗留：implement/ship skills、CI、nuclei feature 的 reviewer（代码+安全一体）独立审查、单步工具逐台精化
 - 实战教训（勿回退）：execFile Windows 死锁→spawnCollect；WAL seal/verify 先 checkpoint；泛型包装器用恒等返回类型保 ctx 推断；`./` 前缀在可达性解析要剥
 - ADR 纪律见 [[feedback-adr-scope]]：起草→用户确认→写入

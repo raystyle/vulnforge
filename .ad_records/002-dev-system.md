@@ -10,7 +10,7 @@
 1. **四资产分工**：CLAUDE.md（每会话事实，<200 行）/.claude/rules/（路径域规则）/.claude/skills/（过程知识）/.claude/memory/（会话状态+学习指针，仓内化经 settings.local.json）
 2. **开发主闭环**：Research → Plan（人工批准）→ Implement（TDD+worktree）→ Verify → 独立审查 → Ship；失败回路 ≤3 轮；产物链落 `.research/<feature>/`（进 git）
 3. **Verify 证据**：check 门退出码 0 + 测试数非零 + 新测试先红后绿 + verbose 落盘 evidence/；SKIP 显式报告；断言基于退出码绝不 grep 计数
-4. **独立审查**：reviewer + security-reviewer 代理（新上下文）；规则正本 `REVIEW.md` 从 main 读取，三档分级（Always blocking / Report even though / Never report）
+4. **独立审查**：reviewer 代理（代码+安全一体，新上下文）；规则正本 `REVIEW.md` 从 main 读取，三档分级（Always blocking / Report even though / Never report）
 5. **Pi 扩展标准流程**：包形态（peer `"*"` + dev 钉版本 + legacy-peer-deps + node ≥22.19）；检查门 `npm run check` = biome + tsc + vitest + pi 加载检查；测试四层（pure/smoke/runtime/load）；调试三循环
 6. **编码规范与安全**：TS strict/NodeNext/ES2022；Biome 2 空格行宽 120；依赖 KISS/YAGNI；产品侧安全五红线（危险命令 askFirst 拦截、不可信输入、密钥环境变量、审计日志、VM/容器测试）
 7. **Skill 编写规范（agentskills.io 标准）**：目录 = frontmatter name；description 含 Use when；脚本自包含（uv/PEP 723、Bun 版本化 import）、禁交互、stdout JSON；SKILL.md < 500 行细节下沉 references/；渐进式披露
@@ -42,7 +42,7 @@
 | Plan      | Plan Mode 人工批准 → `.research/<feature>/plan.md`     | ✅ 约定就绪（Claude Code 原生功能）                  |
 | Implement | TDD 一次一测 + worktree 隔离                           | ⚠️ 约定就绪；implement skill 未建（git init 后）     |
 | Verify    | `/verify` skill：四门退出码 + 先红后绿 + evidence 落盘 | ✅ 就绪                                              |
-| 独立审查  | reviewer + security-reviewer（规则从 main 读）         | ✅ 就绪（main 分支待 git init 才存在，降级读工作区） |
+| 独立审查  | reviewer（代码+安全一体，规则从 main 读）              | ✅ 就绪（main 分支待 git init 才存在，降级读工作区） |
 | Ship      | commit 验证戳（observe）                               | ⚠️ 约定就绪；ship skill 未建（git init 后）          |
 | 知识沉淀  | `.research/` 进 git + Miss→Rule 晋级 REVIEW.md         | ✅ 约定就绪                                          |
 | 回路      | 失败 ≤3 轮超限人工                                     | ✅ 约定就绪（verify skill 内置）                     |
@@ -53,7 +53,7 @@
 | 产物          | 路径                                                                                                                                                                                                                   |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 四资产全套    | `CLAUDE.md`、`.claude/README.md`、`.claude/rules/`（5 文件：pi-extension / adr-docs / skill-authoring / docs-style）、`.claude/skills/`（3 skill）、`.claude/memory/`、`.claude/settings.json` + `settings.local.json` |
-| 审查体系      | `REVIEW.md`、`.claude/agents/reviewer.md`、`.claude/agents/security-reviewer.md`                                                                                                                                       |
+| 审查体系      | `REVIEW.md`、`.claude/agents/reviewer.md`（代码+安全一体）                                                                                                                                                             |
 | 产物库约定    | `.research/README.md`                                                                                                                                                                                                  |
 | hooks 闸门    | `.claude/hooks/`（guard-dangerous.mjs + verify-evidence.mjs + with-node.sh）                                                                                                                                           |
 | 体系闭环 lint | `tools/system-lint.mjs`（14 项检查，第七项检查门）+ `tools/brand-lint.mjs` + `tools/contracts-lint.mjs`（143 符号）                                                                                                    |

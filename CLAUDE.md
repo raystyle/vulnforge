@@ -29,7 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 开发流程导航
 
 - **主闭环**：Research → Plan（人工批准）→ Implement（TDD+worktree）→ Verify → 独立审查 → Ship；失败回路 ≤3 轮。产物链落 `.research/<feature>/`（进 git）。
-- **审查**：规则正本根目录 `REVIEW.md`（三档分级，从 main 读取）；审查代理 `.claude/agents/reviewer.md` + `security-reviewer.md`（新上下文、未参与编写）
+- **审查**：规则正本根目录 `REVIEW.md`（三档分级，从 main 读取）；审查代理 `.claude/agents/reviewer.md`（代码+安全一体，新上下文、未参与编写）；审查结论归档 `.review/`（单文件+索引，修复后回填）
 - **决策跟踪**：`.ad_records/`（需求/进度状态/最终产物/是否满足四节，索引见 `.ad_records/README.md`）
 - Pi 扩展开发规则、检查门 `npm run check`、四层测试、调试循环 → **`.claude/rules/pi-extension.md`**（改 src/tests 时自动载入）
 - 参考资料区：`.reference/`——只读，不进 git
