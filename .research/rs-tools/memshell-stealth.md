@@ -49,6 +49,13 @@ Java 内存马生成器生态标杆（类 Jenkins 般全面）：
 
 注意（边界，待用户确认）：Java 字节码生成（ByteBuddy/ASM）在 Rust 侧不可移植——内存马本体生成保留 Java 生态（MemShellParty 生成字节码）。vf_rust_lib 的 memshell 模块做**编排与操作**：调用生成器、植入投递、回显验证、工具协议驱动，不做字节码生成。
 
+## 3.5 .NET 反序列化 / NRBF（用户补充选型，2026-11-27）
+
+- 格式识别：NRBF 魔数 `00 01 00 00 00 FF FF FF FF 01 00 00 00`（BinaryFormatter，Remoting/剪贴板/存档）；JSON 带 `$type`（Newtonsoft）；MessagePack/protobuf-net 无全局头
+- Rust 侧解析选型：**nom**（NRBF 动态 Record 结构按 RecordType 分支）或 **binrw**（已知结构派生宏）；7-bit Encoded Int 变长读取（.NET 字符串长度前缀）；netcorehost 可进程内宿主 .NET 调 C# 逻辑（复杂 ISerializable 兜底）
+- 安全红利：纯数据解析器不动态实例化类型——天然隔离 Gadget Chain 代码执行（BinaryFormatter 已被官方废弃标记）
+- 用途：.NET 反序列化漏洞利用链的 payload 构造与取证分析（exploit 域 dotnet 消费者——vf_init 已检测 dotnet SDK）
+
 ## 4. 坑
 
 - MemShellParty 的"无侵入性"依赖测试矩阵实证（integration-test docker 全矩阵）——我们 pve 靶场环正好承接（第二批计划）
