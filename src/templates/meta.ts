@@ -439,7 +439,7 @@ export class TemplateDb {
 
   verifySeal(record: SealRecord): { ok: boolean; reason?: string } {
     if (!existsSync(this.dbPath)) {
-      return { ok: false, reason: "db file missing — run vf_template_sync to rebuild incrementally" };
+      return { ok: false, reason: "db file missing — run vf_nuclei_sync to rebuild incrementally" };
     }
     this.client.exec("PRAGMA wal_checkpoint(TRUNCATE)");
     const actual = sha256File(this.dbPath);

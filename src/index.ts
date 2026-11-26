@@ -112,7 +112,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "vf_template_lint",
+    name: "vf_nuclei_lint",
     label: "VulnForge template lint",
     description:
       "Lint a nuclei template: structure and metadata checks plus weak-matcher analysis. Pass a path relative to the templates repo root.",
@@ -144,7 +144,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "vf_template_run",
+    name: "vf_nuclei_run",
     label: "VulnForge template run",
     description:
       "Validate a template against a local mock target: first the benign counter-check (any hit = weak matcher), then the programmed routes. Pass routes as [{method, path, status, body}]. Local-only: the mock binds 127.0.0.1.",
@@ -207,7 +207,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "vf_template_sync",
+    name: "vf_nuclei_sync",
     label: "VulnForge template sync",
     description:
       "Incrementally sync template files into the SQLite metadata index (files are the source of truth). Returns synced/failed/removed lists and the new seal record (version + hash for repo bookkeeping; the .db file itself stays out of git).",
@@ -238,7 +238,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "vf_template_search",
+    name: "vf_nuclei_search",
     label: "VulnForge template search",
     description:
       "Full-text search the template metadata index (bm25 over id/tags/cve/product/name/description) with optional filters.",
@@ -282,7 +282,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "vf_template_new",
+    name: "vf_nuclei_new",
     label: "VulnForge template new",
     description:
       "Scaffold a new nuclei template skeleton into the templates repo (detect/rce/sqli/lfi/panel) and return its path. Edit the matchers and metadata afterwards.",
