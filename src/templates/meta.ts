@@ -10,6 +10,25 @@ import { z } from "zod";
 export const SeveritySchema = z.enum(["info", "low", "medium", "high", "critical"]);
 export type Severity = z.infer<typeof SeveritySchema>;
 
+/** Group-by contract: the column is one of the modeled metadata dimensions. */
+export const MetaColumnSchema = z.enum([
+  "severity",
+  "protocol",
+  "tags",
+  "cve",
+  "author",
+  "affected_product",
+  "duplicate_key",
+]);
+export type MetaColumn = z.infer<typeof MetaColumnSchema>;
+
+/** Group-by row contract: a non-empty key with a natural count. */
+export const GroupByRowSchema = z.object({
+  key: z.string().min(1),
+  count: z.number().int().nonnegative().brand<"RowCount">(),
+});
+export type GroupByRow = z.infer<typeof GroupByRowSchema>;
+
 /** Upstream StringSlice: YAML accepts a bare string or a list — normalize to string[]. */
 const StringSlice = z.union([z.string(), z.array(z.string())]).transform((value) =>
   Array.isArray(value)
@@ -475,15 +494,26 @@ export class TemplateDb {
     });
   }
 
-  stats(): Record<string, number> {
+  stats(): { total: number; bySeverity: GroupByRow[] } {
     const rows = this.client.prepare("SELECT severity, COUNT(*) AS n FROM tpl_meta GROUP BY severity").all();
-    const result: Record<string, number> = { total: this.count() };
-    for (const row of rows) {
-      if (!isRecord(row)) continue;
-      const severity = typeof row.severity === "string" ? row.severity : "unknown";
-      result[severity] = typeof row.n === "number" ? row.n : 0;
-    }
-    return result;
+    const bySeverity = rows.filter(isRecord).map((row) =>
+      GroupByRowSchema.parse({
+        key: typeof row.severity === "string" ? row.severity : "unknown",
+        count: typeof row.n === "number" ? row.n : 0,
+      }),
+    );
+    return { total: this.count(), bySeverity };
+  }
+
+  /** Read-only analytical group-by over the metadata index (stats/search support). */
+  groupBy(column: MetaColumn, limit = 20, where = ""): GroupByRow[] {
+    const whereClause = where.length > 0 ? `WHERE ${where}` : "";
+    const rows = this.client
+      .prepare(
+        `SELECT ${column} AS key, COUNT(*) AS n FROM tpl_meta ${whereClause} GROUP BY ${column} ORDER BY n DESC LIMIT ?`,
+      )
+      .all(limit);
+    return rows.filter(isRecord).map((row) => GroupByRowSchema.parse({ key: row.key ?? "", count: row.n })); // brand-allow: zod boundary decode
   }
 
   remove(id: string): void {

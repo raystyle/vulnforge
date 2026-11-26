@@ -14,6 +14,7 @@
 | `vf_nuclei_run`    | 本地 mock 靶机验证 + 无害反证                          | 否（临时端口）        | —       |
 | `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —       |
 | `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —       |
+| `vf_nuclei_stats`  | 元数据分析：维度分组/年份直方图/查重                   | 否                    | —       |
 
 ## 命令（registerCommand）
 
@@ -80,10 +81,24 @@
 - **返回**：命中列表（id/severity/相对路径/摘要），最多 50 条
 - **何时用**：写新模板前查重、找同类范例
 
+### vf_nuclei_stats
+
+- **参数**：`dimension`（severity/protocol/tags/cve/author/affected_product/duplicate_key）；`limit?`（Top-N，默认 15）
+- **行为**：对封版索引做只读分析——总量+severity 分布、按维度 group-by（白名单列，zod 契约 `GroupByRow`）、cve 维度输出年份直方图、重复键计数
+- **返回**：逐行 `count  key` 文本报告
+- **何时用**：规则库摸底、覆盖率分析、写新模板前看同类分布
+
 ### /vf
 
 - **行为**：openTemplatesRepo → db.stats（总数+按 severity 计数）+ 安全模式自检；模板仓缺失时显示 not found
 - **何时用**：会话开始的状态检查
+
+### vf_nuclei_stats
+
+- **参数**：`dimension`（severity/protocol/tags/cve/author/affected_product/duplicate_key）；`limit?`（Top-N，默认 15）
+- **行为**：对封版索引做只读分析——总量+severity 分布、按维度 group-by（白名单列，zod 契约 `GroupByRow`）、cve 维度输出年份直方图、重复键计数
+- **返回**：逐行 `count  key` 文本报告
+- **何时用**：规则库摸底、覆盖率分析、写新模板前看同类分布
 
 ### /vf-debug
 

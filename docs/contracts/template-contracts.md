@@ -235,7 +235,17 @@ z.object({
 
 ---
 
-## 6. 函数与方法全表
+## 6. 分析契约（groupBy / stats）
+
+| 符号                                                      | 契约                    | 说明                                                                                                                       |
+| --------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `MetaColumnSchema` / `MetaColumn`                         | zod 枚举 + type         | 可分组维度：`severity / protocol / tags / cve / author / affected_product / duplicate_key`——白名单即契约，编译期拒绝其他列 |
+| `GroupByRowSchema` / `GroupByRow`                         | zod + type              | `{ key: string.min(1); count: 自然数（brand "RowCount"） }`——count 永不为负/NaN，边界 parse 保证                           |
+| `groupBy(column: MetaColumn, limit, where): GroupByRow[]` | 方法                    | 只读分析 group-by；column 由契约类型约束（非裸 string），行经 GroupByRowSchema 边界解码                                    |
+| `stats(): { total, bySeverity: GroupByRow[] }`            | 方法                    | 总量 + severity 分布（契约行）                                                                                             |
+| `renderStats(db, dimension, limit): string`               | 函数（stats-report.ts） | 纯渲染：维度报告/年份直方图/查重计数                                                                                       |
+
+## 7. 函数与方法全表
 
 | 签名                                                                                         | 说明                                                                                       |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |

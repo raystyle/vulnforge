@@ -8,7 +8,7 @@ import { openTemplatesRepo, type TemplatesRepo } from "./templates/config.ts";
 import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
 import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
 import { type LintFinding, lintDocument, type TemplateInfo } from "./templates/lint.ts";
-import { parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
+import { type MetaColumn, parseTemplateFile, TemplateDb, type TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, startMockTarget } from "./templates/mock.ts";
 import { verifyNoFalsePositive } from "./templates/run.ts";
 import {
@@ -19,6 +19,7 @@ import {
   VULN_TYPES,
   type VulnType,
 } from "./templates/scaffold.ts";
+import { renderStats } from "./templates/stats-report.ts";
 import { runBatchSync } from "./templates/sync-machine.ts";
 import { lintYaml } from "./templates/yamllint.ts";
 
@@ -423,6 +424,38 @@ export default function (pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerTool({
+    name: "vf_nuclei_stats",
+    label: "VulnForge template stats",
+    description:
+      "Analyze the template metadata index: total and severity overview, group-by any metadata dimension (severity/protocol/tags/cve/author/affected_product/duplicate_key), CVE-year histogram, and duplicate-key report. Read-only; millisecond queries over the sealed db.",
+    parameters: Type.Object({
+      dimension: StringEnum([
+        "severity",
+        "protocol",
+        "tags",
+        "cve",
+        "author",
+        "affected_product",
+        "duplicate_key",
+      ] as const),
+      limit: Type.Optional(Type.Integer({ description: "Top-N rows per dimension (default 15)" })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return textResult((error as Error).message, true);
+      }
+      try {
+        return textResult(renderStats(tools.db, params.dimension as MetaColumn, params.limit ?? 15));
+      } finally {
+        tools.db.close();
+      }
+    },
+  });
+
   pi.registerCommand("vf", {
     description: "VulnForge status: templates repo, index stats, safety patterns",
     handler: async (_args, ctx) => {
@@ -431,7 +464,8 @@ export default function (pi: ExtensionAPI): void {
         const tools = openRepoTools(ctx.cwd);
         try {
           const stats = tools.db.stats();
-          status = `templates repo: ${tools.repo.root}\nindex: ${JSON.stringify(stats)}`;
+          const severityLine = stats.bySeverity.map((row) => `${row.key}=${row.count}`).join(", ");
+          status = `templates repo: ${tools.repo.root}\nindex: total=${stats.total} (${severityLine})`;
         } finally {
           tools.db.close();
         }
