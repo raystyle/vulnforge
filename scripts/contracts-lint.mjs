@@ -74,6 +74,25 @@ function extractExports(source) {
 const missing = [];
 let checked = 0;
 
+// Pi tool/command surface: src/index.ts registrations must appear in docs/tools.md.
+{
+  const indexSource = readFileSync(join(ROOT, "src", "index.ts"), "utf8");
+  const toolsDoc = readFileSync(join(DOCS, "..", "tools.md"), "utf8");
+  const toolPattern = /registerTool\(\{[^}]*?name:\s*"([a-z_]+)"/gs;
+  const commandPattern = /registerCommand\(\s*"([a-z-]+)"/g;
+  for (const pattern of [toolPattern, commandPattern]) {
+    let match;
+    for (;;) {
+      match = pattern.exec(indexSource);
+      if (match === null) break;
+      checked++;
+      if (!toolsDoc.includes(match[1])) {
+        missing.push({ module: "index.ts", symbol: match[1], doc: "tools.md" });
+      }
+    }
+  }
+}
+
 for (const [module, doc] of Object.entries(MAPPING)) {
   const sourcePath = join(SRC, module);
   const docPath = join(DOCS, doc);
