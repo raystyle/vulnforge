@@ -6,10 +6,25 @@ VulnForge is a [Pi coding agent](https://github.com/earendil-works/pi-coding-age
 
 ## Features
 
-- **Template pipeline**: scaffold (`vf_nuclei_new`) → lint (structure/metadata/weak-matcher checks, `vf_nuclei_lint`) → local mock-target validation with benign counter-check (`vf_nuclei_run`) → SQLite metadata sync, full-text search, dedup (`vf_nuclei_sync` / `vf_nuclei_search`)
-- **Environment doctor and install**: `vf_env_check` covers three platforms (Windows/Linux/macOS) plus China mirror configuration; `vf_env_install` installs missing pieces via a per-platform command matrix (confirmed before running, re-checked after)
-- **Branded contracts**: all domain values are typed through zod schemas (`.brand<>()`), enforced by `brand-lint` in the CI gate
-- **Testing**: end-to-end runs against the real nuclei binary with a programmable mock target; a mock-nuclei CLI deterministically tests caller code
+**nuclei template pipeline** (per tool):
+
+- **Scaffold** — `vf_nuclei_new`: generate a template skeleton from five vulnerability patterns (detect/rce/sqli/lfi/panel) into the templates repo; id derived from the name
+- **Lint** — `vf_nuclei_lint`: required fields, metadata discipline (severity enum, author format), weak-matcher blocklist and multi-layer verification advice
+- **Local target validation** — `vf_nuclei_run`: run the real nuclei against a programmable mock HTTP target; benign counter-check first (any hit on a generic harmless page = weak matcher, rejected outright)
+- **Metadata sync** — `vf_nuclei_sync`: incremental index of template files (single source of truth) into SQLite, with a seal record (version + hash) for repo bookkeeping
+- **Search and dedup** — `vf_nuclei_search`: FTS5 full-text search (bm25 weights: id > tags > cve > product > name > description) plus duplicate-key detection
+
+**Environment doctor and install**:
+
+- `vf_env_check` — per-item checks on Windows/Linux/macOS: pi version alignment, fnm/bun/uv, go (GOPROXY mirror), rust (rsproxy mirror), MSVC, zig, nuclei, yamllint, templates repo, mock port
+- `vf_env_install` — per-platform command matrix (winget/brew/apt/official distributions), confirmed before running, re-checked after
+
+**Engineering discipline**:
+
+- **Branded contracts**: every domain value typed through zod (`.brand<>()`), enforced statically by brand-lint in the check gate
+- **Contract docs**: every exported contract symbol must be documented in docs/contracts/, verified mechanically by contracts-lint
+- **Six-part check gate**: biome → tsc → brand-lint → contracts-lint → vitest → pi load check
+- **Test layers**: pure / smoke / runtime (real nuclei + mock target end-to-end) / load; a mock-nuclei CLI deterministically tests caller code
 
 ## Requirements
 

@@ -6,10 +6,25 @@ VulnForge 是 [Pi coding agent](https://github.com/earendil-works/pi-coding-agen
 
 ## 功能
 
-- **模板一条龙**：骨架生成（`vf_nuclei_new`）→ lint（结构/元数据/弱 matcher 检查，`vf_nuclei_lint`）→ 本地 mock 靶机验证 + 无害反证（`vf_nuclei_run`）→ SQLite 元数据同步/全文检索/查重（`vf_nuclei_sync` / `vf_nuclei_search`）
-- **环境体检与安装**：`vf_env_check` 三平台（Windows/Linux/macOS）检测工具链与中国镜像源配置；`vf_env_install` 按平台命令矩阵安装缺失项（执行前确认，装后复检）
-- **品牌契约**：全部领域值经 zod 契约化（`.brand<>()`），`brand-lint` 强制检查入 CI 门禁
-- **测试**：真实 nuclei 二进制 + 可编程 mock 靶机端到端验证；mock-nuclei CLI 确定性测试调用方代码
+**nuclei 模板一条龙**（工具逐个）：
+
+- **骨架生成** — `vf_nuclei_new`：按五类漏洞模式（detect/rce/sqli/lfi/panel）生成模板骨架写入模板仓，id 由名称派生
+- **静态检查** — `vf_nuclei_lint`：结构必填字段、元数据规范（severity 枚举、author 格式）、弱 matcher 黑名单与多层验证建议
+- **本地靶机验证** — `vf_nuclei_run`：起可编程 mock HTTP 靶机跑真实 nuclei；先做无害反证（对通用无害页任何命中 = weak matcher，直接拒绝）
+- **元数据同步** — `vf_nuclei_sync`：模板文件（唯一真源）增量入库 SQLite，生成封版记录（版本+哈希）做项目管理
+- **检索查重** — `vf_nuclei_search`：FTS5 全文检索（bm25 权重：id>tags>cve>product>name>description）+ 同键查重
+
+**环境体检与安装**：
+
+- `vf_env_check` — 三平台（Windows/Linux/macOS）逐项检测：pi 版本对齐、fnm/bun/uv、go（GOPROXY 镜像）、rust（rsproxy 镜像）、MSVC、zig、nuclei、yamllint、模板仓、mock 端口
+- `vf_env_install` — 按平台命令矩阵（winget/brew/apt/官方发行版）安装缺失项，执行前确认、装后复检
+
+**工程纪律**：
+
+- **品牌契约**：全部领域值经 zod 契约化（`.brand<>()`），brand-lint 静态扫描强制入检查门
+- **契约文档**：每个导出契约符号必须在 docs/contracts/ 有文档，contracts-lint 机械核查
+- **六项检查门**：biome → tsc → brand-lint → contracts-lint → vitest → pi 加载检查
+- **测试分层**：pure / smoke / runtime（真实 nuclei + mock 靶机端到端）/ load 四层；mock-nuclei CLI 确定性测试调用方代码
 
 ## 环境要求
 
