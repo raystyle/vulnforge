@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -13,6 +13,7 @@ import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
 import { applyRsEdit, RsEditError, validateRsPatch } from "./templates/rs/edit.ts";
 import { runRsScript } from "./templates/rs/executor.ts";
+import { runRsExport } from "./templates/rs/export.ts";
 import {
   type DeliverFormName,
   type RsExploitType,
@@ -832,6 +833,58 @@ export default function (pi: ExtensionAPI): void {
           "INTERNAL",
           `script failed at ${outcome.phase}${outcome.context.reason !== undefined ? `: ${outcome.context.reason}` : ""}${ctxText.length > 0 ? `\n${ctxText}` : ""}`,
           "read the failure detail; fix the script (exploit_rs_edit) or the target state, then retry",
+        );
+      } catch (error) {
+        return envelope(error);
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_export",
+    label: "VulnForge exploit rs export",
+    description:
+      "Cross-compile an exploit rs script to standalone binaries via cargo zigbuild (targets incl. musl/windows; the config rs.exportTargets or the installed default set). Artifacts land under the rs export dir with a SHA256SUMS manifest.",
+    parameters: Type.Object({
+      path: Type.String({ description: "Script path relative to the workspace rs directory" }),
+      targets: Type.Optional(
+        Type.Array(Type.String(), {
+          description: "rust triples to build (default: linux-gnu/musl + windows-msvc)",
+        }),
+      ),
+    }),
+    execute: withToolMachine("exploit_rs_export", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      try {
+        const absolute = resolveInsideRepo(tools.repo, join(tools.repo.config.rs.scriptsDir, params.path));
+        const scriptName = basename(absolute).replace(/\.rs$/, "");
+        const exportDir = join(tools.repo.rsRoot, "export");
+        const targets = params.targets ?? tools.repo.config.rs.exportTargets;
+        const result = await runRsExport({
+          scriptPath: absolute,
+          scriptName,
+          exportDir,
+          ...(targets.length > 0 ? { targets } : {}),
+        });
+        if (result.exported.length === 0) {
+          return errResult(
+            "RS_BUILD_FAILED",
+            `no artifacts built; failed: ${result.failed.map((f) => f.triple).join(", ")}`,
+            "install zig + cargo-zigbuild (vf_init checks) and the rustup targets, then retry",
+          );
+        }
+        const lines = result.exported.map(
+          (entry) => `- ${entry.triple}: ${entry.artifact} (sha256 ${entry.sha256.slice(0, 16)}…)`,
+        );
+        const failedLines = result.failed.map((entry) => `- FAILED ${entry.triple}: ${entry.reason}`);
+        return textResult(
+          [`exported ${result.exported.length} artifact(s):`, ...lines, ...failedLines].join("\n"),
+          result.failed.length > 0,
         );
       } catch (error) {
         return envelope(error);

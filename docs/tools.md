@@ -30,20 +30,22 @@ hint: <下一步怎么改>
 
 ## 工具（registerTool）
 
-| 工具                | 用途一句话                                                | 写操作                | 确认         |
-| ------------------- | --------------------------------------------------------- | --------------------- | ------------ |
-| `vf_env_check`      | 环境体检：三平台工具链 + 中国镜像 + 模板仓 + mock 端口    | 否（只读探测）        | —            |
-| `vf_env_install`    | 修复一项环境缺失：跑 fix 命令 → 复检回告                  | 是（安装软件/改配置） | confirm      |
-| `poc_nuclei_new`    | 生成模板骨架写入模板仓                                    | 是（新文件）          | —            |
-| `poc_nuclei_lint`   | 模板静态检查：YAML+结构/元数据/弱 matcher                 | 否                    | —            |
-| `poc_nuclei_edit`   | 契约化编辑（patch 或 content），编辑后自动 lint           | 是（改文件）          | —            |
-| `poc_nuclei_run`    | 双模式验证：本地 mock 靶机 + 无害反证 / 远程目标扫描      | 否（远程需确认）      | 远程 confirm |
-| `poc_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）             | 是（写 db）           | —            |
-| `poc_nuclei_search` | 元数据 FTS 全文检索                                       | 否                    | —            |
-| `poc_nuclei_stats`  | 元数据分析：维度分组/年份直方图/查重                      | 否                    | —            |
-| `exploit_rs_search` | exploit rs 目录检索：FTS + 漏洞标识跨域定位 exploit       | 否                    | —            |
-| `exploit_rs_new`    | 生成 exploit rs 骨架（//! 头 + cargo + Machine 模板）     | 是（新文件）          | —            |
-| `exploit_rs_edit`   | 契约化编辑（metadata 行 patch / body 全文），丢 name 拒绝 | 是（改文件）          | —            |
+| 工具                 | 用途一句话                                                  | 写操作                | 确认         |
+| -------------------- | ----------------------------------------------------------- | --------------------- | ------------ |
+| `vf_env_check`       | 环境体检：三平台工具链 + 中国镜像 + 模板仓 + mock 端口      | 否（只读探测）        | —            |
+| `vf_env_install`     | 修复一项环境缺失：跑 fix 命令 → 复检回告                    | 是（安装软件/改配置） | confirm      |
+| `poc_nuclei_new`     | 生成模板骨架写入模板仓                                      | 是（新文件）          | —            |
+| `poc_nuclei_lint`    | 模板静态检查：YAML+结构/元数据/弱 matcher                   | 否                    | —            |
+| `poc_nuclei_edit`    | 契约化编辑（patch 或 content），编辑后自动 lint             | 是（改文件）          | —            |
+| `poc_nuclei_run`     | 双模式验证：本地 mock 靶机 + 无害反证 / 远程目标扫描        | 否（远程需确认）      | 远程 confirm |
+| `poc_nuclei_sync`    | 状态机批量同步 + lint 聚合 + 封版（断点可续）               | 是（写 db）           | —            |
+| `poc_nuclei_search`  | 元数据 FTS 全文检索                                         | 否                    | —            |
+| `poc_nuclei_stats`   | 元数据分析：维度分组/年份直方图/查重                        | 否                    | —            |
+| `exploit_rs_search`  | exploit rs 目录检索：FTS + 漏洞标识跨域定位 exploit         | 否                    | —            |
+| `exploit_rs_new`     | 生成 exploit rs 骨架（//! 头 + cargo + Machine 模板）       | 是（新文件）          | —            |
+| `exploit_rs_edit`    | 契约化编辑（metadata 行 patch / body 全文），丢 name 拒绝   | 是（改文件）          | —            |
+| `exploit_rs_execute` | 执行 exploit rs（lint→spawn→AgentResult 全链状态机）        | 否（spawn 进程）      | —            |
+| `exploit_rs_export`  | cargo zigbuild 交叉编译导出（musl/windows 等）+ SHA256 清单 | 是（写产物）          | —            |
 
 ## 命令（registerCommand）
 
@@ -79,6 +81,13 @@ hint: <下一步怎么改>
 - **行为**：`//!` 头 advisory lint（无 name 硬拒）→ spawn rust-script（流收集）→ AgentResult 单行契约解析；全流程过 rs-execute 域状态机
 - **返回**：成功 = exploit done + AgentResult JSON（含 Machine 步骤轨迹）；失败 = vf-error（phase/reason/lint findings）
 - **何时用**：exploit 脚本静态完成后
+
+### exploit_rs_export
+
+- **参数**：`path`；`targets?`（rust triple 数组，默认 linux-gnu/musl + windows-msvc 或 config rs.exportTargets）
+- **行为**：把脚本渲染为临时 crate（//! 头剥离，manifest 从 ```cargo 块生成，vf_rust_lib path 注入）→ cargo zigbuild --release --target 逐平台构建 → 产物搬入 rs export 目录 + SHA256SUMS 清单
+- **返回**：逐 triple 产物路径 + sha256 前 16 位；失败 triple 带原因
+- **何时用**：exploit 定稿后分发独立二进制（无 rust-script 环境的目标）
 
 ## 配置自动发现
 

@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createActor } from "xstate";
 import type { AgentResult } from "./contracts.ts";
 import { parseAgentResult } from "./contracts.ts";
@@ -95,6 +96,10 @@ export async function runRsScript(options: RsRunOptions): Promise<RsRunOutcome> 
   const binary = await resolveRustScript(options.rustScriptPath);
   const env: Record<string, string> = {
     VF_TIMEOUT_SECS: String(options.timeoutSecs ?? 300),
+    // The crate path the generated cargo block referenced may differ per
+    // machine — the executor re-resolves and lets rust-script's cache see
+    // a stable identity through the same absolute path.
+    VF_RUST_LIB_PATH: fileURLToPath(new URL("../../vf-rust-lib", import.meta.url)).replaceAll("\\", "/"),
     ...(options.env ?? {}),
   };
   const run = await spawnCollect(binary, [options.scriptPath, ...options.args], { timeoutMs, env });
