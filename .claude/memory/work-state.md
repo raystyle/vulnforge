@@ -1,4 +1,5 @@
 ---
+
 name: work-state
 description: VulnForge 工作状态（2026-11-27）：ADR-004 exploit 利用锻造实施中（P0-P4 完成）；工具三段式改名定稿；vf_rust_lib v0.1 落地
 metadata:

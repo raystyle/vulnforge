@@ -1,19 +1,21 @@
 # rs-tools — exploit 工具与运行时集成先例（gh-mcp 检索 + 本地 clone 实读，2026-11-27）
 
-用户裁定（两条）：
+用户裁定（三条）：
+
 1. **Rust 没有原生库（gadget/payload 面）就集成 Java/.NET 运行时工具**——纯解析层（Rust）与生成执行层（Java/.NET 工具）组合成完整 exploit 能力。
-2. **MemShellParty 不直接使用，是吸收提炼**——学它的四轴分类学、probe→植入→验证流程、无侵入验证三态、Packer 通道思想，用 Rust 在 vf_rust_lib 内原生实现（ristretto_classfile 做 .class 读写），不依赖 Java 服务/docker/MCP 运行时。
+2. **运行时工具优先级：Rust 编排调用 > 自造原生库**——能力实现顺序：先看 Rust 生态有无（crate 嵌入），有则编排调用；无则自造原生库（vf_rust_lib）；两者皆无才轮到 Java/.NET 运行时工具兜底。
+3. **MemShellParty 不直接使用，是吸收提炼**——学它的四轴分类学、probe→植入→验证流程、无侵入验证三态、Packer 通道思想，用 Rust 在 vf_rust_lib 内原生实现（ristretto_classfile 做 .class 读写），不依赖 Java 服务/docker/MCP 运行时。
 
 ## 检索验证的先例清单
 
-| 工具 | 语言 | 能力 | 集成方式 |
-| ---- | ---- | ---- | -------- |
-| **emo-crab/ysoserial-rs**（69★，本地 clone） | Rust | 28+ Java gadget 链命令 payload（cc1-7/cck1-4/spring1-2/hibernate/jdk7u21/jdk8u20/groovy/clojure/rome/myfaces/jboss/vaadin/rhino）+ url_dns；tomcat 回显头支持；CLI（-p payload -c command）+ crate 嵌入 | **crate 直接嵌入 vf_rust_lib 或 CLI spawn**——Rust 原生，主通道 |
-| Java ysoserial / GadgetBuilder | Java | 链最全（Rust 版覆盖外的更新链） | **运行时集成**：vf_init 检测 java 后 CLI 调用（依赖 jar） |
-| **ysoserial.net / ysonet**（pwntuster/irsdl） | .NET | BinaryFormatter/ViewState/NetDataContract 等 .NET 链 + 插件模式 | vf_init 检测 dotnet 后 CLI 调用 |
-| MemShellParty boot（MCP Server！） | Java | `generate_memshell` / `generate_probe_shell` MCP 端点——**内存马生成已有 MCP 面** | **MCP 直接集成**（vi 原生 MCP 客户端生态）或 REST |
-| nrbf / nrbf-parser crates | Rust | MS-NRBF 双向编解码 + serde JSON（真实使用者：pungin/Beanfun、daijro/paint.rs、landaire/wows-toolkit 均为安全/取证工具） | crate 嵌入（.NET payload 解析） |
-| ristretto_classfile / cafebabe | Rust | .class 读/写/分析 | crate 嵌入 |
+| 工具                                          | 语言 | 能力                                                                                                                                                                                                    | 集成方式                                                       |
+| --------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **emo-crab/ysoserial-rs**（69★，本地 clone）  | Rust | 28+ Java gadget 链命令 payload（cc1-7/cck1-4/spring1-2/hibernate/jdk7u21/jdk8u20/groovy/clojure/rome/myfaces/jboss/vaadin/rhino）+ url_dns；tomcat 回显头支持；CLI（-p payload -c command）+ crate 嵌入 | **crate 直接嵌入 vf_rust_lib 或 CLI spawn**——Rust 原生，主通道 |
+| Java ysoserial / GadgetBuilder                | Java | 链最全（Rust 版覆盖外的更新链）                                                                                                                                                                         | **运行时集成**：vf_init 检测 java 后 CLI 调用（依赖 jar）      |
+| **ysoserial.net / ysonet**（pwntuster/irsdl） | .NET | BinaryFormatter/ViewState/NetDataContract 等 .NET 链 + 插件模式                                                                                                                                         | vf_init 检测 dotnet 后 CLI 调用                                |
+| MemShellParty boot（MCP Server！）            | Java | `generate_memshell` / `generate_probe_shell` MCP 端点——**内存马生成已有 MCP 面**                                                                                                                        | **MCP 直接集成**（vi 原生 MCP 客户端生态）或 REST              |
+| nrbf / nrbf-parser crates                     | Rust | MS-NRBF 双向编解码 + serde JSON（真实使用者：pungin/Beanfun、daijro/paint.rs、landaire/wows-toolkit 均为安全/取证工具）                                                                                 | crate 嵌入（.NET payload 解析）                                |
+| ristretto_classfile / cafebabe                | Rust | .class 读/写/分析                                                                                                                                                                                       | crate 嵌入                                                     |
 
 ## 集成架构定稿（用户裁定推导）
 
