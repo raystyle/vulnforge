@@ -9,9 +9,9 @@
 | `vf_env_check`     | 环境体检：三平台工具链 + 中国镜像 + 模板仓 + mock 端口 | 否（只读探测）        | —       |
 | `vf_env_install`   | 修复一项环境缺失：跑 fix 命令 → 复检回告               | 是（安装软件/改配置） | confirm |
 | `vf_nuclei_new`    | 生成模板骨架写入模板仓                                 | 是（新文件）          | —       |
-| `vf_nuclei_lint`   | 模板静态检查：结构/元数据/弱 matcher                   | 否                    | —       |
+| `vf_nuclei_lint`   | 模板静态检查：YAML+结构/元数据/弱 matcher              | 否                    | —       |
 | `vf_nuclei_run`    | 本地 mock 靶机验证 + 无害反证                          | 否（临时端口）        | —       |
-| `vf_nuclei_sync`   | 文件 → SQLite 索引增量同步 + 封版                      | 是（写 db）           | —       |
+| `vf_nuclei_sync`   | 状态机批量同步 + lint 聚合 + 封版（断点可续）          | 是（写 db）           | —       |
 | `vf_nuclei_search` | 元数据 FTS 全文检索                                    | 否                    | —       |
 
 ## 命令（registerCommand）
@@ -47,8 +47,8 @@
 ### vf_nuclei_lint
 
 - **参数**：`path`（相对模板仓根）
-- **行为**：parseTemplateFile（zod 契约）→ lintDocument（结构/元数据/弱 matcher 三层检查）
-- **返回**：逐条 `[level] rule: message`；有 error 则 isError
+- **行为**：三层检查——内置 TS yamllint（语法行列号/flow-style/空行/尾空格/注释间距）→ parseTemplateFile（zod 契约）→ lintDocument（结构/元数据/弱 matcher）；三层结果合报
+- **返回**：逐条 `[level] rule (line N): message`；任何 error 则 isError
 - **何时用**：模板编辑后、提交前
 
 ### vf_nuclei_run
@@ -60,10 +60,10 @@
 
 ### vf_nuclei_sync
 
-- **参数**：无
-- **行为**：遍历模板仓 yaml → zod 解析 → 增量 upsert（消失文件清除）→ seal（wal_checkpoint 后哈希）
-- **返回**：synced/failed/removed 数量 + 封版摘要（版本/哈希前 16 位/计数）
-- **何时用**：新增或修改模板后、search 前提
+- **参数**：`resumeFrom?`（整数，跳过前 N 个文件——从任务快照续跑断点）
+- **行为**：状态机驱动批量同步（扫描 → 逐文件 parse/lint/upsert → 封版）；断点快照（cursor）落 `sync_jobs` 表，中断后可 resume
+- **返回**：synced/failed 数量、lint 聚合（有错误的文件数/检查总数）、封版摘要（版本/哈希前 16 位/计数）
+- **何时用**：新增或修改模板后、search 前提；大批量中断后用 resumeFrom 续跑
 
 ### vf_nuclei_search
 
