@@ -1,0 +1,26 @@
+# rs-tools — 信封语义 + 物化基础库研究（2026-11-27 补充）
+
+## 信封语义（pi-rs2 实读：piece-envelope-cta.md + ADR-0023 + report.rs）
+
+- 先例：AgentResult 单行 JSON，成败同形；失败必带 next_suggestion（CTA = 纯下一步建议，机器可读）；error 内嵌原子错误（error_atom：kind 封闭七词表 + error_code `E_<KIND>_<NNN>` + message + context）
+- ADR-0023 先例裁决：CTA 与知识库分离，CTA 只专注下一步建议（1315 条注册表 + 1311 页知识库的耦合曾拖慢入册）
+- **本项目裁定（用户令）**：
+  - 工具级 = vf-error 的 `hint:`（纠偏指引、工具用法、稳定文案）
+  - 脚本级 = AgentResult 的 `next_suggestion`（下一步建议、域内攻击链指针、脚本自述）
+  - 两者不混用；脚本信封**只暴露原子错误 + 错误处理建议**——不做知识库、不做 CTA 注册表（简化为 `error{kind, code, message}` + `next_suggestion` 字符串）
+- error kind 七词表（先例封闭集）：timeout / auth_denied / parse / net_unreachable / protocol_mismatch / response_limit / soft_success——失败是数据不是异常（alive:false + note）
+
+## 物化基础库（pi_rust_lib 0.6.3 实读，模块清单）
+
+| 模块 | 能力 | 采纳 |
+| ---- | ---- | ---- |
+| report | success/failure_json/failure 信封打印 | ✅ 直接对应 AgentResultSchema |
+| tls | rustls danger_client_config（零校验，`--insecure`）+ roots_client_config（webpki 默认）；ring provider 安装 | ✅ 用户裁定的忽略证书校验能力（默认 roots，选配 danger） |
+| net | PI_RS_VIA SOCKS5 路由（fail-closed，绝不静默直连） | 后续（打内网靶需要时） |
+| timeout | cancel-this 协作取消 + stage 活动追踪 + 子进程兜底 kill + panic hook | 后续（先例成熟态；第一批用 PI_TIMEOUT_SECS 简化） |
+| error_atom | {kind, message, detail, context, error_code} + envelope_sha256 | ✅ 简化版（kind/code/message） |
+| builders/codec/payload/longrun | jc 解析器/jaq/duct 子进程 | 后续按需 |
+
+- **第一批最小物化库 `vf_rust_lib` crate**：报告信封（report 对应实现）+ rustls 双配置（roots 默认 / danger `--insecure`）+ 基础 HTTP 请求面 + 错误原子（kind/code/message）——以 path 依赖注入 exploit 脚本（源码位置无关，先例同款）
+- 骨架 ```` ```cargo ```` 依赖块默认带 vf_rust_lib + serde_json + rustls
+- 坑（先例教训记录在案）：rustls 0.23 无静态 RSA 密钥交换，老栈需 legacy 通道；heavy 依赖进 lib 需 ADR
