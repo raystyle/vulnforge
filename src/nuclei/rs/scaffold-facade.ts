@@ -1,7 +1,7 @@
 /**
  * TS facade over the vf_rust_lib Machine-template scaffold constants: the
  * skeleton generation lives with the crate semantics, the TS side mirrors
- * the forms so exploit_rs_new renders templates that match the Rust lib.
+ * the forms so rs_new renders templates that match the Rust lib.
  */
 import { fileURLToPath } from "node:url";
 

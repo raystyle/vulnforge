@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { RsDb } from "./db.ts";
 
 /**
- * exploit_rs_stats: read-only analysis over the rs catalog — the
- * exploit-side counterpart of the poc_nuclei_stats face. Same group-by
+ * rs_stats: read-only analysis over the rs catalog — the
+ * exploit-side counterpart of the nuclei_stats face. Same group-by
  * shape as the poc side (non-empty key + branded count via zod).
  */
 export const RsStatsDimensionSchema = z.enum(["source", "faces", "dangerous", "version", "keywords"]);

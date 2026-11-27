@@ -7,7 +7,7 @@ import { type RsTriple, RsTripleSchema } from "./contracts.ts";
 import { parseRsScript } from "./script-parse.ts";
 
 /**
- * exploit_rs_export: cross-compile an exploit rs script to standalone
+ * rs_export: cross-compile an exploit rs script to standalone
  * binaries via cargo zigbuild (pentest_rs `pctl export` precedent —
  * targets incl. musl/windows). The rust-script source carries an inline
  * cargo manifest; zigbuild wants a real crate, so the exporter renders a

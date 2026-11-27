@@ -52,10 +52,11 @@ import {
   resolveInsideRepo,
   textResult,
 } from "./nuclei/tool-registry.ts";
+import { createReloadIntent } from "./reload.ts";
 import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 
 /**
- * Engine resolution for poc_nuclei_run: explicit mock wins; otherwise probe
+ * Engine resolution for nuclei_run: explicit mock wins; otherwise probe
  * nuclei (config path first, then PATH) and fail with install guidance when
  * absent — never silently fall back to a different engine.
  */
@@ -99,6 +100,33 @@ function findingsText(findings: LintFinding[]): string {
 
 export default function (pi: ExtensionAPI): void {
   const vulnTypes = VULN_TYPES;
+  const reloadIntent = createReloadIntent();
+
+  pi.registerTool({
+    name: "vf_reload",
+    label: "VulnForge runtime reload",
+    description:
+      "Reload Pi extensions after editing VulnForge source (skills/prompts/context follow). Call ALONE at the end of the turn: it ends the run, Pi reloads once the agent settles, and the next turn sees the new tools. Check npm run check first — a broken extension loads with warnings.",
+    parameters: Type.Object({
+      reason: Type.Optional(Type.String({ description: "Why a reload is needed (audit line)" })),
+    }),
+    execute: withToolMachine("vf_reload", async (_id, params) => {
+      const requested = reloadIntent.request(params.reason ?? "");
+      if (!requested) {
+        return textResult("reload already pending — the runtime reloads when this run settles");
+      }
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: "Reload requested. Pi reloads after this response; tools keep the pre-reload version until then.",
+          },
+        ],
+        details: {},
+        terminate: true,
+      };
+    }),
+  });
 
   pi.registerTool({
     name: "vf_init",
@@ -232,14 +260,14 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_lint",
+    name: "nuclei_lint",
     label: "VulnForge template lint",
     description:
       "Lint a nuclei template: YAML syntax/style (built-in TS yamllint), structure and metadata checks, plus weak-matcher analysis. Pass a path relative to the templates repo root.",
     parameters: Type.Object({
       path: Type.String({ description: "Template path relative to the templates repo root" }),
     }),
-    execute: withToolMachine("poc_nuclei_lint", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_lint", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -274,7 +302,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_edit",
+    name: "nuclei_edit",
     label: "VulnForge template edit",
     description:
       "Edit a nuclei template through the contract chain: either a structured patch (info fields, matcher words/regex/part, request paths) or whole-document content. The edit is applied via YAML parse → mutate → re-serialize, then linted; invalid edits are rejected and nothing is written.",
@@ -319,7 +347,7 @@ export default function (pi: ExtensionAPI): void {
         Type.String({ description: "Whole-document replacement (validated: yaml + id + name required)" }),
       ),
     }),
-    execute: withToolMachine("poc_nuclei_edit", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_edit", async (_id, params, _signal, _onUpdate, ctx) => {
       if ((params.patch === undefined) === (params.content === undefined)) {
         return errResult(
           "PARAM_CONFLICT",
@@ -368,7 +396,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_run",
+    name: "nuclei_run",
     label: "VulnForge template run",
     description:
       "Validate a template against a target. Two target modes: (a) local mock — routes program a 127.0.0.1 target; the benign counter-check runs first (any hit = weak matcher). (b) remote target — pass target=<url> to scan a real host (requires explicit user confirmation; use authorized test environments only). Engine: 'real' nuclei binary (config or PATH), or 'mock' in-process scan port with expectedHits for environments without the binary.",
@@ -409,7 +437,7 @@ export default function (pi: ExtensionAPI): void {
         }),
       ),
     }),
-    execute: withToolMachine("poc_nuclei_run", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_run", async (_id, params, _signal, _onUpdate, ctx) => {
       if (params.target !== undefined && params.engine === "mock") {
         return errResult(
           "PARAM_CONFLICT",
@@ -530,7 +558,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_sync",
+    name: "nuclei_sync",
     label: "VulnForge template sync",
     description:
       "Batch-sync template files into the SQLite metadata index via the sync state machine (scan → index per file with lint → seal). Files are the source of truth; the job snapshot (cursor) enables resume after interruption. Returns synced/failed lists, lint aggregates, and the seal record.",
@@ -539,7 +567,7 @@ export default function (pi: ExtensionAPI): void {
         Type.Integer({ description: "Skip the first N files (resume a checkpoint from the job snapshot)" }),
       ),
     }),
-    execute: withToolMachine("poc_nuclei_sync", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_sync", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -578,7 +606,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_search",
+    name: "nuclei_search",
     label: "VulnForge template search",
     description:
       "Full-text search the template metadata index (bm25 over id/tags/cve/product/name/description) with optional filters.",
@@ -587,7 +615,7 @@ export default function (pi: ExtensionAPI): void {
       severity: Type.Optional(StringEnum(["info", "low", "medium", "high", "critical"])),
       protocol: Type.Optional(StringEnum(["http", "network", "dns", "ssl", "file", "websocket", "headless"])),
     }),
-    execute: withToolMachine("poc_nuclei_search", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_search", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -629,7 +657,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_new",
+    name: "nuclei_new",
     label: "VulnForge template new",
     description:
       "Scaffold a new nuclei template skeleton into the templates repo (detect/rce/sqli/lfi/panel) and return its path. Edit the matchers and metadata afterwards.",
@@ -642,7 +670,7 @@ export default function (pi: ExtensionAPI): void {
       tags: Type.String({ description: "Lowercase comma-separated tags" }),
       cveId: Type.Optional(Type.String({ description: "CVE id like CVE-2026-1234" })),
     }),
-    execute: withToolMachine("poc_nuclei_new", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_new", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -675,7 +703,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "poc_nuclei_stats",
+    name: "nuclei_stats",
     label: "VulnForge template stats",
     description:
       "Analyze the template metadata index: total and severity overview, group-by any metadata dimension (severity/protocol/tags/cve/author/affected_product/duplicate_key), CVE-year histogram, and duplicate-key report. Read-only; millisecond queries over the sealed db.",
@@ -691,7 +719,7 @@ export default function (pi: ExtensionAPI): void {
       ] as const),
       limit: Type.Optional(Type.Integer({ description: "Top-N rows per dimension (default 15)" })),
     }),
-    execute: withToolMachine("poc_nuclei_stats", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("nuclei_stats", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -709,7 +737,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_search",
+    name: "rs_search",
     label: "VulnForge exploit search",
     description:
       "Search the exploit rs catalog: FTS over script metadata (bm25: name 10/keywords 8/description 3). With vulnId: resolve the exploit rs for that vulnerability (cross-domain — a nuclei PoC hit maps straight to its exploit). Without a prior rs sync the catalog may be stale.",
@@ -723,7 +751,7 @@ export default function (pi: ExtensionAPI): void {
       ),
       dangerous: Type.Optional(Type.Boolean({ description: "filter: only dangerous (true) or safe (false) scripts" })),
     }),
-    execute: withToolMachine("exploit_rs_search", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_search", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -758,7 +786,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_new",
+    name: "rs_new",
     label: "VulnForge exploit rs scaffold",
     description:
       "Generate an exploit rs script skeleton into the workspace rs directory: shebang + //! metadata header + cargo block + the mandatory state-machine template (Check/Probe/Craft/Deliver/Verify with the delivery form), AgentResult-printing main. The script name IS the vulnerability identifier.",
@@ -776,7 +804,7 @@ export default function (pi: ExtensionAPI): void {
         }),
       ),
     }),
-    execute: withToolMachine("exploit_rs_new", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_new", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -810,7 +838,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_edit",
+    name: "rs_edit",
     label: "VulnForge exploit rs edit",
     description:
       "Edit an exploit rs script through the contract chain: a metadata patch (//! header lines) or whole-body content. The edit applies only when the result still passes the header contract (the //! name = vulnerability identifier must survive) — invalid edits are rejected and nothing is written.",
@@ -839,7 +867,7 @@ export default function (pi: ExtensionAPI): void {
         ),
       ),
     }),
-    execute: withToolMachine("exploit_rs_edit", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_edit", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -874,7 +902,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_run",
+    name: "rs_run",
     label: "VulnForge exploit rs execute",
     description:
       "Execute an exploit rs script: advisory //! lint, spawn rust-script (stream collection, timeout kill backstop, VF_TIMEOUT_SECS passthrough), then the single-line AgentResult contract parse. The full flow runs through the rs-execute domain state machine.",
@@ -885,7 +913,7 @@ export default function (pi: ExtensionAPI): void {
         Type.Integer({ description: "Deadline in seconds (default 300); the process is killed after it" }),
       ),
     }),
-    execute: withToolMachine("exploit_rs_run", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_run", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -908,7 +936,7 @@ export default function (pi: ExtensionAPI): void {
         return errResult(
           "INTERNAL",
           `script failed at ${outcome.phase}${outcome.context.reason !== undefined ? `: ${outcome.context.reason}` : ""}${ctxText.length > 0 ? `\n${ctxText}` : ""}`,
-          "read the failure detail; fix the script (exploit_rs_edit) or the target state, then retry",
+          "read the failure detail; fix the script (rs_edit) or the target state, then retry",
         );
       } catch (error) {
         return envelope(error);
@@ -917,7 +945,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_export",
+    name: "rs_export",
     label: "VulnForge exploit rs export",
     description:
       "Cross-compile an exploit rs script to standalone binaries via cargo zigbuild (targets incl. musl/windows; the config rs.exportTargets or the installed default set). Artifacts land under the rs export dir with a SHA256SUMS manifest.",
@@ -929,7 +957,7 @@ export default function (pi: ExtensionAPI): void {
         }),
       ),
     }),
-    execute: withToolMachine("exploit_rs_export", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_export", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -969,12 +997,12 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_sync",
+    name: "rs_sync",
     label: "VulnForge exploit rs sync",
     description:
       "Batch-index exploit rs scripts into the rs catalog (state machine: collect .rs under rs.scriptsDir, //! header contract per file, upsert by vulnerability identifier, seal to rs-lock.json). Idempotent; lint findings aggregate in the result.",
     parameters: Type.Object({}),
-    execute: withToolMachine("exploit_rs_sync", async (_id, _params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_sync", async (_id, _params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -1006,7 +1034,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_stats",
+    name: "rs_stats",
     label: "VulnForge exploit rs stats",
     description:
       "Analyze the exploit rs catalog: overview (total, per-source distribution, dangerous count) or group-by a dimension (source/faces/dangerous/version/keywords). Read-only.",
@@ -1018,7 +1046,7 @@ export default function (pi: ExtensionAPI): void {
       ),
       limit: Type.Optional(Type.Integer({ description: "Top-N rows per dimension (default 15)" })),
     }),
-    execute: withToolMachine("exploit_rs_stats", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("rs_stats", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);
@@ -1069,5 +1097,21 @@ export default function (pi: ExtensionAPI): void {
         "info",
       );
     },
+  });
+
+  pi.registerCommand("vf-reload", {
+    description: "Reload extensions, skills, prompts, themes, and context files",
+    handler: async (_args, ctx) => {
+      if (ctx.hasUI) {
+        // notify BEFORE reload: this handler's remaining code runs the old build
+        ctx.ui.notify("VulnForge: reloading runtime…", "info");
+      }
+      await ctx.reload();
+    },
+  });
+
+  pi.on("agent_settled", () => {
+    if (!reloadIntent.takePending()) return;
+    pi.sendUserMessage("/vf-reload", { expandPromptTemplates: true });
   });
 }

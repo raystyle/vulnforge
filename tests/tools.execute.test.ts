@@ -67,8 +67,8 @@ async function call(name: string, params: unknown): Promise<{ text: string; isEr
 }
 
 describe("tool-level execute coverage", () => {
-  it("poc_nuclei_new creates a template; poc_nuclei_lint accepts it", async () => {
-    const created = await call("poc_nuclei_new", {
+  it("nuclei_new creates a template; nuclei_lint accepts it", async () => {
+    const created = await call("nuclei_new", {
       vulnType: "rce",
       name: "Tool Test - RCE",
       author: "ray",
@@ -79,12 +79,12 @@ describe("tool-level execute coverage", () => {
     expect(created.isError).toBeUndefined();
     expect(created.text).toContain("scaffolded");
 
-    const linted = await call("poc_nuclei_lint", { path: "http/vulnerabilities/tool-test-rce.yaml" });
+    const linted = await call("nuclei_lint", { path: "http/vulnerabilities/tool-test-rce.yaml" });
     expect(linted.isError).toBeUndefined();
   });
 
-  it("poc_nuclei_edit patches info and reports lint", async () => {
-    const outcome = await call("poc_nuclei_edit", {
+  it("nuclei_edit patches info and reports lint", async () => {
+    const outcome = await call("nuclei_edit", {
       path: "http/vulnerabilities/tool-test-rce.yaml",
       patch: { kind: "info", patch: { severity: "critical" } },
     });
@@ -92,8 +92,8 @@ describe("tool-level execute coverage", () => {
     expect(outcome.text).toContain("applied: info.severity");
   });
 
-  it("poc_nuclei_run rejects remote+mock and target+routes combos", async () => {
-    const conflict = await call("poc_nuclei_run", {
+  it("nuclei_run rejects remote+mock and target+routes combos", async () => {
+    const conflict = await call("nuclei_run", {
       path: "http/vulnerabilities/tool-test-rce.yaml",
       target: "http://lab:8080",
       engine: "mock",
@@ -101,7 +101,7 @@ describe("tool-level execute coverage", () => {
     expect(conflict.isError).toBe(true);
     expect(conflict.text).toContain("vf-error code=PARAM_CONFLICT");
 
-    const both = await call("poc_nuclei_run", {
+    const both = await call("nuclei_run", {
       path: "http/vulnerabilities/tool-test-rce.yaml",
       target: "http://lab:8080",
       routes: [{ method: "GET", path: "/" }],
@@ -111,8 +111,8 @@ describe("tool-level execute coverage", () => {
     expect(both.text).toContain("hint:");
   });
 
-  it("poc_nuclei_run mock engine asserts expectedHits end-to-end", async () => {
-    const outcome = await call("poc_nuclei_run", {
+  it("nuclei_run mock engine asserts expectedHits end-to-end", async () => {
+    const outcome = await call("nuclei_run", {
       path: "http/vulnerabilities/tool-test-rce.yaml",
       engine: "mock",
       expectedHits: ["tool-test-rce"],
@@ -122,22 +122,22 @@ describe("tool-level execute coverage", () => {
     expect(outcome.text).toContain("pipeline deterministic");
   });
 
-  it("poc_nuclei_sync indexes the workspace and returns a seal", async () => {
-    const outcome = await call("poc_nuclei_sync", {});
+  it("nuclei_sync indexes the workspace and returns a seal", async () => {
+    const outcome = await call("nuclei_sync", {});
     expect(outcome.isError).toBeUndefined();
     expect(outcome.text).toContain("synced: 1");
     expect(outcome.text).toContain("seal:");
   });
 
-  it("poc_nuclei_search finds the synced template", async () => {
-    const outcome = await call("poc_nuclei_search", { query: '"tool-test-rce"' });
+  it("nuclei_search finds the synced template", async () => {
+    const outcome = await call("nuclei_search", { query: '"tool-test-rce"' });
     expect(outcome.isError).toBeUndefined();
     expect(outcome.text).toContain("tool-test-rce");
   });
 
-  it("poc_nuclei_stats reports per dimension without error", async () => {
+  it("nuclei_stats reports per dimension without error", async () => {
     for (const dimension of ["severity", "protocol", "author", "cve"] as const) {
-      const outcome = await call("poc_nuclei_stats", { dimension });
+      const outcome = await call("nuclei_stats", { dimension });
       expect(outcome.isError, `stats dimension ${dimension}`).toBeUndefined();
       expect(outcome.text).toContain("total: 1");
     }

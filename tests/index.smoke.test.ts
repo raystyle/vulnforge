@@ -33,6 +33,8 @@ function capture(): { tools: CapturedTool[]; commands: CapturedCommand[] } {
     registerCommand(name: string, def: Omit<CapturedCommand, "name">) {
       commands.push({ name, ...def });
     },
+    on(_event: string, _handler: () => void) {},
+    sendUserMessage(_text: string, _options: Record<string, unknown>) {},
   };
   extension(pi as unknown as ExtensionAPI);
   return { tools, commands };
@@ -42,23 +44,24 @@ describe("extension factory", () => {
   it("registers the full tool and command surface without touching Pi action methods at load time", () => {
     const { tools, commands } = capture();
     expect(tools.map((tool) => tool.name)).toEqual([
+      "vf_reload",
       "vf_init",
-      "poc_nuclei_lint",
-      "poc_nuclei_edit",
-      "poc_nuclei_run",
-      "poc_nuclei_sync",
-      "poc_nuclei_search",
-      "poc_nuclei_new",
-      "poc_nuclei_stats",
-      "exploit_rs_search",
-      "exploit_rs_new",
-      "exploit_rs_edit",
-      "exploit_rs_run",
-      "exploit_rs_export",
-      "exploit_rs_sync",
-      "exploit_rs_stats",
+      "nuclei_lint",
+      "nuclei_edit",
+      "nuclei_run",
+      "nuclei_sync",
+      "nuclei_search",
+      "nuclei_new",
+      "nuclei_stats",
+      "rs_search",
+      "rs_new",
+      "rs_edit",
+      "rs_run",
+      "rs_export",
+      "rs_sync",
+      "rs_stats",
     ]);
-    expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug"]);
+    expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug", "vf-reload"]);
   });
 
   it("vf-debug handler reports safety state through the UI", async () => {
@@ -78,9 +81,9 @@ describe("extension factory", () => {
     expect(notifications[0]?.message).toContain("true");
   });
 
-  it("poc_nuclei_lint reports a clear error outside a templates repo", async () => {
+  it("nuclei_lint reports a clear error outside a templates repo", async () => {
     const { tools } = capture();
-    const lint = tools.find((tool) => tool.name === "poc_nuclei_lint");
+    const lint = tools.find((tool) => tool.name === "nuclei_lint");
     const result = (await lint?.execute("1", { path: "x.yaml" }, undefined, undefined, {
       cwd: "Z:/definitely-not-a-repo",
     })) as { content: { text: string }[]; isError?: boolean };
@@ -88,7 +91,7 @@ describe("extension factory", () => {
     expect(result.content[0]?.text).toContain("no .vulnforge.json");
   });
 
-  it("poc_nuclei_new scaffolds into the templates repo and lint flags its weaknesses", async () => {
+  it("nuclei_new scaffolds into the templates repo and lint flags its weaknesses", async () => {
     const { tools } = capture();
     const root = mkdtempSync(join(tmpdir(), "vf-smoke-repo-"));
     smokeDirs.push(root);
@@ -97,7 +100,7 @@ describe("extension factory", () => {
       JSON.stringify({ db: { filename: "templates.db", sealFile: "templates-lock.json" } }),
     );
     const ctx = { cwd: root };
-    const newTool = tools.find((tool) => tool.name === "poc_nuclei_new");
+    const newTool = tools.find((tool) => tool.name === "nuclei_new");
     const created = (await newTool?.execute(
       "1",
       {
@@ -118,7 +121,7 @@ describe("extension factory", () => {
       .replace(/^scaffolded /, "")
       .replaceAll("\\", "/")
       .replace(`${root}/`, "");
-    const lint = tools.find((tool) => tool.name === "poc_nuclei_lint");
+    const lint = tools.find((tool) => tool.name === "nuclei_lint");
     const linted = (await lint?.execute("2", { path: relative }, undefined, undefined, ctx)) as {
       content: { text: string }[];
       isError?: boolean;

@@ -64,7 +64,7 @@ describe("tool error envelope (agent self-correction)", () => {
   it("missing config → CONFIG_NOT_FOUND with search start and inline example", async () => {
     const nowhere = mkdtempSync(join(tmpdir(), "vf-none-"));
     scratchDirs.push(nowhere);
-    const outcome = await call("poc_nuclei_lint", { path: "x.yaml" }, nowhere);
+    const outcome = await call("nuclei_lint", { path: "x.yaml" }, nowhere);
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "CONFIG_NOT_FOUND");
     expect(outcome.text).toContain(".vulnforge.json");
@@ -73,7 +73,7 @@ describe("tool error envelope (agent self-correction)", () => {
 
   it("path escape → PATH_ESCAPE with repo root and a relative-path hint", async () => {
     const ws = makeWorkspace();
-    const outcome = await call("poc_nuclei_lint", { path: "../../etc/passwd" }, ws);
+    const outcome = await call("nuclei_lint", { path: "../../etc/passwd" }, ws);
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "PATH_ESCAPE");
     expect(outcome.text).toContain(ws.replaceAll("\\", "/").slice(0, -1));
@@ -82,7 +82,7 @@ describe("tool error envelope (agent self-correction)", () => {
 
   it("edit param conflict → PARAM_CONFLICT showing received fields and an example", async () => {
     const ws = makeWorkspace();
-    const outcome = await call("poc_nuclei_edit", { path: "http/seed.yaml" }, ws);
+    const outcome = await call("nuclei_edit", { path: "http/seed.yaml" }, ws);
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "PARAM_CONFLICT");
     expect(outcome.text).toContain("patch");
@@ -100,7 +100,7 @@ describe("tool error envelope (agent self-correction)", () => {
   it("run param conflict (target + routes) → PARAM_CONFLICT", async () => {
     const ws = makeWorkspace();
     const outcome = await call(
-      "poc_nuclei_run",
+      "nuclei_run",
       { path: "http/seed.yaml", target: "http://x", routes: [{ method: "GET", path: "/" }] },
       ws,
     );
@@ -110,17 +110,17 @@ describe("tool error envelope (agent self-correction)", () => {
 
   it("run engine=mock with target → PARAM_CONFLICT naming the rule", async () => {
     const ws = makeWorkspace();
-    const outcome = await call("poc_nuclei_run", { path: "http/seed.yaml", target: "http://x", engine: "mock" }, ws);
+    const outcome = await call("nuclei_run", { path: "http/seed.yaml", target: "http://x", engine: "mock" }, ws);
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "PARAM_CONFLICT");
   });
 
   it("nonexistent template path → PATH_NOT_FOUND with sync hint", async () => {
     const ws = makeWorkspace();
-    const outcome = await call("poc_nuclei_lint", { path: "http/definitely-missing.yaml" }, ws);
+    const outcome = await call("nuclei_lint", { path: "http/definitely-missing.yaml" }, ws);
     expect(outcome.isError).toBe(true);
     expectEnvelope(outcome.text, "PATH_NOT_FOUND");
-    expect(outcome.text).toContain("poc_nuclei_sync");
+    expect(outcome.text).toContain("nuclei_sync");
   });
 
   it("confirm-gate refusal → CANCELLED envelope, not prose", async () => {

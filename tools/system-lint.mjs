@@ -472,9 +472,9 @@ check("hook-shape", () => {
 check("claude-md-current", () => {
   const text = read("CLAUDE.md");
   const results = [];
-  for (const tool of ["poc_nuclei_edit", "poc_nuclei_stats", "poc_nuclei_sync"]) {
-    const short = tool.replace(/^poc_[a-z]+_/, "").replace(/^exploit_[a-z]+_/, "");
-    const present = text.includes(tool) || new RegExp(`poc_nuclei_[a-z/]*\\b${short}\\b`).test(text);
+  for (const tool of ["nuclei_edit", "nuclei_stats", "nuclei_sync"]) {
+    const short = tool.replace(/^nuclei_/, "").replace(/^rs_/, "");
+    const present = text.includes(tool) || new RegExp(`nuclei_[a-z/]*\\b${short}\\b`).test(text);
     if (!present) {
       results.push({ file: "CLAUDE.md", text: `tool "${tool}" missing from the status surface enumeration` });
     }
@@ -642,11 +642,11 @@ check("code-naming", () => {
   const results = [];
   for (const match of indexSource.matchAll(/registerTool\(\{[\s\S]*?name:\s*"([^"]+)"/g)) {
     // Naming form (user ruling): env keeps the vf_ prefix (vf_init); domain
-    // Three-segment form (user ruling): poc_nuclei_<action> / exploit_rs_<action>; env keeps vf_init.
-    if (!/^(vf_init|poc_[a-z]+_[a-z]+|exploit_[a-z]+_[a-z]+)$/.test(match[1])) {
+    // Three-segment form (user ruling): nuclei_<action> / rs_<action>; env keeps vf_(init|reload).
+    if (!/^(vf_init|vf_reload|nuclei_[a-z]+|rs_[a-z]+)$/.test(match[1])) {
       results.push({
         file: "src/index.ts",
-        text: `tool "${match[1]}" breaks the poc_nuclei_<action> / exploit_rs_<action> (or vf_init) naming form`,
+        text: `tool "${match[1]}" breaks the nuclei_<action> / rs_<action> (or vf_(init|reload)) naming form`,
       });
     }
   }

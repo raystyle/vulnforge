@@ -64,14 +64,14 @@ describeIf("e2e over the real workspace corpus", () => {
     expect(outcome.text).toMatch(/nuclei/);
   });
 
-  it("poc_nuclei_lint: real upstream template parses and lints (CVE-2026-0545)", async () => {
-    const outcome = await call("poc_nuclei_lint", { path: SAMPLE_REL });
+  it("nuclei_lint: real upstream template parses and lints (CVE-2026-0545)", async () => {
+    const outcome = await call("nuclei_lint", { path: SAMPLE_REL });
     expect(outcome.text).toContain("lint");
     // upstream template — may carry lint errors, but must not be a parse failure
     expect(outcome.text).not.toContain("parse failed");
   });
 
-  it("poc_nuclei_run real engine: benign counter-check + programmed route scan", async () => {
+  it("nuclei_run real engine: benign counter-check + programmed route scan", async () => {
     const { checkNuclei } = await import("../src/nuclei/run.ts");
     const { openTemplatesRepo } = await import("../src/nuclei/config.ts");
     const repo = openTemplatesRepo(WORKSPACE);
@@ -82,7 +82,7 @@ describeIf("e2e over the real workspace corpus", () => {
       console.warn("SKIP real-engine e2e: nuclei absent on this machine");
       return;
     }
-    const outcome = await call("poc_nuclei_run", {
+    const outcome = await call("nuclei_run", {
       path: SAMPLE_REL,
       routes: [{ method: "GET", path: "/", status: 200, body: "no matching content here" }],
     });
@@ -90,8 +90,8 @@ describeIf("e2e over the real workspace corpus", () => {
     expect(outcome.text).toMatch(/hit|hits/);
   });
 
-  it("poc_nuclei_run mock engine: expectedHits assertion", async () => {
-    const outcome = await call("poc_nuclei_run", {
+  it("nuclei_run mock engine: expectedHits assertion", async () => {
+    const outcome = await call("nuclei_run", {
       path: SAMPLE_REL,
       engine: "mock",
       expectedHits: ["CVE-2026-0545"],
@@ -100,8 +100,8 @@ describeIf("e2e over the real workspace corpus", () => {
     expect(outcome.text).toContain("pipeline deterministic");
   });
 
-  it("poc_nuclei_new + poc_nuclei_edit + poc_nuclei_lint roundtrip on a real-path scaffold", async () => {
-    const created = await call("poc_nuclei_new", {
+  it("nuclei_new + nuclei_edit + nuclei_lint roundtrip on a real-path scaffold", async () => {
+    const created = await call("nuclei_new", {
       vulnType: "detect",
       name: "E2E Roundtrip Detect",
       author: "ray",
@@ -116,41 +116,41 @@ describeIf("e2e over the real workspace corpus", () => {
       .replaceAll("\\", "/")
       .replace(`${WORKSPACE}/`, "");
 
-    const edited = await call("poc_nuclei_edit", {
+    const edited = await call("nuclei_edit", {
       path: rel,
       patch: { kind: "info", patch: { severity: "low" } },
     });
     expect(edited.isError).toBeUndefined();
     expect(edited.text).toContain("applied: info.severity");
 
-    const linted = await call("poc_nuclei_lint", { path: rel });
+    const linted = await call("nuclei_lint", { path: rel });
     expect(linted.text).toContain("lint");
 
     // cleanup: remove our own scaffold file
     unlinkSync(join(WORKSPACE, rel));
   });
 
-  it("poc_nuclei_sync: resume path over the real corpus (seconds, not minutes)", async () => {
+  it("nuclei_sync: resume path over the real corpus (seconds, not minutes)", async () => {
     // The 14k-row full index is already sealed in the workspace db (bench +
     // prior runs). E2E verifies the pipeline end-to-end via a large resume
     // slice — full-corpus throughput belongs to tools/bench-sync.mjs, not the
     // per-commit test gate.
     const before = statSync(join(WORKSPACE, "templates.db")).mtimeMs;
-    const outcome = await call("poc_nuclei_sync", { resumeFrom: 14470 });
+    const outcome = await call("nuclei_sync", { resumeFrom: 14470 });
     expect(outcome.text).toMatch(/synced: \d+/);
     expect(outcome.text).toContain("seal:");
     const after = statSync(join(WORKSPACE, "templates.db")).mtimeMs;
     expect(after).toBeGreaterThanOrEqual(before);
   });
 
-  it("poc_nuclei_search: FTS over the 14k-row real index", async () => {
-    const outcome = await call("poc_nuclei_search", { query: '"CVE-2026-0545"' });
+  it("nuclei_search: FTS over the 14k-row real index", async () => {
+    const outcome = await call("nuclei_search", { query: '"CVE-2026-0545"' });
     expect(outcome.text).toContain("CVE-2026-0545");
   });
 
-  it("poc_nuclei_stats: every dimension over the real index", async () => {
+  it("nuclei_stats: every dimension over the real index", async () => {
     for (const dimension of ["severity", "protocol", "author", "cve"] as const) {
-      const outcome = await call("poc_nuclei_stats", { dimension, limit: 5 });
+      const outcome = await call("nuclei_stats", { dimension, limit: 5 });
       expect(outcome.isError, `dimension ${dimension}`).toBeUndefined();
       expect(outcome.text).toContain("total: 14");
     }

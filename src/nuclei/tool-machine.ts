@@ -89,9 +89,11 @@ export async function runWithToolMachine<T extends { isError?: boolean | undefin
  * generic identity: the returned function keeps the argument tuple and
  * return type of the input.
  */
-export function withToolMachine<F extends (...args: never[]) => Promise<{ isError?: boolean | undefined }>>(
-  label: string,
-  execute: F,
-): F {
+export function withToolMachine<
+  F extends (...args: never[]) => Promise<{
+    isError?: boolean | undefined;
+    terminate?: boolean | undefined;
+  }>,
+>(label: string, execute: F): F {
   return ((...args: Parameters<F>) => runWithToolMachine(label, () => execute(...args))) as unknown as F;
 }

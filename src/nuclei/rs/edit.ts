@@ -6,7 +6,7 @@ import { parseRsScript } from "./script-parse.ts";
  * exploit rs contract chain: a structured patch over the `//!` metadata
  * header or a whole-body replacement. The edit applies only when the
  * resulting script still passes the header contract — invalid edits are
- * rejected and nothing is written (the poc_nuclei_edit pattern).
+ * rejected and nothing is written (the nuclei_edit pattern).
  */
 const METADATA_KEYS = ["description", "description_en", "version", "args", "keywords", "codes"] as const;
 type MetadataKey = (typeof METADATA_KEYS)[number];
