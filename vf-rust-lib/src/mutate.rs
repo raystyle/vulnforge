@@ -886,6 +886,25 @@ mod tests {
     }
 
     #[test]
+    fn table_and_executor_are_in_sync() {
+        let table = primitives().unwrap();
+        for primitive in &table {
+            if !primitive.implemented {
+                continue;
+            }
+            if is_channel_fact(&primitive.id) {
+                continue;
+            }
+            let result = apply_primitive("x", &primitive.id, &mut SplitMix64::new(1));
+            assert!(
+                result.is_ok(),
+                "table drift: {} marked implemented but the executor rejects it",
+                primitive.id
+            );
+        }
+    }
+
+    #[test]
     fn b_class_call_site_deformation_hides_the_name() {
         let payload = "<?php system('whoami'); ?>";
         // callback-wrap (forced draw parity): every call site rewrites.
