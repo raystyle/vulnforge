@@ -26,8 +26,10 @@
 
 - ✅ report / machine / error（P2c）
 - ✅ tls 双配置（rustls roots/danger，P2c）
-- ⬜ http 快照面（第一批核心——脚本目前手写 TcpStream）
-- ⬜ payload 构造小件（b64/url/bytes）
-- ⬜ net::connect + rev_shell_listener（RevShell 形态攻击端）
-- ⬜ fingerprint::server（Probe 标准实现）
-- ⬜ webshell 模板+驱动（专库裁定）
+- ✅ http 快照面（http.rs：HttpSnapshot 结构 + request/get/post + RequestOptions 流式构造；非 2xx 是数据不是错误——判定归 Machine 步骤；ureq 2.12 API 实读核定）
+- ✅ payload 构造小件（b64/url/hex + ShellPayload Newtype）
+- ✅ net::connect + rev_shell_listener（net.rs：connect/is_reachable + CaughtSession 首段捕获 + deadline 轮询 accept——Verify 步骤 = 会话即 Done、超时即 Atom::timeout）
+- ✅ fingerprint::server（fingerprint.rs：Tomcat/Jetty/WebLogic/PHP/IIS/nginx/Apache 头+体标记判定，纯函数可重放）
+- ✅ webshell 模板+驱动（专库，php/jsp/aspx 通道 + behinder 面）
+- ✅ mutate B 类执行器（callback-wrap/variable-variable/array-wrap/strtr-chain/array-modulo-name/self-filename-key——strtr 用字母级置换对 + PHP 重复键首胜语义模拟测试）
+- ⬜ 变异-测试闭环（检测平台清单对接 + pve RASP 沙箱——pve 批次 2 承接）

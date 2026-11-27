@@ -19,8 +19,11 @@
 //! every widget ships a selftest.
 
 pub mod error;
+pub mod fingerprint;
+pub mod http;
 pub mod machine;
 pub mod mutate;
+pub mod net;
 pub mod oob;
 pub mod payload;
 pub mod report;
