@@ -201,6 +201,15 @@ export class RsDb {
     return (rows as unknown[]).map((row) => decodeRsRow(row));
   }
 
+  /** Group-by an analysis dimension (whitelisted column + branded count).
+   * The column is one of the analysis faces — never user input raw. */
+  groupBy(dimension: "source" | "faces" | "dangerous" | "version" | "keywords"): Array<{ key: string; count: number }> {
+    const rows = this.client
+      .prepare(`SELECT ${dimension} AS key, COUNT(*) AS n FROM rs_meta GROUP BY ${dimension} ORDER BY n DESC`)
+      .all() as unknown as Array<{ key: string | number; n: number }>;
+    return rows.map((row) => ({ key: String(row.key), count: row.n })); // brand-allow: SQL integer display, not a contract field decode
+  }
+
   listNames(): ScriptName[] {
     const rows = this.client.prepare("SELECT name FROM rs_meta ORDER BY name").all();
     return (rows as Array<{ name: string }>).map(
