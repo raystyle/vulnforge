@@ -4,9 +4,9 @@
  * tool opens. Extracted from src/index.ts so the rs_* tools reuse the
  * identical shapes.
  */
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { TemplatesRepo } from "./config.ts";
-import { openTemplatesRepo } from "./config.ts";
+import { resolveLayeredConfig } from "./config.ts";
 import { type VfErrorCode, vfError, wrapAsVfError } from "./errors.ts";
 import type { TemplateDb } from "./meta.ts";
 import { TemplateDb as TemplateDbClass } from "./meta.ts";
@@ -109,8 +109,19 @@ export interface RepoTools {
   db: TemplateDb;
 }
 
+/** Open the workspace repo, falling back to the pi data dir global config
+ * when no workspace marker exists (config layering: workspace > global).
+ * The global layer makes read tools (search/stats) usable from any cwd;
+ * write tools stay workspace-scoped by the same repo-root path guard. */
 export function openRepoTools(cwd: string): RepoTools {
-  const repo = openTemplatesRepo(cwd);
+  const resolved = resolveLayeredConfig(cwd);
+  const repo: TemplatesRepo = {
+    root: resolved.root,
+    config: resolved.config,
+    dbPath: join(resolved.root, resolved.config.db.filename),
+    sealPath: join(resolved.root, resolved.config.db.sealFile),
+    rsRoot: join(resolved.root, resolved.config.rs.scriptsDir),
+  };
   const db = new TemplateDbClass(repo.dbPath);
   return { repo, db };
 }

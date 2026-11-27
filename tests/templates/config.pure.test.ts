@@ -1,8 +1,14 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { findTemplatesRoot, loadConfig, parseConfig } from "../../src/templates/config.ts";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  findTemplatesRoot,
+  loadConfig,
+  parseConfig,
+  piDataDir,
+  resolveLayeredConfig,
+} from "../../src/templates/config.ts";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "vf-tpl-"));
@@ -161,5 +167,58 @@ describe("loadConfig", () => {
     const repo = makeRepo();
     const config = loadConfig(repo);
     expect(config.db.filename).toBe("templates.db");
+  });
+});
+
+describe("layered config resolution", () => {
+  const REAL_PI_DIR = process.env.PI_CODING_AGENT_DIR;
+
+  afterEach(() => {
+    if (REAL_PI_DIR === undefined) {
+      delete process.env.PI_CODING_AGENT_DIR;
+    } else {
+      process.env.PI_CODING_AGENT_DIR = REAL_PI_DIR;
+    }
+  });
+
+  it("prefers the workspace marker when present", () => {
+    const repo = makeRepo();
+    const resolved = resolveLayeredConfig(join(repo, "http", "cves"));
+    expect(resolved.layer).toBe("workspace");
+    expect(resolved.root).toBe(repo);
+  });
+
+  it("falls back to the pi data dir global config when no workspace marker exists", () => {
+    const noMarker = mkdtempSync(join(tmpdir(), "vf-nolayer-"));
+    const piDir = mkdtempSync(join(tmpdir(), "vf-pidir-"));
+    mkdirSync(piDir, { recursive: true });
+    writeFileSync(join(piDir, "vulnforge.json"), JSON.stringify({ rs: { scriptsDir: "global-scripts" } }));
+    process.env.PI_CODING_AGENT_DIR = piDir;
+    const resolved = resolveLayeredConfig(join(noMarker, "sub"));
+    expect(resolved.layer).toBe("global");
+    expect(resolved.root).toBe(piDir);
+    expect(resolved.config.rs.scriptsDir).toBe("global-scripts");
+  });
+
+  it("throws the workspace diagnostic when both layers are absent", () => {
+    const noMarker = mkdtempSync(join(tmpdir(), "vf-nolayer2-"));
+    const piDir = mkdtempSync(join(tmpdir(), "vf-pidir2-"));
+    process.env.PI_CODING_AGENT_DIR = piDir;
+    expect(() => resolveLayeredConfig(join(noMarker, "sub"))).toThrow(/no \.vulnforge\.json/);
+  });
+
+  it("global config parses through the same boundary (bad sections rejected)", () => {
+    const piDir = mkdtempSync(join(tmpdir(), "vf-pidir3-"));
+    writeFileSync(join(piDir, "vulnforge.json"), JSON.stringify({ oob: { provider: "bogus" } }));
+    process.env.PI_CODING_AGENT_DIR = piDir;
+    const noMarker = mkdtempSync(join(tmpdir(), "vf-nolayer3-"));
+    expect(() => resolveLayeredConfig(join(noMarker, "sub"))).toThrow(/oob\.provider must be/);
+  });
+
+  it("piDataDir honors PI_CODING_AGENT_DIR over the homedir default", () => {
+    process.env.PI_CODING_AGENT_DIR = "D:/custom/pi";
+    expect(piDataDir()).toBe("D:/custom/pi");
+    delete process.env.PI_CODING_AGENT_DIR;
+    expect(piDataDir()).toBe(join(homedir(), ".pi", "agent"));
   });
 });

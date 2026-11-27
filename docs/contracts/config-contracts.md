@@ -62,6 +62,9 @@
 | `findTemplatesRoot(start): string`            | 函数      | 从 start 向上找最近的 `.vulnforge.json`；不受嵌套 `.git` 阻断（语料 clone 自带 .git 也能找到工作区配置）；未找到抛诊断错误（含起点与修复指引） |
 | `loadConfig(root): VulnforgeTemplatesConfig`  | 函数      | 读根下标记文件并 parseConfig                                                                                                                   |
 | `openTemplatesRepo(start): TemplatesRepo`     | 函数      | 定位 + 装配：root/config/dbPath/sealPath 一次取齐                                                                                              |
+| `piDataDir(): string`                         | 函数      | pi 数据目录（`PI_CODING_AGENT_DIR` 环境变量，默认 `~/.pi/agent`）——全局配置层宿主                                                              |
+| `globalConfigPath(): string`                  | 函数      | 全局配置路径（pi 数据目录下 `vulnforge.json`，无点前缀——非工作区标记）                                                                         |
+| `resolveLayeredConfig(start)`                 | 函数      | 配置分层解析：cwd 向上找工作区 `.vulnforge.json` → 未找到回退 pi 数据目录全局配置；两层同过 `parseConfig` 边界；两层皆缺抛工作区诊断错误       |
 | `TemplatesRepo`                               | interface | `{ root: string; config: VulnforgeTemplatesConfig; dbPath: string; sealPath: string }`——dbPath/sealPath 为模板仓根下绝对路径                   |
 
 ## 解析纪律

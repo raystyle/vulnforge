@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 
@@ -251,4 +252,46 @@ export function openTemplatesRepo(start: string): TemplatesRepo {
     sealPath: join(root, config.db.sealFile),
     rsRoot: join(root, config.rs.scriptsDir),
   };
+}
+
+/** The pi data directory (global config layer): PI_CODING_AGENT_DIR,
+ * default ~/.pi/agent. The global config file lives there as
+ * vulnforge.json (no dot prefix — it is not a workspace marker). */
+export function piDataDir(): string {
+  const explicit = process.env.PI_CODING_AGENT_DIR;
+  if (explicit !== undefined && explicit.trim().length > 0) {
+    return explicit.trim();
+  }
+  return join(homedir(), ".pi", "agent");
+}
+
+/** The global config path (config layering phase 2). */
+export function globalConfigPath(): string {
+  return join(piDataDir(), "vulnforge.json");
+}
+
+/**
+ * The layered resolution (user ruling): walk up from `start` for a
+ * workspace `.vulnforge.json` first; when none exists, fall back to the
+ * pi data directory's global config. Both layers parse through the same
+ * parseConfig boundary (same defaults, same validation) — a layer only
+ * overrides what it declares. The fallback throws the workspace error
+ * ONLY when the global layer is also absent, so the message stays
+ * actionable (create a workspace config or initialize the global one).
+ */
+export function resolveLayeredConfig(start: string): {
+  root: string;
+  config: VulnforgeTemplatesConfig;
+  layer: "workspace" | "global";
+} {
+  try {
+    const root = findTemplatesRoot(start);
+    return { root, config: loadConfig(root), layer: "workspace" };
+  } catch (workspaceError) {
+    const globalPath = globalConfigPath();
+    if (existsSync(globalPath)) {
+      return { root: piDataDir(), config: parseConfig(readFileSync(globalPath, "utf8")), layer: "global" };
+    }
+    throw workspaceError;
+  }
 }
