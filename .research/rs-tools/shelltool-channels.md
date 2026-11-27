@@ -21,12 +21,12 @@
 
 ## 语言×通道矩阵（我们 webshell 专库的覆盖面）
 
-| 通道                       | PHP                 | Java/JSP                                                            | .NET                                    |
-| -------------------------- | ------------------- | ------------------------------------------------------------------- | --------------------------------------- |
-| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                                             | ✅ 模板                                 |
-| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）                                   | ✅ aspx_channel_template（同形，C# 面） |
-| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes）                            | ⬜（.NET 序列化载荷，nrbf 生成）        |
-| 隧道（NeoReGeorg/Suo5 形） | n/a                 | **做（webshell 实现）**：加密通道 webshell 即隧道端点（用户修订令） | **做**（同形）                          |
+| 通道                       | PHP                    | Java/JSP                                 | .NET                                    |
+| -------------------------- | ---------------------- | ---------------------------------------- | --------------------------------------- |
+| 明文 one-liner（fallback） | ✅ runtime.rs          | ✅ 模板                                  | ✅ 模板                                 |
+| 加密通道（godzilla 形）    | ✅ webshell.rs 原生    | ✅ 通道协议同形（md5 派生 + AES）        | ✅ aspx_channel_template（同形，C# 面） |
+| class 载荷（behinder 形）  | n/a                    | ✅ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成）        |
+| 隧道（NeoReGeorg/Suo5 形） | ✅ php_tunnel_template | ✅ jsp_tunnel_template（Socket 形）      | ✅ aspx_tunnel_template（TcpClient 形） |
 
 ## .NET 面落点（2026-11-27 第一批）
 
@@ -35,6 +35,12 @@
 - **ViewStatePayload**：machineKey 泄露 → `-p ViewState --dk/--vk/--path/--apppath/--da/--va` 完整参数向量——密钥只进调用不落配置
 - **serialized_kind_b64 补 `/wE` 前缀**：ObjectStateFormatter/LosFormatter 的 b64 面（FF 01 的 base64 形）
 - 实测命令面对照源：pwntester/ysoserial.net README --fullhelp（gadget×formatter 矩阵、插件面、ViewState 选项）
+
+## 隧道面落点（2026-11-27，用户指缺 Java/.NET 隧道后补齐）
+
+- **先例实读**（L-codes/Neo-reGeorg templates + dflstone/NetReGeorg）：生产形态是**有状态会话隧道**——CONNECT/DATA 分帧（blv 变长二进制帧：字段号+长度+值）+ 按 mark 键的会话读写缓冲（PHP 用 $_SESSION、Java 内存马形用 static HashMap 经 equals() 触发、.NET 用 HttpRuntime.Cache）+ base64 字符表 strtr 混淆；操作端是 SOCKS5 循环
+- **本批实现**：三语言无状态单轮隧道模板（php/jsp/aspx_tunnel_template）——forward-spec（`TARGET:PORT\nDATA_B64`）经加密通道载体，响应回密文中继字节；与 godzilla 通道同门同密码同三明治（隧道=通信加密形态的延伸裁定）
+- **形态边界**：单轮形覆盖请求-响应协议（内网 HTTP/探测）；长连接协议（SSH/SOCKS 全双工）需会话形（mark 键缓冲 + 操作端循环）——下一批与操作端 SOCKS 面一起落，pve 靶场环做真实验证
 
 ## 设计结论
 
