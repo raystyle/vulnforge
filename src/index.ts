@@ -608,13 +608,18 @@ export default function (pi: ExtensionAPI): void {
         const rows = tools.db.search(params.query, {
           ...(severity ? { severity } : {}),
           ...(protocol ? { protocol } : {}),
-        });
+        }) as Array<TplMetaContract & { snippet: string }> & { totalCount?: number };
         if (rows.length === 0) return textResult(`no matches for "${params.query}"`);
+        const total = rows.totalCount ?? rows.length;
+        const head =
+          total > rows.length
+            ? `${total} match(es) (showing top ${rows.length} by relevance):`
+            : `${rows.length} match(es):`;
         const lines = rows.map(
           (row: TplMetaContract & { snippet: string }) =>
             `- ${row.id} [${row.severity}] ${row.relativePath} :: ${row.snippet.slice(0, 80)}`,
         );
-        return textResult(`${rows.length} match(es):\n${lines.join("\n")}`);
+        return textResult(`${head}\n${lines.join("\n")}`);
       } catch (error) {
         return envelope(error);
       } finally {

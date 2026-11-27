@@ -468,7 +468,8 @@ export class TemplateDb {
   search(
     query: string,
     filters: { severity?: Severity; cve?: string; protocol?: Protocol } = {},
-  ): Array<TplMetaContract & { snippet: string }> {
+    limit = 50,
+  ): Array<TplMetaContract & { snippet: string }> & { totalCount?: number } {
     const conditions: string[] = [];
     const params: string[] = [];
     if (query.length > 0) {
@@ -494,12 +495,23 @@ export class TemplateDb {
        FROM tpl_meta m JOIN tpl_fts ON m.rowid = tpl_fts.rowid
        ${where}
        ORDER BY rank
-       LIMIT 50`,
+       LIMIT ?`,
     );
-    const rows = statement.all(...params);
-    return rows
+    const rows = statement.all(...params, limit);
+    // True match count (the LIMIT must not masquerade as the total — the
+    // workbench acceptance found "50 matches" reported on an 85-hit query).
+    const countStatement = this.client.prepare(
+      `SELECT COUNT(*) AS n
+       FROM tpl_meta m JOIN tpl_fts ON m.rowid = tpl_fts.rowid
+       ${where}`,
+    );
+    const counted = countStatement.get(...params) as { n: number } | undefined;
+    const out = rows
       .filter(isRecord)
       .map((row) => ({ ...decodeTplRow(row), snippet: typeof row.snippet === "string" ? row.snippet : "" }));
+    (out as Array<TplMetaContract & { snippet: string }> & { totalCount?: number }).totalCount =
+      counted?.n ?? out.length;
+    return out;
   }
 
   findDuplicates(): Array<{ duplicateKey: string; ids: string[] }> {
