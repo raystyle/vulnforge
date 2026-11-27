@@ -57,28 +57,31 @@ interface RsRow {
   updated_at: string;
 }
 
+/** CSV column decode: storage string → trimmed non-empty list. */
+function csvColumn(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 /** Row decode through the zod contract — never trust the storage row. */
 export function decodeRsRow(row: unknown): RsMeta {
   const record = row as Record<string, unknown>;
   const parsed = RsMetaSchema.safeParse({
-    name: record["name"],
-    description: record["description"],
-    descriptionEn: record["description_en"],
-    version: record["version"],
-    keywords: String(record["keywords"] ?? "")
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0),
-    args: record["args"],
-    codes: record["codes"],
-    file: record["file"],
-    source: record["source"],
-    faces: String(record["faces"] ?? "")
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0),
-    dangerous: record["dangerous"] === 1 || record["dangerous"] === true,
-    sha256: record["sha256"],
+    name: record.name,
+    description: record.description,
+    descriptionEn: record.description_en,
+    version: record.version,
+    keywords: csvColumn(record.keywords),
+    args: record.args,
+    codes: record.codes,
+    file: record.file,
+    source: record.source,
+    faces: csvColumn(record.faces),
+    dangerous: record.dangerous === 1 || record.dangerous === true,
+    sha256: record.sha256,
   });
   if (!parsed.success) {
     throw new Error(`rs_meta row failed contract decode: ${parsed.error.issues[0]?.message ?? "unknown"}`);

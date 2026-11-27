@@ -247,25 +247,26 @@ z.object({
 
 ## 7. 函数与方法全表
 
-| 签名                                                                                         | 说明                                                                                       |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `templateId(raw: string): TemplateId`                                                        | 品牌构造器（parse + brand）                                                                |
-| `detectProtocol(raw): Protocol`                                                              | 见 2.3                                                                                     |
-| `sha256File(path: string): string`                                                           | 文件 SHA-256 hex                                                                           |
-| `parseTemplateFile(path): { meta: Omit<TplMetaContract,"rowid"> } \| { parseError: string }` | YAML → 契约行；三段失败：YAML parse / 非 mapping / schema（逐 issue `path: message` 串联） |
-| `class TemplateDb`：`constructor(dbPath)`                                                    | 打开 + WAL + DDL                                                                           |
-| `close(): void`                                                                              | 关连接                                                                                     |
-| `upsert(meta, relativePath): Promise<void>`                                                  | 事务：主表 onConflictDoUpdate(id) + FTS 删旧插新；失败 ROLLBACK                            |
-| `count(): number`                                                                            | 主表行数                                                                                   |
-| `search(query, {severity?, cve?, protocol?}): Array<TplMetaContract & {snippet}>`            | FTS + 过滤                                                                                 |
-| `findDuplicates(): Array<{duplicateKey, ids[]}>`                                             | 同键查重                                                                                   |
-| `listAll(): Array<{id, relativePath, severity, tags, cve}>`                                  | 按 relativePath 序全量                                                                     |
-| `listAllPaths(): Array<{id, relativePath}>`                                                  | sync 清理用                                                                                |
-| `remove(id): void`                                                                           | 事务删主表 + FTS                                                                           |
-| `stats(): Record<string, number>`                                                            | `{total, 按severity计数}`                                                                  |
-| `seal(): SealRecord`                                                                         | 见 5                                                                                       |
-| `verifySeal(record): {ok, reason?}`                                                          | 哈希校验（先 checkpoint）                                                                  |
-| `syncFromFiles(db, root): Promise<SyncResult>`                                               | 遍历 yaml → parse → upsert；消失文件 remove                                                |
+| 签名                                                                                         | 说明                                                                                                                                              |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `templateId(raw: string): TemplateId`                                                        | 品牌构造器（parse + brand）；**归一为 canonical-lowercase**——`CVE-2021-44228`/`cve-2021-44228` 均存为 `cve-2021-44228`，FTS/检索/去重只见一种写法 |
+| `buildFtsQuery(query: string): string`                                                       | 查询归一构造器：token 逐个引号化为 FTS5 短语（裸连字符不再被解析为列名）；CVE token 归一为存储大写形（`cve-2021-44228` → `"CVE-2021-44228"`）     |
+| `detectProtocol(raw): Protocol`                                                              | 见 2.3                                                                                                                                            |
+| `sha256File(path: string): string`                                                           | 文件 SHA-256 hex                                                                                                                                  |
+| `parseTemplateFile(path): { meta: Omit<TplMetaContract,"rowid"> } \| { parseError: string }` | YAML → 契约行；三段失败：YAML parse / 非 mapping / schema（逐 issue `path: message` 串联）                                                        |
+| `class TemplateDb`：`constructor(dbPath)`                                                    | 打开 + WAL + DDL                                                                                                                                  |
+| `close(): void`                                                                              | 关连接                                                                                                                                            |
+| `upsert(meta, relativePath): Promise<void>`                                                  | 事务：主表 onConflictDoUpdate(id) + FTS 删旧插新；失败 ROLLBACK                                                                                   |
+| `count(): number`                                                                            | 主表行数                                                                                                                                          |
+| `search(query, {severity?, cve?, protocol?}): Array<TplMetaContract & {snippet}>`            | FTS + 过滤                                                                                                                                        |
+| `findDuplicates(): Array<{duplicateKey, ids[]}>`                                             | 同键查重                                                                                                                                          |
+| `listAll(): Array<{id, relativePath, severity, tags, cve}>`                                  | 按 relativePath 序全量                                                                                                                            |
+| `listAllPaths(): Array<{id, relativePath}>`                                                  | sync 清理用                                                                                                                                       |
+| `remove(id): void`                                                                           | 事务删主表 + FTS                                                                                                                                  |
+| `stats(): Record<string, number>`                                                            | `{total, 按severity计数}`                                                                                                                         |
+| `seal(): SealRecord`                                                                         | 见 5                                                                                                                                              |
+| `verifySeal(record): {ok, reason?}`                                                          | 哈希校验（先 checkpoint）                                                                                                                         |
+| `syncFromFiles(db, root): Promise<SyncResult>`                                               | 遍历 yaml → parse → upsert；消失文件 remove                                                                                                       |
 
 ### 6.1 `SyncResult`
 

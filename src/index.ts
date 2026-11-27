@@ -493,9 +493,9 @@ export default function (pi: ExtensionAPI): void {
           const hitLines = result.hits.map((hit) => `- ${hit.templateId} at ${hit.matchedAt}`).join("\n");
           if (engine === "mock") {
             const expected = params.expectedHits ?? [];
-            const got = result.hits.map((hit) => hit.templateId);
-            const missing = expected.filter((id) => !got.includes(id));
-            const unexpected = got.filter((id) => !expected.includes(id));
+            const got = result.hits.map((hit) => hit.templateId.toLowerCase());
+            const missing = expected.filter((id) => !got.includes(id.toLowerCase()));
+            const unexpected = got.filter((id) => !expected.some((want) => want.toLowerCase() === id));
             if (missing.length > 0 || unexpected.length > 0) {
               return textResult(
                 [

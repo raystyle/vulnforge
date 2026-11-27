@@ -89,16 +89,19 @@ export function envelope(error: unknown) {
   return textResult(wrapped.message, true);
 }
 
-/** Resolve a user-supplied path inside the workspace repo, refusing escapes. */
+/** Resolve a user-supplied template path against the CORPUS root (config
+ * sync.corpusDir; "" = repo root), refusing escapes beyond the repo root.
+ * Search results' relative_path and lint/edit inputs share this base — one
+ * basis for both faces (the workbench acceptance found the divergence). */
 export function resolveInsideRepo(repo: TemplatesRepo, userPath: string): string {
-  const absolute = resolve(repo.root, userPath);
+  const absolute = resolve(repo.corpusRoot, userPath);
   const normalizedRoot = repo.root.replaceAll("\\", "/");
   const normalizedAbsolute = absolute.replaceAll("\\", "/");
   if (normalizedAbsolute !== normalizedRoot && !normalizedAbsolute.startsWith(`${normalizedRoot}/`)) {
     throw vfError(
       "PATH_ESCAPE",
       `path "${userPath}" escapes the templates repo root ${normalizedRoot} (resolved to ${normalizedAbsolute})`,
-      'pass a path relative to the templates repo root, e.g. "http/cves/2026/CVE-2026-0545.yaml"',
+      'pass a path relative to the corpus root (as search returns), e.g. "http/cves/2026/CVE-2026-0545.yaml"',
     );
   }
   return absolute;
@@ -121,6 +124,7 @@ export function openRepoTools(cwd: string): RepoTools {
     dbPath: join(resolved.root, resolved.config.db.filename),
     sealPath: join(resolved.root, resolved.config.db.sealFile),
     rsRoot: join(resolved.root, resolved.config.rs.scriptsDir),
+    corpusRoot: join(resolved.root, resolved.config.sync.corpusDir.length > 0 ? resolved.config.sync.corpusDir : "."),
   };
   const db = new TemplateDbClass(repo.dbPath);
   return { repo, db };

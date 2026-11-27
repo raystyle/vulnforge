@@ -240,6 +240,10 @@ export interface TemplatesRepo {
   sealPath: string;
   /** Workspace dir holding exploit rs scripts (config rs.scriptsDir under root). */
   rsRoot: string;
+  /** Corpus root (config sync.corpusDir under root; "" = root itself).
+   * Template paths in search results and lint/edit inputs resolve against
+   * THIS base — one basis for both faces. */
+  corpusRoot: string;
 }
 
 export function openTemplatesRepo(start: string): TemplatesRepo {
@@ -251,6 +255,7 @@ export function openTemplatesRepo(start: string): TemplatesRepo {
     dbPath: join(root, config.db.filename),
     sealPath: join(root, config.db.sealFile),
     rsRoot: join(root, config.rs.scriptsDir),
+    corpusRoot: join(root, config.sync.corpusDir.length > 0 ? config.sync.corpusDir : "."),
   };
 }
 

@@ -107,6 +107,29 @@ export const TemplateDocSchema = z.object({
   info: TemplateInfoSchema,
 });
 
+/**
+ * Normalize a user query into a safe FTS5 MATCH expression: every whitespace
+ * token becomes a quoted phrase (bare hyphens would be parsed as column
+ * filters — `cve-2021-44228` broke as "column 2021"). Template ids are
+ * canonical-lowercase at storage (the templateId contract); CVE tokens are
+ * canonical-UPPERCASE at storage (the CveIdSchema form) — the query side
+ * aligns to each, so bare `CVE-2021-44228` and `cve-2021-44228` both hit.
+ */
+export function buildFtsQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token.length > 0)
+    .map((token) => {
+      const cveMatch = /^(cve)-?(\d{4})-?(\d{4,})$/i.exec(token);
+      if (cveMatch?.[1] !== undefined && cveMatch[2] !== undefined && cveMatch[3] !== undefined) {
+        return `"${cveMatch[1].toUpperCase()}-${cveMatch[2]}-${cveMatch[3]}"`;
+      }
+      return `"${token.replaceAll('"', '""')}"`;
+    })
+    .join(" ");
+}
+
 /** Detect the protocol of a raw template document by which protocol block it carries. */
 export function detectProtocol(raw: Record<string, unknown>): Protocol {
   const preferred: Array<{ keys: string[]; protocol: Protocol }> = [
@@ -133,10 +156,18 @@ export type TemplateId = z.infer<typeof TemplateDocSchema>["id"];
 
 const TemplateIdPlainSchema = TemplateDocSchema.shape.id;
 
-/** Runtime-checked constructor: plain string → branded TemplateId. */
+/**
+ * Runtime-checked constructor: plain string → branded TemplateId.
+ * CANONICAL FORM (user ruling: normalize at the contract layer): the id is
+ * stored lowercased — `CVE-2021-44228` and `cve-2021-44228` both become
+ * `cve-2021-44228` at the boundary. Every downstream face (FTS index,
+ * search, duplicate keys, expectedHits) sees exactly one spelling, so the
+ * search layer needs no case handling. Case-sensitivity is NOT lost: the
+ * distinction never carried meaning for template identity.
+ */
 export function templateId(raw: string): TemplateId {
   // zod parse validates; the brand tag itself only exists at the type level.
-  return TemplateIdPlainSchema.parse(raw) as TemplateId; // brand-allow: constructor exit
+  return TemplateIdPlainSchema.parse(raw.toLowerCase()) as TemplateId; // brand-allow: constructor exit
 }
 
 const SeverityDecode = SeveritySchema.catch("info");
@@ -215,8 +246,6 @@ CREATE VIRTUAL TABLE IF NOT EXISTS tpl_fts USING fts5(
   tokenize='unicode61'
 );
 `;
-
-const _PROTOCOL_KEYS: readonly string[] = ProtocolSchema.options;
 
 /** Contract row: storage row re-typed through the parse boundary. */
 export interface TplMetaContract {
@@ -304,7 +333,9 @@ export function parseTemplateFile(path: string): { meta: Omit<TplMetaContract, "
   const affectedProduct = typeof affectedProductRaw === "string" ? affectedProductRaw : "";
   return {
     meta: {
-      id: doc.id,
+      // canonical-lowercase at the contract boundary (templateId ctor) —
+      // upstream ids arrive in mixed case; storage sees one form
+      id: templateId(doc.id),
       name: doc.info.name,
       author: doc.info.author.join(","),
       severity: !doc.info.severity || doc.info.severity === "unknown" ? "info" : doc.info.severity,
@@ -410,7 +441,7 @@ export class TemplateDb {
     const params: string[] = [];
     if (query.length > 0) {
       conditions.push("m.rowid IN (SELECT rowid FROM tpl_fts WHERE tpl_fts MATCH ?)");
-      params.push(query);
+      params.push(buildFtsQuery(query));
     }
     if (filters.severity) {
       conditions.push("m.severity = ?");
