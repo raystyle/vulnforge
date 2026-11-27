@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "notes": "Mutation primitives are DATA, not code (user ruling). The engine interprets this table; weight 0 disables a primitive without recompiling. Classes: A=static-char (antivirus signature evasion), B=function-site (call-site deformation), C=payload-structure, D=channel (WAF traffic side). Combination algebra: A/B stack, C at most once, D is an independent channel axis; the terminal executor stays plaintext (Bypass-Guide iron law 0.3).",
+  "primitives": [
+    {
+      "id": "char-chr-splice",
+      "class": "A",
+      "mechanism": "rebuild target function names from chr(n) concatenation",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "array-modulo-name",
+      "class": "A",
+      "mechanism": "rebuild names via array indexing with modulo",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "self-filename-key",
+      "class": "A",
+      "mechanism": "derive the key from the planted file's own name",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": ["on_disk_file"],
+      "excludes": []
+    },
+    {
+      "id": "special-chars-insert",
+      "class": "A",
+      "mechanism": "insert newline/whitespace to break signature regexes",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "strtr-chain",
+      "class": "A",
+      "mechanism": "strtr character-substitution chains decoded at runtime",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "base64-rotate",
+      "class": "A",
+      "mechanism": "base64 layer with runtime base64_decode",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": ["rot13", "gzinflate"]
+    },
+    {
+      "id": "rot13",
+      "class": "A",
+      "mechanism": "str_rot13 layer over the base64 carrier",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": ["base64-rotate", "gzinflate"]
+    },
+    {
+      "id": "gzinflate",
+      "class": "A",
+      "mechanism": "deflate+base64 layer with runtime gzinflate",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": ["base64-rotate", "rot13"]
+    },
+    {
+      "id": "callback-wrap",
+      "class": "B",
+      "mechanism": "call_user_func_array / array_map wrapping",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "variable-variable",
+      "class": "B",
+      "mechanism": "$$f indirect addressing",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "array-wrap",
+      "class": "B",
+      "mechanism": "array-wrapped invocation",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "class-magic",
+      "class": "B",
+      "mechanism": "hide execution in constructor/destructor",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "nested-operator",
+      "class": "B",
+      "mechanism": "nested operator chains to reshape the AST",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "heredoc-carry",
+      "class": "B",
+      "mechanism": "heredoc/backtick carriage",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "two-stage-write",
+      "class": "C",
+      "mechanism": "planted file is a writer that emits the real payload",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": ["on_disk_file"],
+      "excludes": []
+    },
+    {
+      "id": "single-constant-embed",
+      "class": "C",
+      "mechanism": "gzip+base64 single-string embed (class files)",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": ["class_generation"],
+      "excludes": []
+    },
+    {
+      "id": "name-randomize",
+      "class": "C",
+      "mechanism": "randomize variable names (superglobals untouched)",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "constant-split",
+      "class": "C",
+      "mechanism": "split string constants into concatenations",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "dead-code-inject",
+      "class": "C",
+      "mechanism": "inert statements change entropy and structure",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "header-gate-randomize",
+      "class": "D",
+      "mechanism": "randomize the gate header name from a benign pool",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "param-name-randomize",
+      "class": "D",
+      "mechanism": "randomize the pass parameter name",
+      "weight": 1.0,
+      "implemented": true,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "cipher-rotate",
+      "class": "D",
+      "mechanism": "XOR/AES switch plus deeper key derivation",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    },
+    {
+      "id": "body-carrier-switch",
+      "class": "D",
+      "mechanism": "param body / whole body / multipart carrier switch",
+      "weight": 1.0,
+      "implemented": false,
+      "requires": [],
+      "excludes": []
+    }
+  ]
+}
