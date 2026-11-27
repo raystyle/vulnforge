@@ -93,7 +93,7 @@ vulnforge-templates（独立模板仓，本计划初始化）
 
 ## 关键文件
 
-- 新建：`src/templates/{config,lint,mock,run,meta,scaffold}.ts`、`tests/templates/*.test.ts`、模板仓全套
+- 新建：`src/nuclei/{config,lint,mock,run,meta,scaffold}.ts`、`tests/nuclei/*.test.ts`、模板仓全套
 - 修改：`src/index.ts`（注册）、`package.json`（+yaml 依赖）、`scripts/pi-load-check.mjs`（不变）
 - 复用：`src/safety.ts` 危险命令模式（不直接复用于 mock，但保持同风格）；pi-super 的 spawn/confirm/findUp 模式（参照实现，非 import）
 

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { collectFiles, DEFAULT_SYNC_FILTER, type SyncFilter } from "../../src/templates/sync-machine.ts";
+import { collectFiles, DEFAULT_SYNC_FILTER, type SyncFilter } from "../../src/nuclei/sync-machine.ts";
 
 function filterWith(corpusDir: string): SyncFilter {
   return { ...DEFAULT_SYNC_FILTER, corpusDir };

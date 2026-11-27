@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withSpawnedMock } from "../../src/templates/mock-client.ts";
+import { withSpawnedMock } from "../../src/nuclei/mock-client.ts";
 
 function get(url: string, path: string): Promise<{ status: number; body: string }> {
   return fetch(`${url}${path}`).then(async (response) => ({ status: response.status, body: await response.text() }));

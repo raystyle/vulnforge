@@ -10,9 +10,9 @@
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { findTemplatesRoot } from "../src/templates/config.ts";
-import { parseTemplateFile, TemplateDb } from "../src/templates/meta.ts";
-import { runBatchSync } from "../src/templates/sync-machine.ts";
+import { findTemplatesRoot } from "../src/nuclei/config.ts";
+import { parseTemplateFile, TemplateDb } from "../src/nuclei/meta.ts";
+import { runBatchSync } from "../src/nuclei/sync-machine.ts";
 
 function resolveRoot() {
   // Config-driven: .vulnforge.json workspace marker discovered upward from

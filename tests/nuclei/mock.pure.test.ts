@@ -1,6 +1,6 @@
 import { request } from "node:http";
 import { describe, expect, it } from "vitest";
-import { benignProfile, type MockRoute, startMockTarget } from "../../src/templates/mock.ts";
+import { benignProfile, type MockRoute, startMockTarget } from "../../src/nuclei/mock.ts";
 
 function get(url: string, path: string): Promise<{ status: number; body: string; server: string }> {
   return new Promise((resolve, reject) => {

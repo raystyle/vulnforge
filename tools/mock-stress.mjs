@@ -7,8 +7,8 @@
  *   D. real-engine scan loop — repeated mock-target scans, timing distribution
  */
 import { request } from "node:http";
-import { spawnMockServer, withSpawnedMock } from "../src/templates/mock-client.ts";
-import { checkNuclei, createMockScanPort, runTemplateAgainst } from "../src/templates/run.ts";
+import { spawnMockServer, withSpawnedMock } from "../src/nuclei/mock-client.ts";
+import { checkNuclei, createMockScanPort, runTemplateAgainst } from "../src/nuclei/run.ts";
 
 const NUCLEI = "D:/ohmyenv/gopath/bin/nuclei.exe";
 const TPL_ABS = "D:/repos/vulnforge-workspace/nuclei-templates/http/technologies/tech-detect.yaml";

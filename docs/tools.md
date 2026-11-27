@@ -4,7 +4,7 @@
 
 ## 错误信封（智能体自纠偏契约）
 
-一切工具失败都原子暴露为三行信封（`src/templates/errors.ts`）：
+一切工具失败都原子暴露为三行信封（`src/nuclei/errors.ts`）：
 
 ```
 vf-error code=<稳定错误码>

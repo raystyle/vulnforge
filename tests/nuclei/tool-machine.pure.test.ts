@@ -5,7 +5,7 @@ import {
   runWithToolMachine,
   ToolExecutionMachine,
   withToolMachine,
-} from "../../src/templates/tool-machine.ts";
+} from "../../src/nuclei/tool-machine.ts";
 
 describe("tool-execution state machine (event-driven, minimal)", () => {
   it("idle → START → executing → SUCCEED → done", () => {

@@ -7,8 +7,8 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { TemplateDb } from "../src/templates/meta.ts";
-import { lintTemplateFile } from "../src/templates/sync-machine.ts";
+import { TemplateDb } from "../src/nuclei/meta.ts";
+import { lintTemplateFile } from "../src/nuclei/sync-machine.ts";
 
 const ROOT = "D:/repos/vulnforge-workspace/nuclei-templates";
 const CORPUS_DIRS = [
@@ -111,7 +111,7 @@ function parseOne(absolutePath) {
   return parseOneCache(absolutePath);
 }
 
-import { parseTemplateFile } from "../src/templates/meta.ts";
+import { parseTemplateFile } from "../src/nuclei/meta.ts";
 
 function parseOneCache(absolutePath) {
   const parsed = parseTemplateFile(absolutePath);

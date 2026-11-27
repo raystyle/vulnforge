@@ -1,6 +1,6 @@
 # 配置契约（.vulnforge.json）
 
-契约定义：`src/templates/config.ts`。模板仓标记文件，findTemplatesRoot 向上查找（就近优先，可穿透嵌套 git clone；到文件系统根未找到则抛含修复指引的诊断错误）。
+契约定义：`src/nuclei/config.ts`。模板仓标记文件，findTemplatesRoot 向上查找（就近优先，可穿透嵌套 git clone；到文件系统根未找到则抛含修复指引的诊断错误）。
 
 ## 结构
 

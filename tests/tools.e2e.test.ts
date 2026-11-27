@@ -40,7 +40,7 @@ beforeAll(async () => {
     );
     return;
   }
-  const { openTemplatesRepo } = await import("../src/templates/config.ts");
+  const { openTemplatesRepo } = await import("../src/nuclei/config.ts");
   const repo = openTemplatesRepo(WORKSPACE);
   // Copy the sealed db into a scratch location so sync/seal tests don't touch it.
   const scratchDb = mkdtempSync(join(tmpdir(), "vf-e2e-"));
@@ -72,8 +72,8 @@ describeIf("e2e over the real workspace corpus", () => {
   });
 
   it("poc_nuclei_run real engine: benign counter-check + programmed route scan", async () => {
-    const { checkNuclei } = await import("../src/templates/run.ts");
-    const { openTemplatesRepo } = await import("../src/templates/config.ts");
+    const { checkNuclei } = await import("../src/nuclei/run.ts");
+    const { openTemplatesRepo } = await import("../src/nuclei/config.ts");
     const repo = openTemplatesRepo(WORKSPACE);
     const availability = await checkNuclei(
       repo.config.tools.nucleiPath.length > 0 ? { nucleiPath: repo.config.tools.nucleiPath } : {},

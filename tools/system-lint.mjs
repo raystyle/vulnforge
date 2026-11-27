@@ -345,7 +345,7 @@ check("hook-watchlist-alignment", () => {
 // ---------------------------------------------------------------------------
 const WIRED_MACHINES_FLOOR = 3; // sync, engine-probe, mock-lifecycle; only goes up
 check("machines-wired", () => {
-  const templateDir = join(ROOT, "src", "templates");
+  const templateDir = join(ROOT, "src", "nuclei");
   const machineModules = readdirSync(templateDir)
     .filter((name) => /machine\.ts$/.test(name) || /lifecycle\.ts$/.test(name) || /probe\.ts$/.test(name))
     .map((name) => name.replace(/\.ts$/, ""));
@@ -385,7 +385,7 @@ check("machines-wired", () => {
     if (source === undefined) continue;
     reachable.add(current);
     for (const spec of importsOf(source)) {
-      // spec like "./mock.ts" or "../src/templates/run.ts" — resolve against
+      // spec like "./mock.ts" or "../src/nuclei/run.ts" — resolve against
       // the importing module's dir, then normalize the result.
       const parts = current.split("/");
       const dirParts = spec.startsWith("../") ? parts.slice(0, -2) : parts.slice(0, -1);
@@ -398,7 +398,7 @@ check("machines-wired", () => {
   const results = [];
   let wired = 0;
   for (const module of machineModules) {
-    const moduleId = `src/templates/${module}`;
+    const moduleId = `src/nuclei/${module}`;
     if (reachable.has(moduleId)) {
       wired++;
     } else {
@@ -410,7 +410,7 @@ check("machines-wired", () => {
   }
   if (wired < WIRED_MACHINES_FLOOR) {
     results.push({
-      file: "src/templates/",
+      file: "src/nuclei/",
       text: `wired machines ${wired} below ratchet floor ${WIRED_MACHINES_FLOOR}`,
     });
   }
@@ -655,13 +655,13 @@ check("code-naming", () => {
       results.push({ file: "src/index.ts", text: `command "${match[1]}" breaks the /vf[-<name>] naming form` });
     }
   }
-  for (const entry of readdirSync(join(ROOT, "src", "templates"))) {
+  for (const entry of readdirSync(join(ROOT, "src", "nuclei"))) {
     if (entry.endsWith(".ts")) {
-      const source = readFileSync(join(ROOT, "src", "templates", entry), "utf8");
+      const source = readFileSync(join(ROOT, "src", "nuclei", entry), "utf8");
       for (const match of source.matchAll(/export const (\w+) = setup\(/g)) {
         if (!/Machine$/.test(match[1])) {
           results.push({
-            file: `src/templates/${entry}`,
+            file: `src/nuclei/${entry}`,
             text: `machine export "${match[1]}" lacks the Machine suffix`,
           });
         }

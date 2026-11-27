@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseTemplateFile, syncFromFiles, TemplateDb } from "../../src/templates/meta.ts";
+import { parseTemplateFile, syncFromFiles, TemplateDb } from "../../src/nuclei/meta.ts";
 
 const GOOD_TEMPLATE = `
 id: acme-panel-rce

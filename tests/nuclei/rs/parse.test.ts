@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseRsScript } from "../../../src/templates/rs/script-parse.ts";
+import { parseRsScript } from "../../../src/nuclei/rs/script-parse.ts";
 
 const SAMPLE = [
   "#!/usr/bin/env rust-script",

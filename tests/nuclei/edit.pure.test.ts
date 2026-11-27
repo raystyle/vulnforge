@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { applyContent, applyEdit, EditError } from "../../src/templates/edit.ts";
+import { applyContent, applyEdit, EditError } from "../../src/nuclei/edit.ts";
 
 const BASE = [
   "id: acme-panel-rce",

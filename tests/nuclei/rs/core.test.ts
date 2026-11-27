@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { AgentResultSchema, RsMetaSchema, scriptName } from "../../../src/templates/rs/contracts.ts";
-import { RsDb } from "../../../src/templates/rs/db.ts";
+import { AgentResultSchema, RsMetaSchema, scriptName } from "../../../src/nuclei/rs/contracts.ts";
+import { RsDb } from "../../../src/nuclei/rs/db.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

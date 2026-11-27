@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { TemplateDb } from "../../src/templates/meta.ts";
-import { loadJobSnapshot, runBatchSync } from "../../src/templates/sync-machine.ts";
+import { TemplateDb } from "../../src/nuclei/meta.ts";
+import { loadJobSnapshot, runBatchSync } from "../../src/nuclei/sync-machine.ts";
 
 const TPL = (id: string, name: string) =>
   [
@@ -83,7 +83,7 @@ describe("runBatchSync (state machine)", () => {
       const all = ["http/t0.yaml", "http/t1.yaml", "http/t2.yaml"];
       for (const rel of all) {
         const absolute = join(root, rel);
-        const parsed = await import("../../src/templates/meta.ts").then((m) => m.parseTemplateFile(absolute));
+        const parsed = await import("../../src/nuclei/meta.ts").then((m) => m.parseTemplateFile(absolute));
         if ("parseError" in parsed) throw new Error(parsed.parseError);
         await db.upsert(parsed.meta, rel);
       }

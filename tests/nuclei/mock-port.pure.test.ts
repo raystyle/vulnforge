@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMockScanPort, parseJsonlHits, verifyNoFalsePositive } from "../../src/templates/run.ts";
+import { createMockScanPort, parseJsonlHits, verifyNoFalsePositive } from "../../src/nuclei/run.ts";
 
 const URL_A = "http://127.0.0.1:1";
 

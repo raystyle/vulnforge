@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { scriptName } from "../../../src/templates/rs/contracts.ts";
-import { RsDb } from "../../../src/templates/rs/db.ts";
-import { type RsStatsDimension, renderRsStats, rsOverview, rsStatsBy } from "../../../src/templates/rs/stats.ts";
+import { scriptName } from "../../../src/nuclei/rs/contracts.ts";
+import { RsDb } from "../../../src/nuclei/rs/db.ts";
+import { type RsStatsDimension, renderRsStats, rsOverview, rsStatsBy } from "../../../src/nuclei/rs/stats.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

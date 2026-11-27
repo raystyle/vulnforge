@@ -4,7 +4,7 @@
 // Output: lint-census.json + top-rule console summary.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { lintTemplateFile } from "../src/templates/lint.ts";
+import { lintTemplateFile } from "../src/nuclei/lint.ts";
 
 const root = process.argv[2] ?? "D:/repos/vulnforge-workspace/nuclei-poc";
 const files = [];

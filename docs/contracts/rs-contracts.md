@@ -1,6 +1,6 @@
 # rs 契约（exploit rs 域）
 
-契约定义：`src/templates/rs/contracts.ts`、`src/templates/rs/db.ts`。物化库 = 一漏洞一 exploit rs（脚本名 = 漏洞标识）。
+契约定义：`src/nuclei/rs/contracts.ts`、`src/nuclei/rs/db.ts`。物化库 = 一漏洞一 exploit rs（脚本名 = 漏洞标识）。
 
 ## 品牌契约
 

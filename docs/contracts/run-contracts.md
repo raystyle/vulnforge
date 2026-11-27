@@ -1,6 +1,6 @@
 # 执行契约（run / mock / lint / scaffold）
 
-契约定义源码：`src/templates/run.ts`、`mock.ts`、`lint.ts`、`scaffold.ts`。逐项列出全部导出契约。
+契约定义源码：`src/nuclei/run.ts`、`mock.ts`、`lint.ts`、`scaffold.ts`。逐项列出全部导出契约。
 
 ## 1. run.ts — nuclei 执行
 

@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { createActor } from "xstate";
-import { parseAgentResult } from "../../../src/templates/rs/contracts.ts";
-import { assertRsExecuteEventHandled, RsExecuteMachine } from "../../../src/templates/rs/execute-machine.ts";
-import { oobEnvFor, runRsScript } from "../../../src/templates/rs/executor.ts";
+import { parseAgentResult } from "../../../src/nuclei/rs/contracts.ts";
+import { assertRsExecuteEventHandled, RsExecuteMachine } from "../../../src/nuclei/rs/execute-machine.ts";
+import { oobEnvFor, runRsScript } from "../../../src/nuclei/rs/executor.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { openTemplatesRepo, type TemplatesRepo } from "../../src/templates/config.ts";
-import { errResult, resolveInsideRepo, textResult } from "../../src/templates/tool-registry.ts";
+import { openTemplatesRepo, type TemplatesRepo } from "../../src/nuclei/config.ts";
+import { errResult, resolveInsideRepo, textResult } from "../../src/nuclei/tool-registry.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

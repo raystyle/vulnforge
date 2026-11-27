@@ -12,11 +12,11 @@
  *   4. spawned child-process mock server serves the route; real engine hits it
  */
 import { readFileSync } from "node:fs";
-import { TemplateDb } from "../src/templates/meta.ts";
-import { benignProfile } from "../src/templates/mock.ts";
-import { withSpawnedMock } from "../src/templates/mock-client.ts";
-import { checkNuclei, createMockScanPort, runTemplateAgainst, verifyNoFalsePositive } from "../src/templates/run.ts";
-import { lintTemplateFile } from "../src/templates/sync-machine.ts";
+import { TemplateDb } from "../src/nuclei/meta.ts";
+import { benignProfile } from "../src/nuclei/mock.ts";
+import { withSpawnedMock } from "../src/nuclei/mock-client.ts";
+import { checkNuclei, createMockScanPort, runTemplateAgainst, verifyNoFalsePositive } from "../src/nuclei/run.ts";
+import { lintTemplateFile } from "../src/nuclei/sync-machine.ts";
 
 const WORKSPACE = "D:/repos/vulnforge-workspace";
 const TPL_REL = "nuclei-templates/http/technologies/tech-detect.yaml";

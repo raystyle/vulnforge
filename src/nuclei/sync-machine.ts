@@ -366,6 +366,12 @@ export async function runBatchSync(
 
   const files = collectYamlFiles(root, options.filter);
   const batch = files.slice(startCursor);
+  // Compaction scope = the WHOLE scan list (files, not just this run's
+  // batch): a resumed run processes a slice, and rows for paths outside the
+  // slice are legitimately present from earlier runs/crashes. Removing rows
+  // whose path is absent from files (the authoritative scan) is the
+  // invariant; intersecting with the batch would delete pre-upserted rows.
+  const scannedPaths = files;
   // Relative paths are corpus-relative; reads must resolve against the corpus root.
   const corpusRoot =
     options.filter !== undefined && options.filter.corpusDir.length > 0 ? join(root, options.filter.corpusDir) : root;
@@ -384,7 +390,7 @@ export async function runBatchSync(
 
   const synced: string[] = [];
   const failed: Array<{ path: string; error: string }> = [];
-  const removed: string[] = [];
+  let removed: string[] = [];
   const lintFindings: Array<{ path: string; errors: number; warnings: number }> = [];
 
   for (const rel of batch) {
@@ -419,6 +425,12 @@ export async function runBatchSync(
     }
     actor.send({ type: "FILE_DONE", path: rel, outcome });
   }
+
+  // Compaction: rows whose path is absent from the whole scan (file
+  // deleted, or a path migrated under a different id during
+  // case-normalization) must go — otherwise the index grows monotonically
+  // and search returns ghosts.
+  removed = db.retainPaths(scannedPaths);
 
   actor.send({ type: "BATCH_COMPLETE" });
 

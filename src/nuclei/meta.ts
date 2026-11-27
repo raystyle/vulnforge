@@ -190,7 +190,7 @@ export const tplMeta = sqliteTable(
     cwe: text("cwe").notNull().default(""),
     protocol: text("protocol").notNull().default("http"),
     affectedProduct: text("affected_product").notNull().default(""),
-    relativePath: text("relative_path").notNull().default(""),
+    relativePath: text("relative_path").notNull().unique(),
     duplicateKey: text("duplicate_key").notNull().default(""),
     identityProduct: text("identity_product").notNull().default(""),
     identityVulnClass: text("identity_vuln_class").notNull().default(""),
@@ -219,7 +219,7 @@ export interface SealRecord {
 const DDL = `
 CREATE TABLE IF NOT EXISTS tpl_meta (
   rowid INTEGER PRIMARY KEY,
-  id TEXT NOT NULL UNIQUE,
+  id TEXT NOT NULL,
   name TEXT NOT NULL DEFAULT '',
   author TEXT NOT NULL DEFAULT '',
   severity TEXT NOT NULL DEFAULT 'info',
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS tpl_meta (
   cwe TEXT NOT NULL DEFAULT '',
   protocol TEXT NOT NULL DEFAULT 'http',
   affected_product TEXT NOT NULL DEFAULT '',
-  relative_path TEXT NOT NULL DEFAULT '',
+  relative_path TEXT NOT NULL UNIQUE,
   duplicate_key TEXT NOT NULL DEFAULT '',
   identity_product TEXT NOT NULL DEFAULT '',
   identity_vuln_class TEXT NOT NULL DEFAULT '',
@@ -392,8 +392,13 @@ export class TemplateDb {
         .insert(tplMeta)
         .values(full)
         .onConflictDoUpdate({
-          target: tplMeta.id,
+          // relative_path is the natural identity: one file = one row. The
+          // id is canonical-normalized at the contract boundary and may
+          // legitimately change for the same file (the case-normalization
+          // migration); keying the upsert on id stranded the old row.
+          target: tplMeta.relativePath,
           set: {
+            id: full.id,
             name: full.name,
             author: full.author,
             severity: full.severity,
@@ -403,7 +408,6 @@ export class TemplateDb {
             cwe: full.cwe,
             protocol: full.protocol,
             affectedProduct: full.affectedProduct,
-            relativePath: full.relativePath,
             duplicateKey: full.duplicateKey,
             identityProduct: full.identityProduct,
             identityVulnClass: full.identityVulnClass,
@@ -412,11 +416,13 @@ export class TemplateDb {
             updatedAt: full.updatedAt,
           },
         });
-      this.client.prepare("DELETE FROM tpl_fts WHERE rowid = (SELECT rowid FROM tpl_meta WHERE id = ?)").run(full.id);
-      const row = this.client.prepare("SELECT rowid FROM tpl_meta WHERE id = ?").get(full.id) as
+      this.client
+        .prepare("DELETE FROM tpl_fts WHERE rowid = (SELECT rowid FROM tpl_meta WHERE relative_path = ?)")
+        .run(full.relativePath);
+      const row = this.client.prepare("SELECT rowid FROM tpl_meta WHERE relative_path = ?").get(full.relativePath) as
         | { rowid: number }
         | undefined;
-      if (row === undefined) throw new Error(`upsert lost row for ${full.id}`);
+      if (row === undefined) throw new Error(`upsert lost row for ${full.relativePath}`);
       this.client
         .prepare(
           "INSERT INTO tpl_fts (rowid, id, tags, cve, affected_product, name, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -427,6 +433,32 @@ export class TemplateDb {
       this.client.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  /** Remove rows whose relative_path is no longer on disk (sync compaction):
+   * catches id-migration strays and deleted files in one sweep. Returns the
+   * removed paths (SyncResult.removed carries paths, not a count). */
+  retainPaths(paths: readonly string[]): string[] {
+    const keep = new Set(paths);
+    const rows = this.client.prepare("SELECT rowid, relative_path FROM tpl_meta").all() as Array<{
+      rowid: number;
+      relative_path: string;
+    }>;
+    const removedPaths: string[] = [];
+    this.client.exec("BEGIN");
+    try {
+      for (const row of rows) {
+        if (keep.has(row.relative_path)) continue;
+        this.client.prepare("DELETE FROM tpl_meta WHERE rowid = ?").run(row.rowid);
+        this.client.prepare("DELETE FROM tpl_fts WHERE rowid = ?").run(row.rowid);
+        removedPaths.push(row.relative_path);
+      }
+      this.client.exec("COMMIT");
+    } catch (error) {
+      this.client.exec("ROLLBACK");
+      throw error;
+    }
+    return removedPaths;
   }
 
   count(): number {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lintYaml } from "../../src/templates/yamllint.ts";
+import { lintYaml } from "../../src/nuclei/yamllint.ts";
 
 describe("lintYaml", () => {
   it("accepts clean block-style yaml", () => {

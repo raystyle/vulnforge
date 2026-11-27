@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkEnvironment, platformCommands } from "../../src/templates/env.ts";
-import { EnvToolNameSchema } from "../../src/templates/env-contract.ts";
+import { checkEnvironment, platformCommands } from "../../src/nuclei/env.ts";
+import { EnvToolNameSchema } from "../../src/nuclei/env-contract.ts";
 
 describe("enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party)", () => {
   it("checkEnvironment reports the java item (present or fix guidance)", async () => {

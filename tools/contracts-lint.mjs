@@ -2,12 +2,12 @@
 /**
  * contracts-lint: verify the contract docs cover every exported contract.
  *
- * For each module under src/templates/, extract exported symbols (types,
+ * For each module under src/nuclei/, extract exported symbols (types,
  * interfaces, classes, functions, const schemas) and check that the
  * corresponding contract doc mentions every symbol name. A missing name
  * means the docs drifted behind the code (or the export is undocumented).
  *
- * Mapping: docs/contracts/<topic>.md ↔ src/templates/<module>.ts
+ * Mapping: docs/contracts/<topic>.md ↔ src/nuclei/<module>.ts
  *   meta.ts        → template-contracts.md
  *   env.ts         → env-contracts.md
  *   config.ts      → config-contracts.md
@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..");
-const SRC = join(ROOT, "src", "templates");
+const SRC = join(ROOT, "src", "nuclei");
 const DOCS = join(ROOT, "docs", "contracts");
 
 const MAPPING = {
@@ -135,7 +135,7 @@ for (const [module, doc] of Object.entries(MAPPING)) {
 if (missing.length > 0) {
   console.error(`contracts-lint: ${missing.length} symbol(s) missing from docs (of ${checked} checked)`);
   for (const item of missing) {
-    console.error(`  src/templates/${item.module}: ${item.symbol} not documented in docs/contracts/${item.doc}`);
+    console.error(`  src/nuclei/${item.module}: ${item.symbol} not documented in docs/contracts/${item.doc}`);
   }
   console.error("Contract docs must list every exported contract symbol. Update the doc or drop the export.");
   process.exit(1);

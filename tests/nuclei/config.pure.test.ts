@@ -8,7 +8,7 @@ import {
   parseConfig,
   piDataDir,
   resolveLayeredConfig,
-} from "../../src/templates/config.ts";
+} from "../../src/nuclei/config.ts";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "vf-tpl-"));

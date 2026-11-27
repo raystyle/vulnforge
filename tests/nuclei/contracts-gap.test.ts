@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createActor } from "xstate";
-import { assertEngineProbeEventHandled, EngineProbeMachine, probeEngine } from "../../src/templates/engine-probe.ts";
-import { checkNuclei } from "../../src/templates/run.ts";
+import { assertEngineProbeEventHandled, EngineProbeMachine, probeEngine } from "../../src/nuclei/engine-probe.ts";
+import { checkNuclei } from "../../src/nuclei/run.ts";
 import {
   EngineModeSchema,
   RemoteTargetSchema,
@@ -10,7 +10,7 @@ import {
   ScaffoldInputSchema,
   scaffoldId,
   VulnTypeSchema,
-} from "../../src/templates/scaffold-contract.ts";
+} from "../../src/nuclei/scaffold-contract.ts";
 
 describe("engine-probe state machine (event-driven)", () => {
   it("probing → PROBE_RESULT(available) → available", () => {

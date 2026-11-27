@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { RsDb } from "../../../src/templates/rs/db.ts";
-import { runRsSync } from "../../../src/templates/rs/sync.ts";
+import { RsDb } from "../../../src/nuclei/rs/db.ts";
+import { runRsSync } from "../../../src/nuclei/rs/sync.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

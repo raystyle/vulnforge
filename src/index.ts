@@ -3,28 +3,27 @@ import { basename, join } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
-import type { TemplatesRepo } from "./templates/config.ts";
-import { parseConfig } from "./templates/config.ts";
-import { applyContent, applyEdit, EditError, validateEditPatch } from "./templates/edit.ts";
-import { probeEngine } from "./templates/engine-probe.ts";
-import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./templates/env.ts";
-import type { LintFinding } from "./templates/lint.ts";
-import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
-import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
-import { applyRsEdit, RsEditError, validateRsPatch } from "./templates/rs/edit.ts";
-import { oobEnvFor, runRsScript } from "./templates/rs/executor.ts";
-import { runRsExport } from "./templates/rs/export.ts";
+import type { TemplatesRepo } from "./nuclei/config.ts";
+import { parseConfig } from "./nuclei/config.ts";
+import { applyContent, applyEdit, EditError, validateEditPatch } from "./nuclei/edit.ts";
+import { probeEngine } from "./nuclei/engine-probe.ts";
+import { checkEnvironment, environmentText, fixCommandsFor, runInstallAction } from "./nuclei/env.ts";
+import type { LintFinding } from "./nuclei/lint.ts";
+import type { MetaColumn, TplMetaContract } from "./nuclei/meta.ts";
+import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./nuclei/mock.ts";
+import { applyRsEdit, RsEditError, validateRsPatch } from "./nuclei/rs/edit.ts";
+import { oobEnvFor, runRsScript } from "./nuclei/rs/executor.ts";
+import { runRsExport } from "./nuclei/rs/export.ts";
 import {
   type DeliverFormName,
   type RsExploitType,
   rsSkeletonFor,
   rsTargetDirectory,
   scriptNameFromVulnId,
-} from "./templates/rs/scaffold-facade.ts";
-import { openRsDb, renderRsSearch, rsExploitFor, rsSearch } from "./templates/rs/search.ts";
-import { renderRsStats } from "./templates/rs/stats.ts";
-import { runRsSync } from "./templates/rs/sync.ts";
+} from "./nuclei/rs/scaffold-facade.ts";
+import { openRsDb, renderRsSearch, rsExploitFor, rsSearch } from "./nuclei/rs/search.ts";
+import { renderRsStats } from "./nuclei/rs/stats.ts";
+import { runRsSync } from "./nuclei/rs/sync.ts";
 import {
   checkNuclei,
   createMockScanPort,
@@ -33,7 +32,7 @@ import {
   runTemplateAgainst,
   type ScanPort,
   verifyNoFalsePositive,
-} from "./templates/run.ts";
+} from "./nuclei/run.ts";
 import {
   type ScaffoldInput,
   skeletonFor,
@@ -41,10 +40,10 @@ import {
   templateIdFromName,
   VULN_TYPES,
   type VulnType,
-} from "./templates/scaffold.ts";
-import { renderStats } from "./templates/stats-report.ts";
-import { runBatchSync } from "./templates/sync-machine.ts";
-import { withToolMachine } from "./templates/tool-machine.ts";
+} from "./nuclei/scaffold.ts";
+import { renderStats } from "./nuclei/stats-report.ts";
+import { runBatchSync } from "./nuclei/sync-machine.ts";
+import { withToolMachine } from "./nuclei/tool-machine.ts";
 import {
   envelope,
   errResult,
@@ -52,7 +51,8 @@ import {
   type RepoTools,
   resolveInsideRepo,
   textResult,
-} from "./templates/tool-registry.ts";
+} from "./nuclei/tool-registry.ts";
+import { DANGEROUS_PATTERNS, isDangerousCommand } from "./safety.ts";
 
 /**
  * Engine resolution for poc_nuclei_run: explicit mock wins; otherwise probe
@@ -249,7 +249,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         const absolute = resolveInsideRepo(tools.repo, params.path);
         const source = readFileSync(absolute, "utf8");
-        const { lintTemplateFile } = await import("./templates/sync-machine.ts");
+        const { lintTemplateFile } = await import("./nuclei/sync-machine.ts");
         const lint = lintTemplateFile(source, params.path);
         if (lint.error !== undefined) {
           return errResult("TEMPLATE_INVALID", `yaml parse failed: ${lint.error}`, "fix the yaml syntax, then re-lint");
@@ -547,7 +547,7 @@ export default function (pi: ExtensionAPI): void {
         return envelope(error);
       }
       try {
-        const { syncFilterFromConfig } = await import("./templates/sync-machine.ts");
+        const { syncFilterFromConfig } = await import("./nuclei/sync-machine.ts");
         const result = await runBatchSync(tools.db, tools.repo.root, {
           ...(params.resumeFrom !== undefined ? { resumeFrom: params.resumeFrom } : {}),
           filter: syncFilterFromConfig(tools.repo.config),
@@ -719,7 +719,7 @@ export default function (pi: ExtensionAPI): void {
       } catch (error) {
         return envelope(error);
       }
-      let rsDb: import("./templates/rs/db.ts").RsDb | undefined;
+      let rsDb: import("./nuclei/rs/db.ts").RsDb | undefined;
       try {
         rsDb = openRsDb(tools.repo.root);
         if (params.vulnId !== undefined) {
@@ -1014,7 +1014,7 @@ export default function (pi: ExtensionAPI): void {
       } catch (error) {
         return envelope(error);
       }
-      let rsDb: import("./templates/rs/db.ts").RsDb | undefined;
+      let rsDb: import("./nuclei/rs/db.ts").RsDb | undefined;
       try {
         rsDb = openRsDb(tools.repo.root);
         const text = renderRsStats(rsDb, params.dimension, params.limit ?? 15);

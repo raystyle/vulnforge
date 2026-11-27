@@ -4,7 +4,7 @@ import {
   assertLifecycleEventHandled,
   MockLifecycleMachine,
   trackMockLifecycle,
-} from "../../src/templates/mock-lifecycle.ts";
+} from "../../src/nuclei/mock-lifecycle.ts";
 
 describe("MockLifecycleMachine (event-driven lifecycle)", () => {
   it("spawning → SPAWN → ready → CLOSED → closed", () => {

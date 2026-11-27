@@ -1,9 +1,9 @@
 // P3 acceptance: drive the REAL corpus through our own sync pipeline.
 // Workspace root comes from the environment (VULNFORGE_WORKSPACE) or the
 // caller's cwd walk-up — no machine-specific paths in the harness.
-import { openTemplatesRepo } from "../src/templates/config.ts";
-import { TemplateDb } from "../src/templates/meta.ts";
-import { runBatchSync, syncFilterFromConfig } from "../src/templates/sync-machine.ts";
+import { openTemplatesRepo } from "../src/nuclei/config.ts";
+import { TemplateDb } from "../src/nuclei/meta.ts";
+import { runBatchSync, syncFilterFromConfig } from "../src/nuclei/sync-machine.ts";
 
 const start = process.argv[2] ?? process.env.VULNFORGE_WORKSPACE ?? process.cwd();
 const repo = openTemplatesRepo(start);

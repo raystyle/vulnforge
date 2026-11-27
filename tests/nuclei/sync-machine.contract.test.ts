@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertSyncEventHandled, SYNC_EVENT_TYPES, syncMachine } from "../../src/templates/sync-machine.ts";
+import { assertSyncEventHandled, SYNC_EVENT_TYPES, syncMachine } from "../../src/nuclei/sync-machine.ts";
 
 /**
  * Machine contract: compile-time exhaustiveness lives in

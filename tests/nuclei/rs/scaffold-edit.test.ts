@@ -2,13 +2,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { applyRsEdit, RsEditError, validateRsPatch } from "../../../src/templates/rs/edit.ts";
+import { applyRsEdit, RsEditError, validateRsPatch } from "../../../src/nuclei/rs/edit.ts";
 import {
   RS_EXPLOIT_TYPES,
   rsSkeletonFor,
   rsTargetDirectory,
   scriptNameFromVulnId,
-} from "../../../src/templates/rs/scaffold.ts";
+} from "../../../src/nuclei/rs/scaffold.ts";
 
 const scratch: string[] = [];
 afterAll(() => {

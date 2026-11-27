@@ -1,6 +1,6 @@
 # 环境契约（EnvCheckItem / MirrorCheckItem / EnvAcceptance）
 
-契约定义：`src/templates/env.ts`。平台：Windows / Linux / macOS 三平台（主开发机 Windows，lan-ubuntu 与 lan-mac 工作台验证）。
+契约定义：`src/nuclei/env.ts`。平台：Windows / Linux / macOS 三平台（主开发机 Windows，lan-ubuntu 与 lan-mac 工作台验证）。
 
 ## 1. EnvCheckItem（检查项）
 

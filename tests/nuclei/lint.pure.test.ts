@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkStructure, checkWeakMatchers, lintDocument } from "../../src/templates/lint.ts";
+import { checkStructure, checkWeakMatchers, lintDocument } from "../../src/nuclei/lint.ts";
 
 const goodTemplate = {
   id: "acme-panel-rce",
