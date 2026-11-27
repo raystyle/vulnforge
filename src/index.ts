@@ -861,7 +861,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: "exploit_rs_execute",
+    name: "exploit_rs_run",
     label: "VulnForge exploit rs execute",
     description:
       "Execute an exploit rs script: advisory //! lint, spawn rust-script (stream collection, timeout kill backstop, VF_TIMEOUT_SECS passthrough), then the single-line AgentResult contract parse. The full flow runs through the rs-execute domain state machine.",
@@ -872,7 +872,7 @@ export default function (pi: ExtensionAPI): void {
         Type.Integer({ description: "Deadline in seconds (default 300); the process is killed after it" }),
       ),
     }),
-    execute: withToolMachine("exploit_rs_execute", async (_id, params, _signal, _onUpdate, ctx) => {
+    execute: withToolMachine("exploit_rs_run", async (_id, params, _signal, _onUpdate, ctx) => {
       let tools: RepoTools;
       try {
         tools = openRepoTools(ctx.cwd);

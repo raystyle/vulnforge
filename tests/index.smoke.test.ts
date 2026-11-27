@@ -53,7 +53,7 @@ describe("extension factory", () => {
       "exploit_rs_search",
       "exploit_rs_new",
       "exploit_rs_edit",
-      "exploit_rs_execute",
+      "exploit_rs_run",
       "exploit_rs_export",
       "exploit_rs_sync",
       "exploit_rs_stats",
