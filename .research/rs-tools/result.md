@@ -8,11 +8,11 @@
 
 实测表明，全部门绿：
 
-| 门 | 命令 | 退出码 | 结果 |
-| --- | --- | --- | --- |
-| TS 七项门 | `npm run check` | 0 | biome + tsc + brand-lint + contracts-lint(207/207) + system-lint(14/14) + vitest 184+9 + pi-load |
-| Rust 门 | `npm run rs-lib` | 0 | fmt --check + clippy -D warnings + cargo test 63+1 |
-| e2e（真实工作区） | `VULNFORGE_E2E_WORKSPACE=D:/repos/vulnforge-workspace npx vitest run tests/tools.e2e.test.ts` | 0 | 9/9（SKIP 已解除） |
+| 门                | 命令                                                                                          | 退出码 | 结果                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
+| TS 七项门         | `npm run check`                                                                               | 0      | biome + tsc + brand-lint + contracts-lint(207/207) + system-lint(14/14) + vitest 184+9 + pi-load |
+| Rust 门           | `npm run rs-lib`                                                                              | 0      | fmt --check + clippy -D warnings + cargo test 63+1                                               |
+| e2e（真实工作区） | `VULNFORGE_E2E_WORKSPACE=D:/repos/vulnforge-workspace npx vitest run tests/tools.e2e.test.ts` | 0      | 9/9（SKIP 已解除）                                                                               |
 
 - **evidence**：`evidence/{check-gate,rs-lib-gate,cargo-test,vitest-verbose,e2e-verbose}.log`
 - **先红后绿记录**（4 例，全红后还原复绿）：
