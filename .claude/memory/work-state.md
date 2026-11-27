@@ -6,7 +6,7 @@ metadata:
 node_type: memory
 type: project
 originSessionId: d8cd2140-8dfa-43c0-8e0b-a189c6c104d9
-modified: 2026-11-27T03:04:37.332Z
+modified: 2026-11-27T03:25:17.727Z
 ---
 
 # VulnForge 工作状态（2026-11-27）
@@ -24,5 +24,6 @@ modified: 2026-11-27T03:04:37.332Z
 - exploit_rs_sync/stats 已注册对齐 poc 面（branded group-by）；webshell 免杀研究收口（Bypass-Guide 手册：检测分类学+8 类变异原语+两阶段写入；mutate 原语做成数据）
 - **范围裁定：后渗透止于隧道代理（webshell 实现）**——能力四件：写入/执行命令/通信加密/隧道代理；权限维持/横向移动/凭据收集/C2 明确不做
 - **2026-11-27 交付**：oob 模块（interactsh 全协议/collaborator/dnslog 三 provider + Lease 租约轮询；密钥红线 = token/biid 只经环境变量；.vulnforge.json oob 段非密事实 → oobEnvFor → VF_OOB_* 透传）；mutate 数据面（23 原语 JSON 表 + 组合代数 + 种子确定性 + A/C/B/D 全类执行器）；.NET webshell 面（aspx 通道 + ysoserial.net CLI 编排 + ViewState + behinder Assembly.Load 面）；三语言隧道模板（php/jsp/aspx forward-spec 形）；widgets http/net/fingerprint；配置分层阶段 2（pi 数据目录全局回退）。顺手修 fixCommandsFor 反转过滤器。三平台两轮全绿。三平台 peer 轮流程沉淀进 verify skill。rust-lib 89+1 测试
-- **到 pve 边界**：剩余待办全部依赖 pve 靶场环（批次 2）——变异-测试闭环（检测平台 + RASP 沙箱）、nrbf 生成面、隧道会话形 + 操作端 SOCKS。独立审查进行中
-- 待做：pve 靶场环（批次 2，双锻造线通用验证底座）
+- **到 pve 边界**：剩余待办全部依赖 pve 靶场环（批次 2）——变异-测试闭环（检测平台 + RASP 沙箱）、nrbf 生成面、隧道会话形 + 操作端 SOCKS。独立审查结论归档后收口
+- **pve 集成方式（用户裁定 2026-11-27）**：等用户的 pve MCP（hvperv-harness/mcps/ 系——已有 hyperv-mcp/vm-repl-mcp/browser-control-mcp 同族）做好后由 Claude 安装操作接入——不自建 pve 靶场工具面，复用用户 MCP 生态
+- 待做：pve 靶场环（批次 2，双锻造线通用验证底座，经用户 pve MCP 接入）
