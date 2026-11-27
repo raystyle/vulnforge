@@ -1,0 +1,82 @@
+
+> vulnforge@0.1.0 rs-lib
+> cargo fmt --manifest-path vf-rust-lib/Cargo.toml --check && cargo clippy --manifest-path vf-rust-lib/Cargo.toml -- -D warnings && cargo test --manifest-path vf-rust-lib/Cargo.toml
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src\lib.rs (vf-rust-lib\target\debug\deps\vf_rust_lib-29fd483481c3763d.exe)
+
+running 64 tests
+test machine::delivery_forms_tests::with_deliver_encodes_form_in_step_name ... ok
+test machine::tests::exhaustion_without_data_is_soft_failure ... ok
+test mutate::tests::channel_variant_randomizes_d_axis ... ok
+test oob::tests::interactsh_full_flow_public ... ignored, registers against public interactsh servers (manual verification)
+test oob::tests::interactsh_matching_by_unique_or_full_id ... ok
+test machine::tests::standard_flow_data_terminates_with_trace ... ok
+test mutate::tests::mutate_php_returns_body_and_provenance ... ok
+test oob::tests::collaborator_label_cipher_is_reversible ... ok
+test machine::tests::state_flows_between_steps ... ok
+test machine::delivery_forms_tests::deliver_form_names_are_stable ... ok
+test mutate::tests::unimplemented_primitive_in_chain_is_a_soft_atom ... ok
+test mutate::tests::name_randomize_keeps_superglobals_and_this ... ok
+test machine::tests::failure_exits_with_atom_and_trace ... ok
+test mutate::tests::primitive_table_parses_with_expected_shape ... ok
+test oob::tests::collaborator_rejects_bad_biid ... ok
+test oob::tests::collaborator_poll_fixture_summarizes ... ok
+test oob::tests::dnslog_rejects_bad_config ... ok
+test oob::tests::collaborator_key_hash_shape ... ok
+test mutate::tests::variant_is_deterministic_per_seed ... ok
+test oob::tests::correlation_id_and_nonce_shapes ... ok
+test mutate::tests::channel_facts_are_skipped_by_the_payload_executor ... ok
+test mutate::tests::chr_splice_removes_the_literal_function_name ... ok
+test mutate::tests::constant_split_and_dead_code_preserve_statements ... ok
+test machine::tests::early_data_marks_skip_verify ... ok
+test mutate::tests::base64_and_rot13_layers_hide_the_payload ... ok
+test oob::tests::aes256_ctr_matches_nist_sp800_38a_f55 ... ok
+test mutate::tests::variant_id_is_order_insensitive_and_stable ... ok
+test oob::tests::dnslog_template_and_mint_shape ... ok
+test oob::tests::register_body_uses_kebab_case_keys ... ok
+test oob::tests::uuid_v4_shape ... ok
+test payload::tests::b64_roundtrip_known_vectors ... ok
+test payload::tests::cheat_sheet_transport_roundtrip ... ok
+test payload::tests::hex_is_lowercase ... ok
+test payload::tests::shell_payload_transports ... ok
+test payload::tests::url_encode_escapes_the_transport_set ... ok
+test runtime::tests::b64_markers_without_decoding ... ok
+test runtime::tests::dotnet_payload_routes_to_runtime ... ok
+test runtime::tests::java_magic_is_detected ... ok
+test runtime::tests::json_typed_is_detected ... ok
+test runtime::tests::native_chain_coverage_is_the_ysoserial_rs_set ... ok
+test runtime::tests::nrbf_magic_is_detected ... ok
+test runtime::tests::output_format_wire_names ... ok
+test runtime::tests::viewstate_prefix_is_detected ... ok
+test runtime::tests::viewstate_payload_args_carry_machinekey_material ... ok
+test oob::tests::poll_until_tolerates_transient_errors_but_not_auth ... ok
+test runtime::tests::webshell_templates_are_the_cheat_sheet_one_liners ... ok
+test runtime::tests::ysoserial_net_args_match_the_cli_shape ... ok
+test webshell::jsp_behinder_tests::behinder_face_wraps_class_bytes_as_body ... ok
+test webshell::jsp_behinder_tests::aspx_template_gates_on_header_and_ciphers ... ok
+test webshell::jsp_behinder_tests::jsp_template_gates_on_header_and_ciphers ... ok
+test webshell::tests::b64_decode_known_vectors ... ok
+test webshell::tests::cipher_roundtrips_through_wrap_and_unwrap ... ok
+test runtime::tests::ysoserial_net_stdin_mode_drops_the_c_flag ... ok
+test webshell::tests::derivation_chain_is_godzilla_shape ... ok
+test webshell::tests::drive_request_carries_gate_not_command ... ok
+test webshell::tests::md5_matches_rfc1321_vectors ... ok
+test webshell::tests::response_sandwich_unwraps_and_rejects ... ok
+test webshell::tests::php_template_has_no_shell_syntax_signatures ... ok
+test oob::tests::poll_until_hits_after_retries ... ok
+test mutate::tests::on_disk_requirements_gate_primitives ... ok
+test oob::tests::poll_until_reports_deadline ... ok
+test mutate::tests::variant_respects_class_c_single_and_excludes ... ok
+test oob::tests::interactsh_poll_decrypt_roundtrip ... ok
+test oob::tests::public_key_pem_shape_matches_server_parser ... ok
+
+test result: ok. 63 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 4.61s
+
+   Doc-tests vf_rust_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

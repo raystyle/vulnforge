@@ -1,0 +1,7 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src\lib.rs (target\debug\deps\vf_rust_lib-29fd483481c3763d.exe)
+
+running 64 tests
+........i.......................................................
+test result: ok. 63 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 6.91s
+

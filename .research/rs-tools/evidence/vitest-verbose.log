@@ -1,0 +1,210 @@
+
+ RUN  v4.1.12 D:/repos/vulnforge
+
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > spawning → SPAWN → ready → CLOSED → closed 8ms
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > spawning → CHILD_ERROR → failed (terminal) 1ms
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > ready → CLOSE_REQUESTED → closing → CLOSED → closed 1ms
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > phase reporter maps control events to lifecycle states 1ms
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > control error event transitions to failed via the reporter 1ms
+ ✓ tests/templates/mock-lifecycle.test.ts > MockLifecycleMachine (event-driven lifecycle) > guard rejects unknown lifecycle event types 2ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > idle → START → executing → SUCCEED → done 9ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > executing → FAIL(error) → failed with the error in context 1ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > guard rejects unknown event types 2ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > runWithToolMachine: success result passes through and reports done 2ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > runWithToolMachine: isError result reports failed with no error detail 1ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > runWithToolMachine: thrown error reports failed with the message and rethrows 2ms
+ ✓ tests/templates/tool-machine.pure.test.ts > tool-execution state machine (event-driven, minimal) > withToolMachine: wraps an execute fn, preserves args and return value 1ms
+ ✓ tests/templates/lint.pure.test.ts > checkStructure > reports no findings for a compliant template 4ms
+ ✓ tests/templates/lint.pure.test.ts > checkStructure > catches every structural problem in the weak template 2ms
+ ✓ tests/templates/lint.pure.test.ts > checkStructure > warns when the id exceeds five words 1ms
+ ✓ tests/templates/lint.pure.test.ts > checkWeakMatchers > accepts multi-layer matchers with a proof marker 1ms
+ ✓ tests/templates/lint.pure.test.ts > checkWeakMatchers > flags weak words as errors 0ms
+ ✓ tests/templates/lint.pure.test.ts > checkWeakMatchers > flags a missing matcher block 0ms
+ ✓ tests/templates/lint.pure.test.ts > checkWeakMatchers > suggests multi-layer verification for a single word matcher 1ms
+ ✓ tests/templates/lint.pure.test.ts > lintDocument > combines structure and matcher findings 1ms
+ ✓ tests/templates/rs/parse.test.ts > parseRsScript > parses the //! header run (contiguous after shebang) 6ms
+ ✓ tests/templates/rs/parse.test.ts > parseRsScript > parses the cargo dependency block 1ms
+ ✓ tests/templates/rs/parse.test.ts > parseRsScript > rejects a script without a name header (lint error, not exception) 1ms
+ ✓ tests/templates/rs/parse.test.ts > parseRsScript > flags a missing AgentResult print as a lint issue 1ms
+ ✓ tests/templates/rs/parse.test.ts > parseRsScript > real reference script parses (pi-rs2 bundled fleet) 2ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > copies the transcript into .claude/sessions/<id>.jsonl and appends an index row 9ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > is a no-op (archived=false) when the transcript file is absent 2ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > skips (archived=false) when the project root is outside this repo (foreign projects untouched) 1ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > re-archiving the same session replaces the copy and does not duplicate index rows 7ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > incremental: appends only new bytes on re-archive, replaces on source regression 12ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > no-op when the source has not grown 11ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > sessionArchiveDir derives .claude/sessions from a project root 0ms
+ ✓ tools/archive-session.test.ts > archiveSession (SessionEnd transcript mirror) > indexLine formats one row: date, id, reason 0ms
+ ✓ tests/templates/mock-port.pure.test.ts > createMockScanPort (in-process mock) > emits hits through the production JSONL parser 4ms
+ ✓ tests/templates/mock-port.pure.test.ts > createMockScanPort (in-process mock) > returns zero hits for empty findings (benign counter-check stays green) 2ms
+ ✓ tests/templates/mock-port.pure.test.ts > createMockScanPort (in-process mock) > flags a weak matcher when injected findings hit the benign target 1ms
+ ✓ tests/templates/mock-port.pure.test.ts > createMockScanPort (in-process mock) > mock output is line-delimited JSON compatible with the real parser 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig > returns defaults for an empty object 3ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig > accepts explicit db filenames 0ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig > rejects invalid JSON with a clear error 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig > rejects non-object JSON 0ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig rs section > defaults rs.scriptsDir to rust-scripts with empty exportTargets 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig rs section > accepts explicit rs section values 5ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig rs section > rejects a non-string scriptsDir 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig oob section > defaults to interactsh with empty passthrough facts 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig oob section > accepts an explicit oob section 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig oob section > rejects an unknown provider 1ms
+ ✓ tests/templates/config.pure.test.ts > parseConfig oob section > rejects non-string fact fields 1ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > finds the marker from a nested directory 7ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > finds the workspace marker from inside a nested git clone (corpus with own .git) 4ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > refuses markers more than one level above a git root (planted home/drive config) 5ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > trusts the direct parent of a git root (the workspace position) 4ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > nested clone inside a git workspace still finds the workspace marker 5ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > throws a diagnostic error when no marker exists up to the filesystem root 4ms
+ ✓ tests/templates/config.pure.test.ts > findTemplatesRoot > prefers the nearest marker when several exist up the chain 5ms
+ ✓ tests/templates/config.pure.test.ts > loadConfig > reads the marker from the root 6ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > accepts clean block-style yaml 13ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > reports syntax errors with a line number 11ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > flags flow style mappings and sequences 2ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > flags trailing spaces and bad comment spacing 1ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > flags more than five consecutive empty lines 2ms
+ ✓ tests/templates/yamllint.pure.test.ts > lintYaml > handles empty documents without crashing 1ms
+ ✓ tools/intent-trace.test.ts > intent trace > extracts file events with nearest user prompt and thinking intent 5ms
+ ✓ tools/intent-trace.test.ts > intent trace > groups by file with counts, span, and unique prompts 1ms
+ ✓ tools/intent-trace.test.ts > intent trace > tool_result and XML-ish payloads are not user prompts 0ms
+ ✓ tools/intent-trace.test.ts > intent trace > renders a report with file headers and event lines 1ms
+ ✓ tools/intent-trace.test.ts > intent trace > forward-slash-normalizes windows paths for grouping 0ms
+ ✓ tools/intent-trace.test.ts > intent trace > strips terminal control sequences from untrusted transcript text 1ms
+ ✓ tests/safety.pure.test.ts > isDangerousCommand > flags every pattern in DANGEROUS_PATTERNS via a representative command 4ms
+ ✓ tests/safety.pure.test.ts > isDangerousCommand > matches case-insensitively and ignores surrounding whitespace 0ms
+ ✓ tests/safety.pure.test.ts > isDangerousCommand > does not flag benign commands 0ms
+ ✓ tests/templates/rs/core.test.ts > rs contracts (branded) > scriptName accepts vulnerability-identifier shapes and rejects paths 6ms
+ ✓ tests/templates/rs/core.test.ts > rs contracts (branded) > RsMetaSchema validates the full metadata row 5ms
+ ✓ tests/templates/rs/core.test.ts > rs contracts (branded) > AgentResultSchema enforces the single-line script envelope 2ms
+ ✓ tests/templates/rs/core.test.ts > RsDb > upsert + search by bm25 (name ranks above description) 25ms
+ ✓ tests/templates/rs/core.test.ts > RsDb > re-upsert replaces (one row per name), remove deletes 20ms
+ ✓ tests/templates/rs/core.test.ts > RsDb > seal persists the record to the lock file (unlike the tpl vapor pattern) 25ms
+ ✓ tests/templates/rs/core.test.ts > RsDb > cross-domain join: find exploits for a template's cve 17ms
+ ✓ tests/templates/mock.pure.test.ts > startMockTarget > serves configured routes and 404s unknown paths 59ms
+ ✓ tests/templates/mock.pure.test.ts > startMockTarget > supports wildcard routes and prefixes 8ms
+ ✓ tests/templates/mock.pure.test.ts > startMockTarget > close() frees the port 7ms
+ ✓ tests/templates/mock.pure.test.ts > benignProfile > returns a generic welcome page for every path 6ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs scaffold > RS_EXPLOIT_TYPES covers the four exploit kinds 4ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs scaffold > skeleton carries shebang + //! header + cargo block + AgentResult main 1ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs scaffold > scriptNameFromVulnId maps identifiers to file-safe names 0ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs scaffold > targetDirectory groups scripts by exploit kind 0ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs edit contract chain > metadata patch rewrites one //! header line 11ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs edit contract chain > body patch replaces whole content after contract check 4ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs edit contract chain > invalid content without //! name is rejected with EditError, nothing written 3ms
+ ✓ tests/templates/rs/scaffold-edit.test.ts > rs edit contract chain > unknown metadata key is rejected 1ms
+ ✓ tests/templates/rs/stats.test.ts > rs stats > overview: total + per-source counts + dangerous count 30ms
+ ✓ tests/templates/rs/stats.test.ts > rs stats > group-by every dimension sums to the total 21ms
+ ✓ tests/templates/rs/stats.test.ts > rs stats > render output carries the overview facts 21ms
+ ✓ tests/templates/contracts-gap.test.ts > engine-probe state machine (event-driven) > probing → PROBE_RESULT(available) → available 6ms
+ ✓ tests/templates/contracts-gap.test.ts > engine-probe state machine (event-driven) > probing → PROBE_RESULT(unavailable) → unavailable 1ms
+ ✓ tests/templates/contracts-gap.test.ts > engine-probe state machine (event-driven) > REPROBE returns either terminal state to probing 1ms
+ ✓ tests/templates/contracts-gap.test.ts > engine-probe state machine (event-driven) > probeEngine maps a real checkNuclei result through the machine 9ms
+ ✓ tests/templates/contracts-gap.test.ts > engine-probe state machine (event-driven) > guard rejects unknown probe event types 1ms
+ ✓ tests/templates/contracts-gap.test.ts > scaffold / engine contracts (branded) > ScaffoldIdSchema accepts kebab-case and rejects uppercase 1ms
+ ✓ tests/templates/contracts-gap.test.ts > scaffold / engine contracts (branded) > VulnTypeSchema and EngineModeSchema are strict enums 0ms
+ ✓ tests/templates/contracts-gap.test.ts > scaffold / engine contracts (branded) > ScaffoldInputSchema validates the full tool payload shape 3ms
+ ✓ tests/templates/contracts-gap.test.ts > scaffold / engine contracts (branded) > RemoteTargetSchema accepts http(s) URLs and rejects ftp 1ms
+ ✓ tests/templates/rs/execute.test.ts > rs execute-machine (event-driven) > linting → LINT_OK → spawning → SPAWN_DONE → parsing → PARSE_DONE → done 8ms
+ ✓ tests/templates/rs/execute.test.ts > rs execute-machine (event-driven) > linting → LINT_FAIL → failed with lint findings 1ms
+ ✓ tests/templates/rs/execute.test.ts > rs execute-machine (event-driven) > spawning → SPAWN_DONE(nonzero) → failed with exit code + stderr detail 1ms
+ ✓ tests/templates/rs/execute.test.ts > rs execute-machine (event-driven) > parsing → PARSE_FAIL → failed with envelope error 1ms
+ ✓ tests/templates/rs/execute.test.ts > rs execute-machine (event-driven) > guard rejects unknown event types 1ms
+ ✓ tests/templates/rs/execute.test.ts > parseAgentResult > extracts the last JSON line and validates the contract 4ms
+ ✓ tests/templates/rs/execute.test.ts > parseAgentResult > throws a descriptive envelope error for no JSON 0ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > patches info fields and rewrites valid yaml 28ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > patches matcher words at a request/matcher index 5ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > replaces request paths 5ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > reports lint errors after applying a weak-matcher edit 6ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > rejects out-of-range matcher index 4ms
+ ✓ tests/templates/edit.pure.test.ts > applyEdit (patch mode) > rejects a template without http block for matcher edits 3ms
+ ✓ tests/templates/edit.pure.test.ts > applyContent (whole-document mode) > writes valid content and reports lint 4ms
+ ✓ tests/templates/edit.pure.test.ts > applyContent (whole-document mode) > refuses invalid yaml content 5ms
+ ✓ tests/templates/edit.pure.test.ts > applyContent (whole-document mode) > refuses content without id or name 3ms
+ ✓ tests/templates/mock-client.pure.test.ts > withSpawnedMock (child-process mock server) > starts a child server, serves routes, and closes it (callback-driven) 402ms
+stderr | tests/templates/mock-client.pure.test.ts > withSpawnedMock (child-process mock server) > closes the child even when the body throws
+Event "CLOSED" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+Event: {"type":"CLOSED"}
+
+ ✓ tests/templates/rs/execute.test.ts > runRsScript (real rust-script runtime) > runs the demo script end-to-end and returns the AgentResult envelope 511ms
+ ✓ tests/templates/rs/execute.test.ts > oobEnvFor (workspace oob section to VF_OOB_* passthrough) > always sets the provider; only non-empty facts ride along 1ms
+ ✓ tests/templates/rs/execute.test.ts > oobEnvFor (workspace oob section to VF_OOB_* passthrough) > maps every non-empty fact to its env var 0ms
+ ✓ tests/templates/tool-registry.test.ts > tool-registry shared helpers > textResult wraps text with optional isError 2ms
+ ✓ tests/templates/tool-registry.test.ts > tool-registry shared helpers > errResult renders the three-line vf-error envelope 0ms
+ ✓ tests/templates/tool-registry.test.ts > tool-registry shared helpers > resolveInsideRepo resolves relative paths inside the repo root 2ms
+ ✓ tests/templates/tool-registry.test.ts > tool-registry shared helpers > resolveInsideRepo throws PATH_ESCAPE with repo root for escapes 3ms
+ ✓ tests/templates/sync-machine.contract.test.ts > sync machine event coverage > handles every declared event type 3ms
+ ✓ tests/templates/sync-machine.contract.test.ts > sync machine event coverage > reaches every declared state 1ms
+ ✓ tests/templates/sync-machine.contract.test.ts > sync machine event coverage > guard rejects unknown event types at runtime 1ms
+ ✓ tests/templates/mock-client.pure.test.ts > withSpawnedMock (child-process mock server) > closes the child even when the body throws 304ms
+ ✓ tests/templates/sync-collect.test.ts > collectFiles with configurable extensions > default keeps the yaml behavior (backward compatible) 10ms
+ ✓ tests/templates/sync-collect.test.ts > collectFiles with configurable extensions > extensions=[".rs"] collects rust scripts, not yaml or md 5ms
+ ✓ tests/templates/sync-collect.test.ts > collectFiles with configurable extensions > corpusDir scoping + extensions combine 6ms
+ ✓ tests/templates/meta.pure.test.ts > parseTemplateFile (zod schema) > parses a compliant template into typed metadata 20ms
+ ✓ tests/templates/meta.pure.test.ts > parseTemplateFile (zod schema) > rejects an invalid severity with a structured error 5ms
+ ✓ tests/templates/meta.pure.test.ts > parseTemplateFile (zod schema) > rejects a bad id format (upstream pattern) 4ms
+ ✓ tests/templates/meta.pure.test.ts > parseTemplateFile (zod schema) > accepts upstream-compatible ids that repo lint would tighten 4ms
+ ✓ tests/templates/meta.pure.test.ts > parseTemplateFile (zod schema) > rejects invalid YAML with a parse error 6ms
+stderr | tests/templates/mock-client.pure.test.ts > withSpawnedMock (child-process mock server) > 404s unknown paths on the child server
+Event "CLOSED" was sent to stopped actor "x:1 (x:1)". This actor has already reached its final state, and will not transition.
+Event: {"type":"CLOSED"}
+
+ ✓ tests/templates/sync-machine.pure.test.ts > runBatchSync (state machine) > indexes every file and records lint aggregates 103ms
+ ✓ tests/templates/rs/sync-search.test.ts > runRsSync > indexes every .rs script in the rs dir with metadata 41ms
+ ✓ tests/templates/rs/sync-search.test.ts > runRsSync > re-sync is idempotent and lint findings surface 33ms
+ ✓ tests/templates/rs/sync-search.test.ts > runRsSync > seals and the lock file lands on disk 29ms
+ ✓ tests/templates/meta.pure.test.ts > TemplateDb > upserts, searches with bm25 ranking, and reports duplicates 64ms
+ ✓ tests/templates/meta.pure.test.ts > TemplateDb > sync is incremental: removals are pruned, re-sync is idempotent 43ms
+ ✓ tests/templates/meta.pure.test.ts > TemplateDb > seals the db and verifies the recorded hash 38ms
+ ✓ tests/templates/sync-machine.pure.test.ts > runBatchSync (state machine) > captures parse failures per file without stopping the batch 40ms
+ ✓ tests/templates/sync-machine.pure.test.ts > runBatchSync (state machine) > resumes from a checkpoint instead of re-running the whole batch 51ms
+ ✓ tests/templates/sync-machine.pure.test.ts > runBatchSync (state machine) > skips non-template dirs and keeps the job snapshot queryable 23ms
+ ✓ tests/templates/run.runtime.test.ts > nuclei runtime (real binary + mock target) > detects the vulnerability on the programmed target 410ms
+ ✓ tests/templates/mock-client.pure.test.ts > withSpawnedMock (child-process mock server) > 404s unknown paths on the child server 256ms
+ ✓ tests/templates/vf-init.test.ts > vf_init --init (config generation) > generates a lint-valid skeleton in an empty workspace 14ms
+ ✓ tests/templates/vf-init.test.ts > vf_init --init (config generation) > re-init without force is an idempotent no-op 5ms
+ ✓ tests/templates/vf-init.test.ts > vf_init --init (config generation) > force without UI is refused (destructive, confirm-gated) 6ms
+ ✓ tests/index.smoke.test.ts > extension factory > registers the full tool and command surface without touching Pi action methods at load time 6ms
+ ✓ tests/index.smoke.test.ts > extension factory > vf-debug handler reports safety state through the UI 2ms
+ ✓ tests/index.smoke.test.ts > extension factory > poc_nuclei_lint reports a clear error outside a templates repo 5ms
+ ✓ tests/index.smoke.test.ts > extension factory > poc_nuclei_new scaffolds into the templates repo and lint flags its weaknesses 33ms
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > vf_init: reports the real machine, workspace found, nuclei availability stated
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_lint: real upstream template parses and lints (CVE-2026-0545)
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_run real engine: benign counter-check + programmed route scan
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_run mock engine: expectedHits assertion
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_new + poc_nuclei_edit + poc_nuclei_lint roundtrip on a real-path scaffold
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_sync: resume path over the real corpus (seconds, not minutes)
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_search: FTS over the 14k-row real index
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_stats: every dimension over the real index
+ ↓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > vf_env_install: refuses a known-absent item without confirmation in headless
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > missing config → CONFIG_NOT_FOUND with search start and inline example 10ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > path escape → PATH_ESCAPE with repo root and a relative-path hint 18ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > edit param conflict → PARAM_CONFLICT showing received fields and an example 2ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_new creates a template; poc_nuclei_lint accepts it 39ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_edit patches info and reports lint 12ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_run rejects remote+mock and target+routes combos 3ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_run mock engine asserts expectedHits end-to-end 18ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_sync indexes the workspace and returns a seal 19ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_search finds the synced template 4ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > poc_nuclei_stats reports per dimension without error 12ms
+ ✓ tests/templates/run.runtime.test.ts > nuclei runtime (real binary + mock target) > produces zero hits when the vulnerable path is absent 291ms
+ ✓ tests/templates/run.runtime.test.ts > nuclei runtime (real binary + mock target) > flags a weak matcher via the benign-profile counter-check 209ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > checkEnvironment reports the java item (present or fix guidance) 2351ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > vf_init check flags the scratch workspace honestly 1711ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > vf_init install unknown item → NO_FIX_COMMANDS with item-name hint 1863ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > run param conflict (target + routes) → PARAM_CONFLICT 8ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > run engine=mock with target → PARAM_CONFLICT naming the rule 6ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > nonexistent template path → PATH_NOT_FOUND with sync hint 29ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > checkEnvironment reports the dotnet item 1699ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > vf_init install refuses unknown names 1709ms
+ ✓ tests/tools.errors.test.ts > tool error envelope (agent self-correction) > confirm-gate refusal → CANCELLED envelope, not prose 1628ms
+ ✓ tests/tools.execute.test.ts > tool-level execute coverage > commands handle a workspace ctx gracefully 3ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > checkEnvironment reports rust-script (the rs execution substrate) 1403ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > checkEnvironment reports cargo-zigbuild (cross-compile export) 1305ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > all new item names are in the EnvToolName contract 0ms
+ ✓ tests/templates/env-enhanced.test.ts > enhanced environment init (java/dotnet/rust-script/zigbuild/memshell party) > platformCommands carries java/dotnet install commands per platform 52ms
+
+ Test Files  30 passed | 1 skipped (31)
+      Tests  184 passed | 9 skipped (193)
+   Start at  10:01:13
+   Duration  7.83s (transform 5.13s, setup 0ms, import 17.35s, tests 18.07s, environment 4ms)
+

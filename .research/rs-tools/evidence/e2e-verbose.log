@@ -1,0 +1,18 @@
+
+ RUN  v4.1.12 D:/repos/vulnforge
+
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > vf_init: reports the real machine, workspace found, nuclei availability stated 1594ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_lint: real upstream template parses and lints (CVE-2026-0545) 17ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_run real engine: benign counter-check + programmed route scan 617ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_run mock engine: expectedHits assertion 2ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_new + poc_nuclei_edit + poc_nuclei_lint roundtrip on a real-path scaffold 9ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_sync: resume path over the real corpus (seconds, not minutes) 411ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_search: FTS over the 14k-row real index 21ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > poc_nuclei_stats: every dimension over the real index 325ms
+ ✓ tests/tools.e2e.test.ts > e2e over the real workspace corpus > vf_env_install: refuses a known-absent item without confirmation in headless 1712ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  10:07:22
+   Duration  5.43s (transform 153ms, setup 0ms, import 605ms, tests 4.73s, environment 0ms)
+

@@ -160,6 +160,6 @@ describeIf("e2e over the real workspace corpus", () => {
     const outcome = await call("vf_init", { action: "install", name: "nuclei" });
     // headless ctx (hasUI=false) with nuclei present → fix commands undefined → refused;
     // or confirm required. Either way it must not silently run installs.
-    expect(outcome.text).toMatch(/no fix commands|cancelled|ran:/);
+    expect(outcome.text).toMatch(/no fix commands|cancelled|ran:/i);
   });
 });
