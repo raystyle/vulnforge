@@ -6,7 +6,7 @@ metadata:
 node_type: memory
 type: project
 originSessionId: d8cd2140-8dfa-43c0-8e0b-a189c6c104d9
-modified: 2026-11-26T23:56:55.075Z
+modified: 2026-11-27T00:23:19.020Z
 ---
 
 # VulnForge 工作状态（2026-11-27）
@@ -21,4 +21,6 @@ modified: 2026-11-26T23:56:55.075Z
 - 研究收口：MemShellParty 四轴分类学（ServerType×ShellType×ShellTool×Packer）+ 隐蔽植入（probe 先行/无侵入/验证三态/字节码单常量嵌入）；WAF 变形正交原语+指纹→策略+变异闭环；ristretto_classfile（Rust 读 .class，生成留 Java）；.NET NRBF nom/binrw；Java 反序列化 java-serialization/jaded/ysoserial-rs。文件在 `.research/rs-tools/`
   工具名 exploit_rs_run（execute→run 对齐裁定）。工具面 15+2 已齐：exploit_rs_search/new/edit/execute/export 全注册 + vf_init action=init（生成配置+lint+幂等+force 确认门）；E2E 三链实证（scaffold→execute Machine 轨迹回信封 / export musl 真二进制+SHA256SUMS / search 跨域）
 - webshell 专库：godzilla 形加密通道（PHP+JSP 模板）+ behinder 整 body class 载荷面 + 无特征断言（模板无 system/exec 字串）；Defender 会隔离含 one-liner 的中间文件（教训：内容编码存放）
-- exploit_rs_sync/stats 已注册对齐 poc 面（branded group-by）；webshell 免杀研究收口（Bypass-Guide 手册：检测分类学+8 类变异原语+两阶段写入；mutate 原语做成数据）。待做：mutate 数据面实现、.NET webshell 面（nrbf 路由）、三平台轮、独立审查
+- exploit_rs_sync/stats 已注册对齐 poc 面（branded group-by）；webshell 免杀研究收口（Bypass-Guide 手册：检测分类学+8 类变异原语+两阶段写入；mutate 原语做成数据）
+- **范围裁定：无后渗透**——能力止于 写入/执行命令/通信加密 三件；隧道/C2/会话管理明确不做
+- 待做：mutate 数据面（WAF/杀毒/荷载变形/静态字符/函数规避 原语集）、.NET webshell 面（nrbf 路由）、三平台轮、独立审查
