@@ -4,22 +4,22 @@
 
 ## 先例清单（检索验证）
 
-| 先例 | 形态 | 集成方式 |
-| ---- | ---- | -------- |
-| **projectdiscovery/interactsh**（4.7k★） | OOB 交互收集 server+client 库；自托管/公共实例双选；DNS/HTTP/LDAP/RMI/SMTP 全协议；client 有 Go 库可程序化调用 | **首选**：interactsh 协议客户端（Rust 生态有兼容实现可引，或 CLI spawn 官方 client） |
-| **Burp Collaborator 公共服务**（pi-rs2 burp_collab.rs 实读） | 自持 biid secret 派生 `<label>.oastify.com` 载荷；轮询 `polling.oastify.com/burpresults?biid=` 读回 DNS/HTTP 交互；**已验证公共服可用协议** | **第二**：协议同形（secret 派生 + 轮询），pi-rs2 已实现可吸收 |
-| **DNSLog-GO / BugScanTeam/DNSLog**（1.3k/1.4k★） | 自托管 DNS+HTTP 记录监控，WEB 界面 | 自托管通道（pve 靶场环场景——内网不依赖公网服） |
-| **cola_dnslog**（498★） | dnslog/httplog/ldaplog/rmilog 多协议 + API 调用 + docker 一键 | 自托管备选（API 面适合编排） |
-| **Hyuga**（540★） | OOB 流量监控（DNS/HTTP/LDAP/RMI/DNS-Rebinding） | 备选 |
-| **pi-rs2 oob_poll + dns_oob**（自研先例） | 权威 DNS canary 收件（自持 OOB 底座：任意子域全收 + JSONL 日志）+ marker 轮询客户端（租约轮询/超时结构化收束） | **自托管通道第三**：pve 靶场内网场景直接复用思想（收件器+轮询器闭环） |
+| 先例                                                         | 形态                                                                                                                                        | 集成方式                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **projectdiscovery/interactsh**（4.7k★）                     | OOB 交互收集 server+client 库；自托管/公共实例双选；DNS/HTTP/LDAP/RMI/SMTP 全协议；client 有 Go 库可程序化调用                              | **首选**：interactsh 协议客户端（Rust 生态有兼容实现可引，或 CLI spawn 官方 client） |
+| **Burp Collaborator 公共服务**（pi-rs2 burp_collab.rs 实读） | 自持 biid secret 派生 `<label>.oastify.com` 载荷；轮询 `polling.oastify.com/burpresults?biid=` 读回 DNS/HTTP 交互；**已验证公共服可用协议** | **第二**：协议同形（secret 派生 + 轮询），pi-rs2 已实现可吸收                        |
+| **DNSLog-GO / BugScanTeam/DNSLog**（1.3k/1.4k★）             | 自托管 DNS+HTTP 记录监控，WEB 界面                                                                                                          | 自托管通道（pve 靶场环场景——内网不依赖公网服）                                       |
+| **cola_dnslog**（498★）                                      | dnslog/httplog/ldaplog/rmilog 多协议 + API 调用 + docker 一键                                                                               | 自托管备选（API 面适合编排）                                                         |
+| **Hyuga**（540★）                                            | OOB 流量监控（DNS/HTTP/LDAP/RMI/DNS-Rebinding）                                                                                             | 备选                                                                                 |
+| **pi-rs2 oob_poll + dns_oob**（自研先例）                    | 权威 DNS canary 收件（自持 OOB 底座：任意子域全收 + JSONL 日志）+ marker 轮询客户端（租约轮询/超时结构化收束）                              | **自托管通道第三**：pve 靶场内网场景直接复用思想（收件器+轮询器闭环）                |
 
 ## 公共 vs 自托管裁定矩阵
 
-| 场景 | 通道 | 依据 |
-| ---- | ---- | ---- |
-| 公网授权目标 | interactsh 公共实例 / Burp Collaborator | 快、免部署；payload 带唯一 marker |
+| 场景                 | 通道                                             | 依据                                                          |
+| -------------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| 公网授权目标         | interactsh 公共实例 / Burp Collaborator          | 快、免部署；payload 带唯一 marker                             |
 | 内网/lab（pve 靶场） | 自托管 DNSLog/cola_dnslog 或 pi-rs2 dns_oob 思想 | 内网不依赖公网服（pi-rs2：内网绑定 lab 基建不吸收——我们自建） |
-| 隐蔽要求高 | 自托管（公共服通信本身可被流量审计标记） | 授权范围内自持 |
+| 隐蔽要求高           | 自托管（公共服通信本身可被流量审计标记）         | 授权范围内自持                                                |
 
 ## 集成设计（vf_rust_lib `oob` 模块）
 

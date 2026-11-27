@@ -21,12 +21,12 @@
 
 ## 语言×通道矩阵（我们 webshell 专库的覆盖面）
 
-| 通道                       | PHP                 | Java/JSP                                 | .NET                                     |
-| -------------------------- | ------------------- | ---------------------------------------- | ---------------------------------------- |
-| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                  | ✅ 模板                                  |
-| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）        | 部分（ViewState 面在 .NET runtime 工具） |
-| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成）         |
-| 隧道（NeoReGeorg/Suo5 形） | n/a                 | **做（webshell 实现）**：加密通道 webshell 即隧道端点（用户修订令） | **做**（同形） |
+| 通道                       | PHP                 | Java/JSP                                                            | .NET                                     |
+| -------------------------- | ------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                                             | ✅ 模板                                  |
+| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）                                   | 部分（ViewState 面在 .NET runtime 工具） |
+| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes）                            | ⬜（.NET 序列化载荷，nrbf 生成）         |
+| 隧道（NeoReGeorg/Suo5 形） | n/a                 | **做（webshell 实现）**：加密通道 webshell 即隧道端点（用户修订令） | **做**（同形）                           |
 
 ## 设计结论
 
