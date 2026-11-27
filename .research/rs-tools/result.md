@@ -23,3 +23,15 @@
 - **SKIP 清单**：默认运行 9 个 e2e SKIP——原因 = 工作区探测路径 `~/repos/vulnforge-workspace`（homedir）在本机不存在；设 `VULNFORGE_E2E_WORKSPACE` 后 9/9 全过。cargo 侧 1 ignored = `interactsh_full_flow_public`（设计如此：注册公共服属手工验证面）
 - **失败回路**：1 轮——e2e 暴露潜伏测试缺陷（`/no fix commands|cancelled|ran:/` 正则大小写敏感 vs 信封 `CANCELLED`；本机 nuclei 缺失走拒绝路径）。修法 = 正则加 `i` 旗标（测试意图"绝不静默安装"本就两路径皆收），非实现改动。已提交
 - 备注：首轮 AES-CTR 红例尝试（keystream 初值 1）无效——该值每轮被覆盖，非真破坏点；换 XOR 输出点后红成功。教训：先红验证要打断被断言的计算路径本身
+
+## 三平台 peer 轮（Round 11，commit 9c246e3 后）
+
+| 平台         | check                                                    | rs-lib | 备注                                                                                                     |
+| ------------ | -------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| Windows 本机 | exit 0（184+9 / 207 契约 / 14 项 system-lint / pi-load） | 63+1   | —                                                                                                        |
+| lan-ubuntu   | exit 0（181+12 skip / pi-load 过）                       | 63+1   | 断电恢复后：ext4 清零 80 文件 → `git checkout -- .` 从 HEAD 还原 tracked；`.reference` ENOENT 修复后复验 |
+| lan-mac      | exit 0（181+12 skip / 207 契约 / 14 项 / pi-load）       | 63+1   | 无平台问题                                                                                               |
+
+- **peers 暴露并修复的 2 个测试缺陷**（commit 9c246e3）：`.reference/pi-rs2` 引用测试无 skip-guard（peer 机无 clone 必挂）；rust-script runtime 测试无二进制探测。两者均按既有纪律改 console.warn SKIP——peers 的 12 skip = 本机 9 skip + 这 2 项环境缺失，对账成立
+- **peer 断电事件**：lan-ubuntu 在验证中途掉电（journal 显示 EXT4 恢复 + 写一半文件清零）；tracked 文件全部从 HEAD 还原后全绿。教训已沉淀进 verify skill 的坑表
+- **验证方式沉淀**：三平台 peer 轮流程（herdr 全地址驱动 + login shell + Monitor 等完成 + 失败三分法）增补进 `.claude/skills/verify/SKILL.md`
