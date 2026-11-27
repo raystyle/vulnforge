@@ -17,7 +17,7 @@
 2. **意图路由 + 决策节点型**（maestro Ralph/Odyssey）：自然语言意图 → 命令链（40+ 种），链中 decision 节点按实际执行结果动态调整（回退/插修复循环）。**中**：CLI + 状态文件（.workflow/state.json + session status.json 持久化，`-c` 断点续跑）。
 3. **bash 循环 + 结构化状态块型**（Ralph/super-ralph）：宿主循环套 `claude -p`，每轮读 fix_plan、分类任务、注入方法论 prompt、解析 RALPH_STATUS 决定继续/退出。**轻**：零平台，纯脚本 + 退出检测（双条件门：完成指标 + EXIT_SIGNAL）。
 
-我们已有的对应物：**/goal + ScheduleWakeup**（动态自定步）与 **CronCreate 定时循环**就是路线 3 的官方内建形态；herdr 驱动的三平台 peer 轮是跨机变体。差距不在"有没有 loop"而在：① loop 的**退出判定**我们靠 goal 条件语义（弱结构化），super-ralph 的 RALPH_STATUS 块是更强的机器可读契约；② loop 的**断点持久化**（session status.json 断点续跑）我们靠会话续接天然获得。
+我们已有的对应物：**/goal + ScheduleWakeup**（动态自定步）与 **CronCreate 定时循环**就是路线 3 的官方内建形态；herdr 驱动的三平台 peer 轮是跨机变体。差距不在"有没有 loop"而在：① loop 的**退出判定**我们靠 goal 条件语义（弱结构化），super-ralph 的 RALPH_STATUS 块是更强的machine-readable 契约；② loop 的**断点持久化**（session status.json 断点续跑）我们靠会话续接天然获得。
 
 ## graph 实现谱系（两种正交用法）
 
@@ -35,7 +35,7 @@
 
 | 体系能力             | 我们已有                                                   | 吸收候选（按价值排序）                                                                                                                                                     |
 | -------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| loop：结构化退出状态 | /goal 条件 + 自省 skill（数据驱动但会话级）                | **结构化状态块**：长跑任务每轮输出机器可读状态（STATUS/EXIT_SIGNAL/TESTS_STATUS），goal 判定从语义升级为契约                                                               |
+| loop：结构化退出状态 | /goal 条件 + 自省 skill（数据驱动但会话级）                | **结构化状态块**：长跑任务每轮输出 machine-readable 状态（STATUS/EXIT_SIGNAL/TESTS_STATUS），goal 判定从语义升级为契约                                                     |
 | loop：断点续跑       | Claude 会话天然续接                                        | 不需要（平台已给）                                                                                                                                                         |
 | loop：多 agent 编排  | herdr 子代理 + reviewer 代理 + peer 会话                   | LoopForge 的**角色定义**（prompt/executor/model/rules/skills/工具面按角色打包）——我们 reviewer.md 已是雏形，可补 roles/ 目录模式                                           |
 | graph：工作流 DAG    | 无（人驱动阶段推进）                                       | 暂不需要——我们的 Research→Plan→Implement→Verify→Review 主闭环是纪律（rules/skills），不是引擎；上 DAG 会与人裁定节奏冲突（ADR 需用户确认才落笔是红线）                     |
@@ -46,7 +46,7 @@
 
 ## 结论
 
-1. **loop**：我们的 /goal + ScheduleWakeup + self-reflection 已覆盖路线 3 的核心；最值得吸收的是**结构化状态块**（loop 退出判定从 goal 语义升级为机器可读契约，如 `TESTS_STATUS: PASSING | EXIT_SIGNAL: true`）——可进 self-reflection skill 的验证节，先记候选
+1. **loop**：我们的 /goal + ScheduleWakeup + self-reflection 已覆盖路线 3 的核心；最值得吸收的是**结构化状态块**（loop 退出判定从 goal 语义升级为machine-readable 契约，如 `TESTS_STATUS: PASSING | EXIT_SIGNAL: true`）——可进 self-reflection skill 的验证节，先记候选
 2. **graph**：工作流 DAG 与我们"人裁定红线"冲突，不做；**知识图谱**的最小可吸收面是自省候选的 corroboration 机械化（跨会话 ≥2 次重复晋级——现在是人工规则）——进 self-reflection skill 的候选表结构化即可，不需要 SQLite/图引擎
 3. **整体定位**：同类项目往"平台化"走（LoopForge 需 Docker 平台 + maestro 80k 行 CLI）是因为它们的循环/知识要**跨人共享**；我们是单人开发 + 三平台 peer，纪律型体系（rules/skills/hooks + lint 执法）成本最低——先例反而验证了我们的选型
 4. 四体系共同铁律（我们已全有）：方法论进 skill 不散进 prompt、验证证据先于完成声明（verify skill 的先红后绿同 super-ralph 的 verification gate）、独立审查新上下文（reviewer 代理同 LoopForge 独立 review 节点）
