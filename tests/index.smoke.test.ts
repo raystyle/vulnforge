@@ -55,6 +55,8 @@ describe("extension factory", () => {
       "exploit_rs_edit",
       "exploit_rs_execute",
       "exploit_rs_export",
+      "exploit_rs_sync",
+      "exploit_rs_stats",
     ]);
     expect(commands.map((command) => command.name).sort()).toEqual(["vf", "vf-debug"]);
   });

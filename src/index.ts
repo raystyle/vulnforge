@@ -23,6 +23,8 @@ import {
   scriptNameFromVulnId,
 } from "./templates/rs/scaffold-facade.ts";
 import { openRsDb, renderRsSearch, rsExploitFor, rsSearch } from "./templates/rs/search.ts";
+import { renderRsStats } from "./templates/rs/stats.ts";
+import { runRsSync } from "./templates/rs/sync.ts";
 import {
   checkNuclei,
   createMockScanPort,
@@ -948,6 +950,76 @@ export default function (pi: ExtensionAPI): void {
         );
       } catch (error) {
         return envelope(error);
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_sync",
+    label: "VulnForge exploit rs sync",
+    description:
+      "Batch-index exploit rs scripts into the rs catalog (state machine: collect .rs under rs.scriptsDir, //! header contract per file, upsert by vulnerability identifier, seal to rs-lock.json). Idempotent; lint findings aggregate in the result.",
+    parameters: Type.Object({}),
+    execute: withToolMachine("exploit_rs_sync", async (_id, _params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      try {
+        const result = runRsSync(
+          tools.repo.root,
+          join(tools.repo.root, "rs.db"),
+          join(tools.repo.root, "rs-lock.json"),
+          { scriptsDir: tools.repo.config.rs.scriptsDir },
+        );
+        const lintLines = result.lintFindings
+          .slice(0, 10)
+          .map((f) => `- ${f.path}: ${f.issues.join("; ").slice(0, 120)}`);
+        return textResult(
+          [
+            `synced: ${result.synced}, failed: ${result.failed}`,
+            `seal: version=${result.seal.version} sha256=${result.seal.dbSha256.slice(0, 16)}… count=${result.seal.scriptCount}`,
+            ...(lintLines.length > 0 ? ["lint findings:", ...lintLines] : []),
+          ].join("\n"),
+          result.failed > 0,
+        );
+      } catch (error) {
+        return envelope(error);
+      }
+    }),
+  });
+
+  pi.registerTool({
+    name: "exploit_rs_stats",
+    label: "VulnForge exploit rs stats",
+    description:
+      "Analyze the exploit rs catalog: overview (total, per-source distribution, dangerous count) or group-by a dimension (source/faces/dangerous/version/keywords). Read-only.",
+    parameters: Type.Object({
+      dimension: Type.Optional(
+        StringEnum(["source", "faces", "dangerous", "version", "keywords"] as const, {
+          description: "group-by dimension (omit for the overview)",
+        }),
+      ),
+      limit: Type.Optional(Type.Integer({ description: "Top-N rows per dimension (default 15)" })),
+    }),
+    execute: withToolMachine("exploit_rs_stats", async (_id, params, _signal, _onUpdate, ctx) => {
+      let tools: RepoTools;
+      try {
+        tools = openRepoTools(ctx.cwd);
+      } catch (error) {
+        return envelope(error);
+      }
+      let rsDb: import("./templates/rs/db.ts").RsDb | undefined;
+      try {
+        rsDb = openRsDb(tools.repo.root);
+        const text = renderRsStats(rsDb, params.dimension, params.limit ?? 15);
+        return textResult(text);
+      } catch (error) {
+        return envelope(error);
+      } finally {
+        rsDb?.close();
       }
     }),
   });
