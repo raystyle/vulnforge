@@ -25,8 +25,8 @@
 | -------------------------- | ------------------- | ---------------------------------------- | ---------------------------------------- |
 | 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                  | ✅ 模板                                  |
 | 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）        | 部分（ViewState 面在 .NET runtime 工具） |
-| class 载荷（behinder 形）  | n/a                 | ⬜ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成）         |
-| 隧道（NeoReGeorg/Suo5）    | n/a                 | 规划（proxy 域）                         | 规划                                     |
+| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes） | ⬜（.NET 序列化载荷，nrbf 生成）         |
+| 隧道（NeoReGeorg/Suo5）    | n/a                 | **不做**（用户令：无后渗透）             | **不做**                                 |
 
 ## 设计结论
 
