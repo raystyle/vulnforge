@@ -272,26 +272,33 @@ export function globalConfigPath(): string {
 
 /**
  * The layered resolution (user ruling): walk up from `start` for a
- * workspace `.vulnforge.json` first; when none exists, fall back to the
- * pi data directory's global config. Both layers parse through the same
- * parseConfig boundary (same defaults, same validation) — a layer only
- * overrides what it declares. The fallback throws the workspace error
- * ONLY when the global layer is also absent, so the message stays
- * actionable (create a workspace config or initialize the global one).
+ * workspace `.vulnforge.json` first; when NONE EXISTS, fall back to the
+ * pi data directory's global config. A workspace config that exists but
+ * FAILS to parse is an error, not a fallback trigger — silently switching
+ * layers would make workspace edits appear to have no effect while tools
+ * write into the global layer. Both layers parse through the same
+ * parseConfig boundary (same defaults, same validation). The fallback
+ * throws the workspace diagnostic ONLY when the global layer is also
+ * absent, so the message stays actionable.
  */
 export function resolveLayeredConfig(start: string): {
   root: string;
   config: VulnforgeTemplatesConfig;
   layer: "workspace" | "global";
 } {
+  let root: string;
   try {
-    const root = findTemplatesRoot(start);
-    return { root, config: loadConfig(root), layer: "workspace" };
+    root = findTemplatesRoot(start);
   } catch (workspaceError) {
     const globalPath = globalConfigPath();
     if (existsSync(globalPath)) {
-      return { root: piDataDir(), config: parseConfig(readFileSync(globalPath, "utf8")), layer: "global" };
+      return {
+        root: piDataDir(),
+        config: parseConfig(readFileSync(globalPath, "utf8")),
+        layer: "global",
+      };
     }
     throw workspaceError;
   }
+  return { root, config: loadConfig(root), layer: "workspace" };
 }

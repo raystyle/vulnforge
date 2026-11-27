@@ -200,6 +200,17 @@ describe("layered config resolution", () => {
     expect(resolved.config.rs.scriptsDir).toBe("global-scripts");
   });
 
+  it("a broken workspace config is an error, not a fallback trigger", () => {
+    const repo = makeRepo();
+    // Break the workspace config: invalid oob.provider must NOT silently
+    // fall through to the global layer.
+    writeFileSync(join(repo, ".vulnforge.json"), JSON.stringify({ oob: { provider: "collab" } }));
+    const piDir = mkdtempSync(join(tmpdir(), "vf-pidir4-"));
+    writeFileSync(join(piDir, "vulnforge.json"), JSON.stringify({}));
+    process.env.PI_CODING_AGENT_DIR = piDir;
+    expect(() => resolveLayeredConfig(join(repo, "http", "cves"))).toThrow(/oob\.provider must be/);
+  });
+
   it("throws the workspace diagnostic when both layers are absent", () => {
     const noMarker = mkdtempSync(join(tmpdir(), "vf-nolayer2-"));
     const piDir = mkdtempSync(join(tmpdir(), "vf-pidir2-"));

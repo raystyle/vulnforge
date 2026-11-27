@@ -181,9 +181,12 @@ fn map_transport(error: ureq::Error) -> Atom {
         ureq::Error::Status(code, _) => {
             Atom::protocol_mismatch("E_HTTP_002", format!("unexpected transport status {code}"))
         }
-        ureq::Error::Transport(transport) => {
-            Atom::net_unreachable("E_HTTP_003", format!("transport: {transport}"))
-        }
+        ureq::Error::Transport(transport) => Atom::net_unreachable(
+            "E_HTTP_003",
+            // ureq's Transport Display prints the full URL — target URLs can
+            // carry credentials in the query; emit only the transport kind.
+            format!("transport: {}", transport.kind()),
+        ),
     }
 }
 

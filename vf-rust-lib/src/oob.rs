@@ -800,6 +800,25 @@ fn aes256_ctr(key: &[u8], iv: &[u8], data: &mut [u8]) {
     }
 }
 
+/// Strip anything after the host from a URL-ish string: poll URLs carry
+/// `?biid=` / `?secret=` secrets, and ureq's Transport Display prints the
+/// full URL — the message must never carry the query. Response bodies can
+/// echo the request line (some 4xx pages), so the same sanitizer applies.
+fn redact_url(text: &str) -> String {
+    let no_query = text
+        .split(['?', ' '])
+        .next()
+        .unwrap_or_default()
+        .to_string();
+    // Fragments and credentials never appear in ureq URLs, but a body
+    // snippet may contain arbitrary text — keep only the scheme+host part.
+    let host_part = no_query
+        .split_once("://")
+        .map(|(_, rest)| rest.split('/').next().unwrap_or_default().to_string())
+        .unwrap_or(no_query);
+    host_part
+}
+
 fn map_ureq_error(error: ureq::Error) -> Atom {
     match error {
         ureq::Error::Status(401, _) => Atom::auth_denied(
@@ -808,12 +827,17 @@ fn map_ureq_error(error: ureq::Error) -> Atom {
         ),
         ureq::Error::Status(code, response) => {
             let body = response.into_string().unwrap_or_default();
-            let snippet: String = body.chars().take(200).collect();
+            let snippet: String = redact_url(&body).chars().take(120).collect();
             Atom::protocol_mismatch("E_OOB_005", format!("http {code}: {snippet}"))
         }
-        ureq::Error::Transport(transport) => {
-            Atom::net_unreachable("E_OOB_006", format!("transport: {transport}"))
-        }
+        ureq::Error::Transport(transport) => Atom::net_unreachable(
+            "E_OOB_006",
+            format!(
+                "transport: {} ({})",
+                redact_url(&transport.to_string()),
+                transport.kind()
+            ),
+        ),
     }
 }
 

