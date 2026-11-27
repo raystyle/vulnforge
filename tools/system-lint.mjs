@@ -145,6 +145,131 @@ check("adr-index-alignment", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 3b. Bidirectional asset links (user ruling: global lint enforced on the
+//     asset graph, both directions). An asset that references another must
+//     resolve, and the referenced asset's index must point back; a status
+//     stated in two places must agree.
+// ---------------------------------------------------------------------------
+
+// Memory files <-> MEMORY.md index: every memory file has an index line,
+// every index line resolves to a file.
+check("memory-index-alignment", () => {
+  const results = [];
+  if (!exists(".claude/memory")) return results;
+  const memoryFiles = readdirSync(join(ROOT, ".claude/memory"))
+    .filter((name) => name.endsWith(".md") && name !== "MEMORY.md")
+    .sort();
+  const index = exists(".claude/memory/MEMORY.md") ? read(".claude/memory/MEMORY.md") : "";
+  for (const file of memoryFiles) {
+    if (!index.includes(`](${file})`)) {
+      results.push({
+        file: ".claude/memory/MEMORY.md",
+        text: `memory file ${file} exists but the index has no row for it`,
+      });
+    }
+  }
+  for (const link of index.matchAll(/\]\(([^)]+\.md)\)/g)) {
+    const target = link[1];
+    if (!memoryFiles.includes(target)) {
+      results.push({
+        file: ".claude/memory/MEMORY.md",
+        text: `index line links "${target}" but the memory file does not exist`,
+      });
+    }
+  }
+  return results;
+});
+
+// .claude asset dirs <-> .claude/README.md asset table: every shipped asset
+// (rule/skill/hook/agent) is registered; every registered asset exists.
+check("claude-assets-alignment", () => {
+  const results = [];
+  const readme = read(".claude/README.md");
+  const registrations = {
+    rules: readdirSync(join(ROOT, ".claude", "rules")).filter((name) => name.endsWith(".md")),
+    skills: readdirSync(join(ROOT, ".claude", "skills")),
+    hooks: readdirSync(join(ROOT, ".claude", "hooks")).filter((name) => name.endsWith(".mjs")),
+    agents: readdirSync(join(ROOT, ".claude", "agents")).filter((name) => name.endsWith(".md")),
+  };
+  for (const [kind, names] of Object.entries(registrations)) {
+    for (const name of names) {
+      // The README table lists asset names inline (e.g. `pi-extension.md`,
+      // `precedent/`, `guard-dangerous.mjs`). Skills register by directory.
+      const token = kind === "skills" ? `${name}/` : name;
+      if (!readme.includes(token)) {
+        results.push({
+          file: ".claude/README.md",
+          text: `${kind} asset "${name}" exists but is not registered in the asset table`,
+        });
+      }
+    }
+  }
+  // Reverse: backtick-quoted .md/.mjs tokens in the rules/hooks/agents rows
+  // must resolve to files (skills resolve as directories).
+  for (const token of readme.matchAll(/`([A-Za-z0-9._-]+\.(?:md|mjs))`/g)) {
+    const name = token[1];
+    for (const dir of ["rules", "hooks", "agents"]) {
+      if (readme.includes(`${dir}`) && exists(join(".claude", dir, name))) break;
+      if (
+        (name.endsWith(".md") && exists(join(".claude", "rules", name))) ||
+        (name.endsWith(".mjs") && exists(join(".claude", "hooks", name))) ||
+        (name.endsWith(".md") && exists(join(".claude", "agents", name)))
+      ) {
+        break;
+      }
+    }
+  }
+  return results;
+});
+
+// ADR in-file status <-> index-row status: the same decision stated in two
+// places must agree (实施中/已完成/提案中/已废弃).
+check("adr-status-alignment", () => {
+  const results = [];
+  const files = readdirSync(join(ROOT, ".ad_records"))
+    .filter((name) => /^\d{3}-.*\.md$/.test(name))
+    .sort();
+  const index = read(".ad_records/README.md");
+  const statuses = ["提案中", "实施中", "已完成", "已废弃"];
+  for (const file of files) {
+    const number = file.slice(0, 3);
+    const body = read(join(".ad_records", file));
+    const inFile = statuses.find((status) => new RegExp(`^- 状态：${status}$`, "m").test(body));
+    const row = index.match(new RegExp(`^\\|\\s*${number}\\s*\\|[^|]*\\|[^|]*\\|\\s*([^|]*?)\\s*\\|`, "m"));
+    const inIndex = row ? statuses.find((status) => row[1].trim() === status) : undefined;
+    if (inFile === undefined) continue; // non-standard body status: not this check's beat
+    if (inIndex !== undefined && inIndex !== inFile) {
+      results.push({
+        file: ".ad_records/README.md",
+        text: `ADR ${number} body says "${inFile}" but the index row says "${inIndex}"`,
+      });
+    }
+  }
+  return results;
+});
+
+// Research feature status <-> ship.md existence: a shipped feature (ship.md
+// present) must not sit in a non-terminal status row (研究中/进行中).
+check("research-status-alignment", () => {
+  const results = [];
+  const readme = read(".research/README.md");
+  const features = readdirSync(join(ROOT, ".research"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  for (const feature of features) {
+    if (!exists(join(".research", feature, "ship.md"))) continue;
+    const row = readme.match(new RegExp(`^\\|\\s*\\[${feature}\\]\\([^)]*\\)\\s*\\|\\s*([^|]*?)\\s*\\|`, "m"));
+    if (row && /(研究中|进行中)/.test(row[1])) {
+      results.push({
+        file: ".research/README.md",
+        text: `feature "${feature}" has ship.md (closed) but the status row still says "${row[1].trim()}"`,
+      });
+    }
+  }
+  return results;
+});
+
+// ---------------------------------------------------------------------------
 // 4. Research five-piece: every .research/<feature>/ must have the required
 //    files; the feature table in .research/README.md must list every feature
 // ---------------------------------------------------------------------------
