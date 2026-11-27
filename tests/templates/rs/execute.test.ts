@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -88,6 +89,11 @@ describe("parseAgentResult", () => {
 
 describe("runRsScript (real rust-script runtime)", () => {
   it("runs the demo script end-to-end and returns the AgentResult envelope", { timeout: 120_000 }, async () => {
+    const probe = spawnSync("rust-script", ["--version"], { timeout: 15_000 });
+    if (probe.error !== undefined) {
+      console.warn("SKIP runtime rs-execute test: rust-script not on PATH (install: cargo install rust-script)");
+      return;
+    }
     const dir = mkdtempSync(join(tmpdir(), "vf-rsrun-"));
     scratch.push(dir);
     const scriptsDir = join(dir, "rust-scripts");

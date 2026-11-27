@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseRsScript } from "../../../src/templates/rs/script-parse.ts";
@@ -67,6 +67,10 @@ describe("parseRsScript", () => {
       "hunter-suite",
       "b64.rs",
     );
+    if (!existsSync(path)) {
+      console.warn(`SKIP: reference clone absent (${path}) — .reference/ is not shipped`);
+      return;
+    }
     const source = readFileSync(path, "utf8");
     const parsed = parseRsScript(source);
     expect(parsed.meta.name).toBe("b64");
