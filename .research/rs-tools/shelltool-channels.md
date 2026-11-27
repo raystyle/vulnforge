@@ -21,12 +21,20 @@
 
 ## 语言×通道矩阵（我们 webshell 专库的覆盖面）
 
-| 通道                       | PHP                 | Java/JSP                                                            | .NET                                     |
-| -------------------------- | ------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
-| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                                             | ✅ 模板                                  |
-| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）                                   | 部分（ViewState 面在 .NET runtime 工具） |
-| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes）                            | ⬜（.NET 序列化载荷，nrbf 生成）         |
-| 隧道（NeoReGeorg/Suo5 形） | n/a                 | **做（webshell 实现）**：加密通道 webshell 即隧道端点（用户修订令） | **做**（同形）                           |
+| 通道                       | PHP                 | Java/JSP                                                            | .NET                                    |
+| -------------------------- | ------------------- | ------------------------------------------------------------------- | --------------------------------------- |
+| 明文 one-liner（fallback） | ✅ runtime.rs       | ✅ 模板                                                             | ✅ 模板                                 |
+| 加密通道（godzilla 形）    | ✅ webshell.rs 原生 | ✅ 通道协议同形（md5 派生 + AES）                                   | ✅ aspx_channel_template（同形，C# 面） |
+| class 载荷（behinder 形）  | n/a                 | ✅ behinder_channel（ECB + class bytes）                            | ⬜（.NET 序列化载荷，nrbf 生成）        |
+| 隧道（NeoReGeorg/Suo5 形） | n/a                 | **做（webshell 实现）**：加密通道 webshell 即隧道端点（用户修订令） | **做**（同形）                          |
+
+## .NET 面落点（2026-11-27 第一批）
+
+- **aspx_channel_template**：godzilla 形通道的 ASPX 渲染（Request.Headers 门 + Form[p] 密文 + XOR + Process.Start 回显 + 三明治）——通道协议与语言解耦的第三实证
+- **DotnetPayload 编排面**：`ysoserial_net_args()` 产出精确 CLI 参数向量（-g/-f/-o/-c）；复杂命令（`;`/`|`/`&`）走 `-s` stdin 模式（ysoserial.net README 转义指引）；soft atom 直接携带可执行调用串（agent 自取自用）
+- **ViewStatePayload**：machineKey 泄露 → `-p ViewState --dk/--vk/--path/--apppath/--da/--va` 完整参数向量——密钥只进调用不落配置
+- **serialized_kind_b64 补 `/wE` 前缀**：ObjectStateFormatter/LosFormatter 的 b64 面（FF 01 的 base64 形）
+- 实测命令面对照源：pwntester/ysoserial.net README --fullhelp（gadget×formatter 矩阵、插件面、ViewState 选项）
 
 ## 设计结论
 

