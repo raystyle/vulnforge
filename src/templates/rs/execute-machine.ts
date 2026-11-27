@@ -1,4 +1,4 @@
-import { createActor, setup } from "xstate";
+import { setup } from "xstate";
 
 /**
  * The exploit_rs_execute domain state machine (event-driven, mandatory):

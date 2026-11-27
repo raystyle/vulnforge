@@ -32,6 +32,18 @@ export interface VulnforgeTemplatesConfig {
     /** cargo zigbuild export targets; empty = derive from installed rustup targets. */
     exportTargets: string[];
   };
+  oob: {
+    /** Provider: interactsh (default) | collaborator | dnslog. */
+    provider: "interactsh" | "collaborator" | "dnslog";
+    /** Non-secret facts passed through as VF_OOB_* env to exploit scripts. */
+    server: string;
+    /** Collaborator polling host. */
+    pollHost: string;
+    /** Dnslog domain. */
+    domain: string;
+    /** Dnslog poll URL template ({marker} or {host} hole). */
+    pollUrl: string;
+  };
 }
 
 /** Defaults mirror the upstream corpus layout: engine configs and payloads
@@ -59,6 +71,13 @@ const DEFAULT_CONFIG: VulnforgeTemplatesConfig = {
   rs: {
     scriptsDir: "rust-scripts",
     exportTargets: [],
+  },
+  oob: {
+    provider: "interactsh",
+    server: "",
+    pollHost: "",
+    domain: "",
+    pollUrl: "",
   },
 };
 
@@ -135,6 +154,24 @@ export function parseConfig(text: string): VulnforgeTemplatesConfig {
         }
       }
       config.rs.exportTargets = exportTargets;
+    }
+  }
+  const oob = (parsed as { oob?: unknown }).oob;
+  if (typeof oob === "object" && oob !== null) {
+    const provider = (oob as { provider?: unknown }).provider;
+    if (provider !== undefined) {
+      if (provider !== "interactsh" && provider !== "collaborator" && provider !== "dnslog") {
+        throw new Error(`invalid .vulnforge.json: oob.provider must be "interactsh" | "collaborator" | "dnslog"`);
+      }
+      config.oob.provider = provider;
+    }
+    for (const key of ["server", "pollHost", "domain", "pollUrl"] as const) {
+      const value = (oob as Record<string, unknown>)[key];
+      if (value === undefined) continue;
+      if (typeof value !== "string") {
+        throw new Error(`invalid .vulnforge.json: oob.${key} must be a string`);
+      }
+      config.oob[key] = value;
     }
   }
   return config;

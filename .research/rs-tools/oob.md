@@ -34,3 +34,13 @@
 - burp_collab.rs：DNS 标签明文外传优先（免复制解码）；body 信道有丢字符风险须核 content_length_check
 - 公共 OOB 服的交互记录可能被第三方读取——marker 后不带敏感外传数据
 - 内网 lab 无公网出口时 DNS/HTTP 回调都不通——pi-rs2 解法是自托管收件器（dns_oob 自持底座）
+
+## 实现落点（2026-11-27，vf_rust_lib oob.rs 已落地）
+
+- **interactsh 协议实读核定**（gh-mcp，pkg/client + pkg/server + pkg/storage）：注册体 JSON 键是 **kebab-case**（`public-key`/`secret-key`/`correlation-id`，Go tag 直译——camelCase 服务端解出空值）；公钥**强制**（`ParseB64RSAPublicKeyFromPEM` 空串即 400，无明文通道旁路）→ rsa/aes/ctr 原生依赖不可省；载荷 = correlation-id（20 字符 xid 字母表 `0-9a-v`）+ nonce（13 字符 zbase32）；轮询 `GET /poll?id=&secret=`，响应 `{data[], extra[], aes_key, tlddata[]}`——data 项 = base64(IV ‖ AES-256-CTR(json))，aes_key = base64(RSA-OAEP-SHA256 包裹的 32 字节密钥)；extra/tlddata 为明文 JSON；交互字段 `protocol/unique-id/full-id/raw-request/remote-address/timestamp`
+- **correlation-id 检出规则**（pkg/server/util.go）：服务器按 `GetIdLength()=33` 滑窗扫 host 标签，首 20 字符必须 xid 字母表、后 13 字符 zbase32——mint 必须同形，否则交互不被归属
+- **collaborator**：biid（32 字节 b64，环境变量 VF_OOB_BIID）→ sha1 → base36 双半 + 校验字符 → `{kh}1g{counter:x}yz` 双寄存器密码加密成标签；轮询 polling.oastify.com，content_length_check 守门随行
+- **dnslog**：随机 12 字符标签 + 域名；轮询 URL 模板 `{marker}`/`{host}` 洞（VF_OOB_DOMAIN/VF_OOB_POLL_URL 环境变量）
+- **配置面**：`.vulnforge.json` `oob` 段只载非密事实（provider/server/pollHost/domain/pollUrl）→ `oobEnvFor` 映射 VF_OOB_* 透传给脚本；**token/biid 只经用户环境变量**（VF_OOB_TOKEN/VF_OOB_BIID），不落仓
+- **轮询闭环**：`poll_until(lease, poll_fn, matches)`——命中回 PollReport{hit,attempts,elapsed,deadline_hit,evidence}，超时结构化收束；auth_denied（401）即断不重试；Machine Verify 盲打形态：命中 → Outcome::Data(evidence)，超时 → Atom::timeout
+- 测试 16 项：NIST SP 800-38A F.5.5 CTR 向量、OAEP+CTR 回环、PEM 形状对服务端解析器、协作方密码可逆、租约重试/超时/认证中断；公共服全流程标 `#[ignore]`（手工验证）

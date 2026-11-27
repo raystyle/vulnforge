@@ -711,9 +711,6 @@ export function fixCommandsFor(items: EnvCheckItem[], name: string): string[] | 
     .map((line) => line.trim())
     .filter(
       (line) =>
-        line.length > 0 &&
-        !line.startsWith("Add to") &&
-        !line.startsWith("set ") &&
-        !line.startsWith("export ") === false,
+        line.length > 0 && !line.startsWith("Add to") && !line.startsWith("set ") && !line.startsWith("export "),
     );
 }

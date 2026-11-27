@@ -13,7 +13,7 @@ import type { LintFinding } from "./templates/lint.ts";
 import type { MetaColumn, TplMetaContract } from "./templates/meta.ts";
 import { benignProfile, type MockRoute, mockRoute, startMockTarget } from "./templates/mock.ts";
 import { applyRsEdit, RsEditError, validateRsPatch } from "./templates/rs/edit.ts";
-import { runRsScript } from "./templates/rs/executor.ts";
+import { oobEnvFor, runRsScript } from "./templates/rs/executor.ts";
 import { runRsExport } from "./templates/rs/export.ts";
 import {
   type DeliverFormName,
@@ -161,7 +161,8 @@ export default function (pi: ExtensionAPI): void {
           '  "db": { "filename": "templates.db", "sealFile": "templates-lock.json" },',
           '  "tools": { "nucleiPath": "", "yamllintPath": "", "rustScriptPath": "" },',
           '  "sync": { "corpusDir": "" },',
-          '  "rs": { "scriptsDir": "rust-scripts", "exportTargets": [] }',
+          '  "rs": { "scriptsDir": "rust-scripts", "exportTargets": [] },',
+          '  "oob": { "provider": "interactsh", "server": "", "pollHost": "", "domain": "", "pollUrl": "" }',
           "}",
         ].join("\n");
         writeFileSync(marker, `${skeleton}\n`);
@@ -170,8 +171,9 @@ export default function (pi: ExtensionAPI): void {
         const parsed = parseConfig(skeleton);
         return textResult(
           [
-            `scaffolded ${marker} (lint OK: db/tools/sync/rs sections parsed)`,
+            `scaffolded ${marker} (lint OK: db/tools/sync/rs/oob sections parsed)`,
             `rs.scriptsDir=${parsed.rs.scriptsDir}; rs.exportTargets=${parsed.rs.exportTargets.length} (derive from rustup targets)`,
+            "oob: provider=interactsh defaults (secrets via VF_OOB_TOKEN / VF_OOB_BIID env, never in this file)",
             "next: point sync.corpusDir at the nuclei-templates checkout, drop exploit rs into rust-scripts/, then run the rs sync.",
           ].join("\n"),
         );
@@ -885,6 +887,7 @@ export default function (pi: ExtensionAPI): void {
           scriptPath: absolute,
           args: params.args ?? [],
           ...(params.timeoutSecs !== undefined ? { timeoutSecs: params.timeoutSecs } : {}),
+          env: oobEnvFor(tools.repo.config.oob),
         });
         if (outcome.phase === "done" && outcome.result?.success === true) {
           return textResult([`exploit done (${outcome.wallMs}ms)`, JSON.stringify(outcome.result, null, 2)].join("\n"));

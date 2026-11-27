@@ -373,7 +373,7 @@ mod tests {
         let d = cfg.derive();
         assert_eq!(d.md5_key.len(), 16);
         assert_eq!(d.md5.len(), 32);
-        assert_eq!(d.md5.chars().all(|c| c.is_ascii_alphanumeric()), true); // hex uppercased: A-F0-9
+        assert!(d.md5.chars().all(|c| c.is_ascii_alphanumeric())); // hex uppercased: A-F0-9
     }
 
     #[test]
@@ -422,7 +422,7 @@ mod tests {
         let req = drive_request("http://target/shell.php", "cat /etc/passwd", &derived).unwrap();
         assert!(!req.body.contains("cat /etc/passwd"));
         assert_eq!(req.header_name, "Accept-Encoding");
-        assert!(req.body.len() > 0);
+        assert!(!req.body.is_empty());
     }
 
     #[test]

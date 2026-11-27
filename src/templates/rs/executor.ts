@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createActor } from "xstate";
+import type { VulnforgeTemplatesConfig } from "../config.ts";
 import type { AgentResult } from "./contracts.ts";
 import { parseAgentResult } from "./contracts.ts";
 import { type RsExecuteContext, RsExecuteMachine } from "./execute-machine.ts";
@@ -23,6 +24,18 @@ export interface RsRunOptions {
   rustScriptPath?: string;
   /** Env passthrough (e.g. PI_TIMEOUT_SECS for in-process timeouts). */
   env?: Record<string, string>;
+}
+
+/** Map the workspace oob config section to VF_OOB_* env (facts only — the
+ * interactsh token and collaborator biid never come from config files,
+ * they ride the user's own environment). */
+export function oobEnvFor(oob: VulnforgeTemplatesConfig["oob"]): Record<string, string> {
+  const env: Record<string, string> = { VF_OOB_PROVIDER: oob.provider };
+  if (oob.server.length > 0) env.VF_OOB_SERVER = oob.server;
+  if (oob.pollHost.length > 0) env.VF_OOB_POLL_HOST = oob.pollHost;
+  if (oob.domain.length > 0) env.VF_OOB_DOMAIN = oob.domain;
+  if (oob.pollUrl.length > 0) env.VF_OOB_POLL_URL = oob.pollUrl;
+  return env;
 }
 
 export interface RsRunOutcome {

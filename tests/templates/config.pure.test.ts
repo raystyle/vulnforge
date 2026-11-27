@@ -58,6 +58,45 @@ describe("parseConfig rs section", () => {
   });
 });
 
+describe("parseConfig oob section", () => {
+  it("defaults to interactsh with empty passthrough facts", () => {
+    const config = parseConfig("{}");
+    expect(config.oob.provider).toBe("interactsh");
+    expect(config.oob.server).toBe("");
+    expect(config.oob.pollHost).toBe("");
+    expect(config.oob.domain).toBe("");
+    expect(config.oob.pollUrl).toBe("");
+  });
+
+  it("accepts an explicit oob section", () => {
+    const config = parseConfig(
+      JSON.stringify({
+        oob: {
+          provider: "dnslog",
+          server: "oast.fun",
+          pollHost: "polling.oastify.com",
+          domain: "dns.lab",
+          pollUrl: "http://dns.lab/api?domain={host}",
+        },
+      }),
+    );
+    expect(config.oob.provider).toBe("dnslog");
+    expect(config.oob.server).toBe("oast.fun");
+    expect(config.oob.pollHost).toBe("polling.oastify.com");
+    expect(config.oob.domain).toBe("dns.lab");
+    expect(config.oob.pollUrl).toBe("http://dns.lab/api?domain={host}");
+  });
+
+  it("rejects an unknown provider", () => {
+    expect(() => parseConfig(JSON.stringify({ oob: { provider: "burpcollab" } }))).toThrow(/oob\.provider must be/);
+  });
+
+  it("rejects non-string fact fields", () => {
+    expect(() => parseConfig(JSON.stringify({ oob: { server: 5 } }))).toThrow(/oob\.server must be a string/);
+    expect(() => parseConfig(JSON.stringify({ oob: { pollUrl: true } }))).toThrow(/oob\.pollUrl must be a string/);
+  });
+});
+
 describe("findTemplatesRoot", () => {
   it("finds the marker from a nested directory", () => {
     const repo = makeRepo();

@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createActor } from "xstate";
 import { parseAgentResult } from "../../../src/templates/rs/contracts.ts";
 import { assertRsExecuteEventHandled, RsExecuteMachine } from "../../../src/templates/rs/execute-machine.ts";
-import { runRsScript } from "../../../src/templates/rs/executor.ts";
+import { oobEnvFor, runRsScript } from "../../../src/templates/rs/executor.ts";
 
 const scratch: string[] = [];
 afterAll(() => {
@@ -101,5 +101,31 @@ describe("runRsScript (real rust-script runtime)", () => {
     expect(outcome.phase).toBe("done");
     expect(outcome.result?.success).toBe(true);
     expect(outcome.result?.action).toBe("demo");
+  });
+});
+
+describe("oobEnvFor (workspace oob section to VF_OOB_* passthrough)", () => {
+  it("always sets the provider; only non-empty facts ride along", () => {
+    expect(oobEnvFor({ provider: "interactsh", server: "", pollHost: "", domain: "", pollUrl: "" })).toEqual({
+      VF_OOB_PROVIDER: "interactsh",
+    });
+  });
+
+  it("maps every non-empty fact to its env var", () => {
+    expect(
+      oobEnvFor({
+        provider: "dnslog",
+        server: "oast.fun",
+        pollHost: "polling.oastify.com",
+        domain: "dns.lab",
+        pollUrl: "http://dns.lab/api?domain={host}",
+      }),
+    ).toEqual({
+      VF_OOB_PROVIDER: "dnslog",
+      VF_OOB_SERVER: "oast.fun",
+      VF_OOB_POLL_HOST: "polling.oastify.com",
+      VF_OOB_DOMAIN: "dns.lab",
+      VF_OOB_POLL_URL: "http://dns.lab/api?domain={host}",
+    });
   });
 });

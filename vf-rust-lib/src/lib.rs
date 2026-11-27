@@ -20,6 +20,7 @@
 
 pub mod error;
 pub mod machine;
+pub mod oob;
 pub mod payload;
 pub mod report;
 pub mod runtime;

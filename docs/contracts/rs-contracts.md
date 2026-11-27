@@ -122,3 +122,4 @@
 | `RsRunOptions`                       | interface | scriptPath/args/timeoutSecs?/rustScriptPath?/env?                                                                                                      |
 | `RsRunOutcome`                       | interface | phase(done                                                                                                                                             | failed)/result?/context/wallMs |
 | `runRsScript(options)`               | 函数      | 执行器：//! 头 lint（advisory，无 name 硬拒）→ spawn rust-script（流收集+超时 kill 兜底+VF_TIMEOUT_SECS 透传）→ AgentResult 单行解析；全流程过域状态机 |
+| `oobEnvFor(oob)`                     | 函数      | workspace `oob` 配置段 → VF_OOB_* 环境变量映射（事实字段；token/biid 密钥只经用户环境，永不入配置文件）                                                |
