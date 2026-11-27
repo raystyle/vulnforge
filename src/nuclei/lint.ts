@@ -65,10 +65,15 @@ export function checkStructure(doc: TemplateInfo): LintFinding[] {
   if (!id) {
     findings.push({ level: "error", rule: "structure/missing-id", message: "template id is required" });
   } else {
-    if (id !== id.toLowerCase()) {
+    // Upstream nuclei ships CVE-shaped ids (CVE-2021-44228) as a matter of
+    // convention — 4.8k files in the corpus. The kebab-case rule targets
+    // OUR authored ids; the CVE shape is accepted verbatim (the db layer
+    // normalizes to lowercase for indexing either way).
+    const isCveShaped = /^CVE-\d{4}-\d{4,}$/.test(id);
+    if (!isCveShaped && id !== id.toLowerCase()) {
       findings.push({ level: "error", rule: "structure/id-case", message: "template id must be lowercase" });
     }
-    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
+    if (!isCveShaped && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
       findings.push({ level: "error", rule: "structure/id-format", message: "template id must be kebab-case" });
     }
     if (id.split("-").length > 5) {

@@ -553,13 +553,19 @@ export default function (pi: ExtensionAPI): void {
           filter: syncFilterFromConfig(tools.repo.config),
         });
         const seal = tools.db.seal();
+        // Persist the seal record so verifySeal has an on-disk baseline (the
+        // acceptance run found seal() only returning in-memory data).
+        writeFileSync(tools.repo.sealPath, `${JSON.stringify(seal, null, 2)}\n`);
         const lintErrors = result.lintFindings.filter((finding) => finding.errors > 0).length;
         return textResult(
           [
             `synced: ${result.synced.length}`,
-            result.failed.length > 0 ? `failed: ${JSON.stringify(result.failed.slice(0, 10))}` : "failed: 0",
+            result.failed.length > 0
+              ? `failed: ${result.failed.length} (first 10: ${JSON.stringify(result.failed.slice(0, 10))})`
+              : "failed: 0",
+            `removed: ${result.removed.length}`,
             `lint: ${lintErrors} file(s) with errors, ${result.lintFindings.length} checked`,
-            `seal: version=${seal.version} sha256=${seal.dbSha256.slice(0, 16)}… count=${seal.templateCount}`,
+            `seal: version=${seal.version} sha256=${seal.dbSha256.slice(0, 16)}… count=${seal.templateCount} (persisted to ${tools.repo.sealPath})`,
           ].join("\n"),
           result.failed.length > 0,
         );
